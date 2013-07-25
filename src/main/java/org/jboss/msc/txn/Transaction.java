@@ -18,12 +18,8 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
-
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import org.jboss.msc._private.TransactionImpl;
 
 /**
  * A transaction.
@@ -32,38 +28,6 @@ import org.jboss.msc._private.TransactionImpl;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public abstract class Transaction extends SimpleAttachable implements Attachable, TaskFactory {
-
-    /**
-     * Create a new task transaction.
-     *
-     * @param executor the executor to use to run tasks
-     * @return the transaction
-     */
-    public static Transaction create(final Executor executor) {
-        return TransactionImpl.createTransactionImpl(executor, Problem.Severity.WARNING);
-    }
-
-    /**
-     * Create a new task transaction.
-     *
-     * @param executor the executor to use to run tasks
-     * @param maxSeverity the maximum severity to allow
-     * @return the transaction
-     */
-    public static Transaction create(final Executor executor, final Problem.Severity maxSeverity) {
-        if (executor == null) {
-            throw TXN.methodParameterIsNull("executor");
-        }
-        if (maxSeverity == null) {
-            throw TXN.methodParameterIsNull("maxSeverity");
-        }
-        if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
-            throw TXN.illegalSeverity("maxSeverity");
-        }
-        return TransactionImpl.createTransactionImpl(executor, maxSeverity);
-    }
-
-    public abstract Executor getExecutor();
 
     /**
      * Indicate whether the transaction was terminated.
@@ -77,24 +41,4 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
      * @return the duration of the current transaction
      */
     public abstract long getDuration(TimeUnit unit);
-
-    public abstract ProblemReport getProblemReport();
-
-    /**
-     * Add a task to this transaction.
-     *
-     * @param task the task
-     * @return the subtask builder
-     * @throws IllegalStateException if the transaction is not open
-     */
-    public abstract <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException;
-
-    /**
-     * Indicate that the current operation on this transaction depends on the completion of the given transaction.
-     *
-     * @param other the other transaction
-     * @throws InterruptedException if the wait was interrupted
-     * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
-     */
-    public abstract void waitFor(Transaction other) throws InterruptedException, DeadlockException;
 }

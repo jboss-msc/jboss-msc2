@@ -33,28 +33,6 @@ import org.jboss.msc.service.ServiceRegistry;
 public interface ServiceContext {
 
     /**
-     * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
-     * builder properties will be pre-initialized.
-     * 
-     * @param task        the task
-     * @param transaction the transaction
-     * @param <T> the result value type (may be {@link Void})
-     * @return the builder for the task
-     * @throws IllegalStateException if this context is not accepting new tasks
-     */
-    <T> TaskBuilder<T> newTask(Executable<T> task, Transaction transaction) throws IllegalStateException;
-
-    /**
-     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
-     * 
-     * @param transaction  the transaction
-     * @return the builder for the task
-     * @throws IllegalStateException if this context is not accepting new tasks
-     */
-    TaskBuilder<Void> newTask(Transaction transaction) throws IllegalStateException;
-
-    /**
      * Gets a builder which can be used to add a service to {@code registry}.
      *
      * @param valueType   the type of the service value to be added
@@ -91,5 +69,12 @@ public interface ServiceContext {
      * @param transaction the transaction
      */
     void removeRegistry(ServiceRegistry registry, Transaction transaction);
+
+    /**
+     * Returns the {@code transaction} reportable context.
+     * 
+     * @param transaction the transaction
+     */
+    ReportableContext getReportableContext(Transaction transaction);
 
 }

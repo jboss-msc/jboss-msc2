@@ -73,11 +73,14 @@ abstract class TransactionalObject {
                 if (currentLock == transaction) {
                     return;
                 }
+                TransactionImpl transactionImpl = ((TransactionImpl) transaction);
                 try {
-                    transaction.waitFor(lock);
+                    transactionImpl.waitFor(lock);
                 } catch (DeadlockException e) {
+                    // TODO review this: isn't there a better way of adding this problem, specifically why do we need
+                    // a task controller, and how will that look like in the log?
                     final Problem problem = new Problem(null, e);
-                    transaction.getProblemReport().addProblem(problem);
+                    transactionImpl.getProblemReport().addProblem(problem);
                 } catch (InterruptedException e) {
                 }
             } else {

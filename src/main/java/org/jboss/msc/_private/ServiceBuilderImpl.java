@@ -176,7 +176,6 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
     @Override
     public ServiceContext getServiceContext() {
-        // TODO review this method, we need to discuss when is the parent service context supposed to be provided
         return new ParentServiceContext(registry.getOrCreateRegistration(transaction, transaction, name));
     }
 

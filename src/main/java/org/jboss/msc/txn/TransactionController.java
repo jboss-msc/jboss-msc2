@@ -17,6 +17,10 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.TXN;
+
+import java.util.concurrent.Executor;
+
 import org.jboss.msc._private.ManagementContextImpl;
 import org.jboss.msc._private.ServiceContextImpl;
 import org.jboss.msc._private.TransactionImpl;
@@ -38,6 +42,52 @@ public class TransactionController {
 
     public static TransactionController getInstance() {
         return instance;
+    }
+
+    /**
+     * Create a new task transaction.
+     *
+     * @param executor the executor to use to run tasks
+     * @return the transaction
+     */
+    public Transaction create(final Executor executor) {
+        return TransactionImpl.createTransactionImpl(executor, Problem.Severity.WARNING);
+    }
+
+    /**
+     * Create a new task transaction.
+     *
+     * @param executor the executor to use to run tasks
+     * @param maxSeverity the maximum severity to allow
+     * @return the transaction
+     */
+    public Transaction create(final Executor executor, final Problem.Severity maxSeverity) {
+        if (executor == null) {
+            throw TXN.methodParameterIsNull("executor");
+        }
+        if (maxSeverity == null) {
+            throw TXN.methodParameterIsNull("maxSeverity");
+        }
+        if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
+            throw TXN.illegalSeverity("maxSeverity");
+        }
+        return TransactionImpl.createTransactionImpl(executor, maxSeverity);
+    }
+
+    /**
+     * Get the transaction executor.
+     * 
+     * @param transaction the transaction
+     * @return the transaction executor
+     */
+    public Executor getExecutor(Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        return ((TransactionImpl) transaction).getExecutor();
+    }
+
+    public ProblemReport getProblemReport(Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        return ((TransactionImpl) transaction).getProblemReport();
     }
 
     /**
@@ -123,4 +173,20 @@ public class TransactionController {
         assert transaction instanceof TransactionImpl;
         return ((TransactionImpl) transaction).canCommit();
     }
+
+    /**
+     * Indicate that the current operation on {@code transaction} depends on the completion of the given {@code other}
+     * transaction.
+     * 
+     * @param transaction transaction containing current operation
+     * @param other the other transaction
+     * @throws InterruptedException if the wait was interrupted
+     * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
+     */
+    public void waitFor(Transaction transaction, Transaction other) throws InterruptedException, DeadlockException {
+        assert transaction instanceof TransactionImpl;
+        assert other instanceof TransactionImpl;
+        ((TransactionImpl) transaction).waitFor(other);
+    }
+
 }

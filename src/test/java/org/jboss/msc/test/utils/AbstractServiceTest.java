@@ -141,7 +141,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             commit(txn);
         } catch (TransactionRolledBackException e) {
             System.out.println(e);
-            for (Problem problem: txn.getProblemReport().getProblems()) {
+            for (Problem problem: transactionController.getProblemReport(txn).getProblems()) {
                 System.out.print(problem.getSeverity() + ": " + problem.getMessage());
                 if (problem.getLocation() != null) {
                     System.out.println(" at " + problem.getLocation());
@@ -267,7 +267,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
     
     private void assertNoCriticalProblems(final Transaction txn) {
-        List<Problem> problems = txn.getProblemReport().getProblems();
+        List<Problem> problems = transactionController.getProblemReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {
                 fail("Critical problem detected");

@@ -20,9 +20,11 @@ package org.jboss.msc._private;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
+import org.jboss.msc.txn.Problem;
+import org.jboss.msc.txn.Problem.Severity;
+import org.jboss.msc.txn.ProblemReport;
+import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.Transaction;
 
 /**
@@ -39,18 +41,6 @@ public class ServiceContextImpl implements ServiceContext {
 
     public static ServiceContextImpl getInstance() {
         return instance;
-    }
-
-    @Override
-    public <T> TaskBuilder<T> newTask(Executable<T> task, Transaction transaction) throws IllegalStateException {
-        // TODO can a task be created from here?
-        return null;
-    }
-
-    @Override
-    public TaskBuilder<Void> newTask(Transaction transaction) throws IllegalStateException {
-        // TODO can a task be created from here?
-        return null;
     }
 
     @Override
@@ -103,6 +93,44 @@ public class ServiceContextImpl implements ServiceContext {
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
         ((ServiceRegistryImpl)registry).remove(transaction);
+    }
+
+    @Override
+    public ReportableContext getReportableContext(Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        final ProblemReport problemReport = ((TransactionImpl) transaction).getProblemReport();
+        return new ReportableContext() {
+
+            @Override
+            public void addProblem(Problem reason) {
+                problemReport.addProblem(reason);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message) {
+                problemReport.addProblem(new Problem(null, message, severity));
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message, Throwable cause) {
+                problemReport.addProblem(new Problem(null,  message, cause, severity));
+            }
+
+            @Override
+            public void addProblem(String message, Throwable cause) {
+                problemReport.addProblem(new Problem(null, message, cause));
+            }
+
+            @Override
+            public void addProblem(String message) {
+                problemReport.addProblem(new Problem(null, message));
+            }
+
+            @Override
+            public void addProblem(Throwable cause) {
+                problemReport.addProblem(new Problem(null, cause));
+            }
+        };
     }
 
 }

@@ -105,12 +105,12 @@ public abstract class AbstractTransactionTest {
 
     protected Transaction newTransaction() {
         assertNotNull(defaultExecutor);
-        return Transaction.create(defaultExecutor);
+        return transactionController.create(defaultExecutor);
     }
 
     protected Transaction newTransaction(final Executor executor) {
         assertNotNull(executor);
-        return Transaction.create(executor);
+        return transactionController.create(executor);
     }
 
     protected static void assertCalled(final TestTask task) {

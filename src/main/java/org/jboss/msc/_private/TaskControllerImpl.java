@@ -27,10 +27,6 @@ import static org.jboss.msc._private.Bits.oneIsSet;
 
 import java.util.ArrayList;
 
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.CommitContext;
 import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.Executable;
