@@ -75,7 +75,7 @@ public interface ServiceBuilder<T> {
      * @param <D> dependency type
      * @param name the dependency name
      * @return a reference to the dependency added
-     * @throws IlegalStateException if {@link #install()} has been called.
+     * @throws IllegalStateException if {@link #install()} has been called.
      */
     <D> Dependency<D> addDependency(ServiceName name) throws IllegalStateException;
 

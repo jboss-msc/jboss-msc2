@@ -57,14 +57,24 @@ public interface ServiceContext {
     /**
      * Gets a builder which can be used to add a service to {@code registry}.
      *
+     * @param valueType   the type of the service value to be added
      * @param registry    the target service registry where new service will be installed
      * @param name        the service name
      * @param transaction the transaction
      * @return the builder for the service
      */
-    <T> ServiceBuilder<T> addService(ServiceRegistry registry, ServiceName name, Transaction transaction);
+    <T> ServiceBuilder<T> addService(Class<T> valueType, ServiceRegistry registry, ServiceName name, Transaction transaction);
 
-    
+    /**
+     * Gets a builder which can be used to add a service to {@code registry}.
+     *
+     * @param registry    the target service registry where new service will be installed
+     * @param name        the service name
+     * @param transaction the transaction
+     * @return the builder for the service
+     */
+    ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction);
+
     /**
      * Removes a service, causing this service to stop if it is {@code UP}.
      *

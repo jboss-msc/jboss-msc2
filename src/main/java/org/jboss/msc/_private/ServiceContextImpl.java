@@ -54,14 +54,31 @@ public class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
+    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
         }
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
+        if (transaction == null) {
+            throw new IllegalArgumentException("transaction is null");
+        }
         return new ServiceBuilderImpl<T>(registry, name, transaction);
+    }
+
+    @Override
+    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
+        if (registry == null) {
+            throw new IllegalArgumentException("registry is null");
+        }
+        if (name == null) {
+            throw new IllegalArgumentException("name is null");
+        }
+        if (transaction == null) {
+            throw new IllegalArgumentException("transaction is null");
+        }
+        return new ServiceBuilderImpl<Void>(registry, name, transaction);
     }
 
     @Override

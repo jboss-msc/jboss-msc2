@@ -37,9 +37,16 @@ public class ParentServiceContext extends ServiceContextImpl {
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        final ServiceBuilder<T> serviceBuilder = super.addService(registry, name, transaction);
+    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
+        final ServiceBuilder<T> serviceBuilder = super.addService(valueType, registry, name, transaction);
         ((ServiceBuilderImpl<T>) serviceBuilder).setParentDependency(parentRegistration);
+        return serviceBuilder;
+    }
+
+    @Override
+    public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
+        final ServiceBuilder<Void> serviceBuilder = super.addService(registry, name, transaction);
+        ((ServiceBuilderImpl<Void>) serviceBuilder).setParentDependency(parentRegistration);
         return serviceBuilder;
     }
 }

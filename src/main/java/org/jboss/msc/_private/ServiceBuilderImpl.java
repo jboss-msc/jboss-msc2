@@ -68,7 +68,6 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * Creates service builder.
      * @param registry     the service registry
      * @param name         service name
-     * @param service      the service itself
      * @param transaction  active transaction
      */
     ServiceBuilderImpl(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
