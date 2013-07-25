@@ -99,6 +99,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     @Override
     public ServiceBuilder<T> setService(final Service<T> service) {
+        assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
         checkAlreadyInstalled();
         if (service == null) {
             MSCLogger.SERVICE.methodParameterIsNull("service");
@@ -179,11 +180,24 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         return new ParentServiceContext(registry.getOrCreateRegistration(transaction, transaction, name));
     }
 
+    private static boolean calledFromConstructorOf(Object obj) {
+        if (obj == null) return false;
+        final String c = obj.getClass().getName();
+        final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            if (element.getMethodName().equals("<init>") && element.getClassName().equals(c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void install() {
+        assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
         if (installed) {
             return;
