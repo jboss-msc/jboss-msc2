@@ -25,8 +25,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.AttachmentKey;
-import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.Validatable;
 import org.jboss.msc.txn.ValidateContext;
 
@@ -46,15 +44,14 @@ final class CheckDependencyCycleTask implements Validatable {
      * 
      * @param service     the service to be verified
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    static void checkDependencyCycle(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
+    static void checkDependencyCycle(ServiceController<?> service, TransactionImpl transaction) {
         final CheckDependencyCycleTask task;
         if (transaction.hasAttachment(key)) {
             task = transaction.getAttachment(key);
         } else {
             task = new CheckDependencyCycleTask();
-            taskFactory.newTask().setValidatable(task).release();
+            transaction.newTask().setValidatable(task).release();
         }
         task.checkService(service);
     }

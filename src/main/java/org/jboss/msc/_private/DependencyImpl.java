@@ -61,7 +61,7 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * The incoming dependency.
      */
-    private Dependent dependent;
+    protected ServiceController<?> dependent;
 
     /**
      * Creates a simple dependency to {@code dependencyRegistration}.
@@ -120,15 +120,14 @@ class DependencyImpl<T> implements Dependency<T> {
      * 
      * @param dependent    dependent associated with this dependency
      * @param transaction  the active transaction
-     * @param taskFactory  the task factory
      */
-    void setDependent(Dependent dependent, TransactionImpl transaction, TaskFactory taskFactory) {
+    void setDependent(ServiceController<?> dependent, TransactionImpl transaction) {
         synchronized (this) {
             this.dependent = dependent;
-            dependencyRegistration.addIncomingDependency(transaction, taskFactory, this);
+            dependencyRegistration.addIncomingDependency(transaction, this);
             if (!propagateDemand) {
                 if (hasDemandedFlag()) {
-                    dependencyRegistration.addDemand(transaction, taskFactory);
+                    dependencyRegistration.addDemand(transaction, transaction);
                 }
             }
         }

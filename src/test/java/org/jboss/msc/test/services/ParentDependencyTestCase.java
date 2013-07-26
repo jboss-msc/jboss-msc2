@@ -26,6 +26,7 @@ import static org.jboss.msc.service.ServiceMode.ACTIVE;
 import static org.jboss.msc.service.ServiceMode.LAZY;
 import static org.jboss.msc.service.ServiceMode.ON_DEMAND;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -37,7 +38,6 @@ import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.Transaction;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -54,7 +54,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException {
         // new transaction
         final Transaction txn = newTransaction();
-        // obtain service bulider from >> parent<< service context
+        // obtain service builder from >> parent<< service context
         final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn);
         // create and set test service
         final TestService service = new TestService(serviceBuilder, false);
@@ -133,7 +133,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase3() throws Exception {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
@@ -153,16 +153,22 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase4() throws Exception {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
-        final TestService secondService = addChildService(firstService.getServiceContext(), secondSN, LAZY, firstSN);
+        // cannot add child service now
+        IllegalStateException expected = null;
+        try {
+            addChildService(firstService.getServiceContext(), secondSN, LAZY, firstSN);
+        } catch (IllegalStateException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
     }
 
     /**
@@ -173,16 +179,22 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase5() throws Exception {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
-        final TestService secondService = addChildService(firstService.getServiceContext(), secondSN, LAZY, firstSN);
+        // cannot add child service now
+        IllegalStateException expected = null;
+        try {
+            addChildService(firstService.getServiceContext(), secondSN, LAZY, firstSN);
+        } catch (IllegalStateException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
         assertTrue(removeService(firstSN));
-        assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
+        assertFalse(firstService.isUp());;
     }
 
     /**
@@ -193,7 +205,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase6() throws Exception {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
@@ -213,15 +225,21 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase7() throws Exception {
         final TestService firstService = addService(firstSN, ON_DEMAND);
-        final TestService secondService = addChildService(firstService.getServiceContext(), secondSN, ACTIVE, firstSN);
+        // cannot add child service now
+        IllegalStateException expected = null;
+        try {
+            addChildService(firstService.getServiceContext(), secondSN, ACTIVE, firstSN);
+        } catch (IllegalStateException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
     }
 
     /**
@@ -232,16 +250,22 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase8() throws Exception {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
-        final TestService secondService = addChildService(firstService.getServiceContext(), secondSN, ACTIVE, firstSN);
+        // cannot add child service now
+        IllegalStateException expected = null;
+        try {
+            addChildService(firstService.getServiceContext(), secondSN, ACTIVE, firstSN);
+        } catch (IllegalStateException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
     }
 
     /**
@@ -252,7 +276,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      *   <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
-    @Ignore @Test // reenable this test after parent service refactoring (when parent is no longer a dependency)
+    @Test
     public void usecase9() throws Exception {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());

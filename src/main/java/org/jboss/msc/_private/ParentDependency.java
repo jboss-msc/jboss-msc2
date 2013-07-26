@@ -17,7 +17,7 @@
  */
 package org.jboss.msc._private;
 
-import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
 
@@ -28,47 +28,14 @@ import org.jboss.msc.txn.TaskFactory;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class ParentDependency<T> extends DependencyDecorator<T> implements Dependent {
-    // child service (non-null if dependency is satisfied only)
-    private ServiceController<?> childService;
-    // child service builder, used to created child service whenever needed
-    private final ServiceBuilderImpl<?> childServiceBuilder;
+final class ParentDependency<T> extends DependencyImpl<T> {
 
-    ParentDependency(DependencyImpl<T> dependency, ServiceBuilderImpl<?> childServiceBuilder, TransactionImpl transaction) {
-        super(dependency);
-        this.childServiceBuilder = childServiceBuilder;
-    }
-
-    public void install(TransactionImpl transaction) {
-        // only at this moment the child service may be invoked
-        // for that reason, only at this moment we invoke setDependent at dependency
-        dependency.setDependent(this, transaction, transaction);
+    ParentDependency(final Registration dependencyRegistration, final TransactionImpl transaction) {
+        super(dependencyRegistration, transaction, DependencyFlag.UNREQUIRED);
     }
 
     @Override
-    public void setDependent(Dependent dependent, TransactionImpl transaction, TaskFactory taskFactory) {
-        // do nothing
-    }
-
-    @Override
-    public void clearDependent(TransactionImpl transaction, TaskFactory taskFactory) {
-        // do nothing
-    }
-
-    @Override
-    public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
-        childService = childServiceBuilder.performInstallation(this, transaction, taskFactory);
-        childService.dependencySatisfied(transaction, taskFactory);
-        return null;
-    }
-
-    @Override
-    public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
-        return childService.remove(transaction, taskFactory);
-    }
-
-    @Override
-    public ServiceName getServiceName() {
-        return childServiceBuilder.getServiceName();
+    public TaskController<?> dependencyDown(TransactionImpl transaction, TaskFactory taskFactory) {
+        return dependent.remove(transaction, taskFactory);
     }
 }

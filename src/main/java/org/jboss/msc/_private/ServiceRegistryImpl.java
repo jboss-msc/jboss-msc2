@@ -30,7 +30,6 @@ import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.TaskFactory;
 
 /**
  * A service registry.  Registries can return services by name, or get a collection of service names.
@@ -75,11 +74,11 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return registration.getController() == null? null: registration.getController().getService();
     }
 
-    Registration getOrCreateRegistration(TransactionImpl transaction, TaskFactory taskFactory, ServiceName name) {
+    Registration getOrCreateRegistration(TransactionImpl transaction, ServiceName name) {
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lockWrite(transaction, taskFactory);
+            lockWrite(transaction, transaction);
             registration = new Registration(name);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {

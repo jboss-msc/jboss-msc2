@@ -46,7 +46,7 @@ import org.jboss.msc.txn.TaskController;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class ServiceController<T> extends TransactionalObject implements Dependent {
+final class ServiceController<T> extends TransactionalObject {
 
     // controller modes
     static final byte MODE_ACTIVE      = (byte)ServiceMode.ACTIVE.ordinal();
@@ -121,20 +121,18 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
      * @param mode                the service mode
      * @param dependencies        the service dependencies
      * @param transaction         the active transaction
-     * @param taskFactory the task factory
      */
     ServiceController(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Service<T> service,
-            final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final TransactionImpl transaction,
-            final TaskFactory taskFactory) {
+            final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final TransactionImpl transaction) {
         this.service = service;
         setMode(mode);
         this.dependencies = dependencies;
         this.aliasRegistrations = aliasRegistrations;
         this.primaryRegistration = primaryRegistration;
-        lockWrite(transaction, taskFactory);
+        lockWrite(transaction, transaction);
         unsatisfiedDependencies = dependencies.length;
         for (DependencyImpl<?> dependency: dependencies) {
-            dependency.setDependent(this, transaction, taskFactory);
+            dependency.setDependent(this, transaction);
         }
     }
 
@@ -150,15 +148,14 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
      * Completes service installation, enabling the service and installing it into registrations.
      *
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    void install(ServiceRegistryImpl registry, TransactionImpl transaction, TaskFactory taskFactory) {
+    void install(ServiceRegistryImpl registry, TransactionImpl transaction) {
         assert isWriteLocked(transaction);
         // if registry is removed, get an exception right away
         registry.newServiceInstalled(this, transaction);
-        primaryRegistration.setController(transaction, taskFactory, this);
+        primaryRegistration.setController(transaction, this);
         for (Registration alias: aliasRegistrations) {
-            alias.setController(transaction, taskFactory, this);
+            alias.setController(transaction, this);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -167,9 +164,9 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
-            DemandDependenciesTask.create(this, transaction, taskFactory);
+            DemandDependenciesTask.create(this, transaction, transaction);
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction, transaction);
     }
 
     /**
@@ -215,6 +212,18 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
      * Gets the current service controller state.
      */
     synchronized int getState() {
+        return getState(state);
+    }
+
+    /**
+     * Gets the current service controller state inside {@code transaction} context.
+     * 
+     * @param transaction the transaction
+     */
+    synchronized int getState(TransactionImpl transaction) {
+        if (super.isWriteLocked(transaction)) {
+            return this.transactionalInfo.getState();
+        }
         return getState(state);
     }
 
@@ -384,12 +393,10 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
         transition(transaction, taskFactory);
     }
 
-    @Override
     public ServiceName getServiceName() {
         return primaryRegistration.getServiceName();
     }
 
-    @Override
     public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
@@ -400,7 +407,6 @@ final class ServiceController<T> extends TransactionalObject implements Dependen
         return transition(transaction, taskFactory);
     }
 
-    @Override
     public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {

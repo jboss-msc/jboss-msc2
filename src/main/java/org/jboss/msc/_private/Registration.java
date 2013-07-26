@@ -68,8 +68,8 @@ final class Registration extends TransactionalObject {
         return controller;
     }
 
-    void setController(final TransactionImpl transaction, final TaskFactory taskFactory, final ServiceController<?> serviceController) {
-        lockWrite(transaction, taskFactory);
+    void setController(final TransactionImpl transaction, final ServiceController<?> serviceController) {
+        lockWrite(transaction, transaction);
         final boolean upDemanded;
         synchronized (this) {
             this.controller = serviceController;
@@ -87,15 +87,15 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void addIncomingDependency(final TransactionImpl transaction, final TaskFactory taskFactory, final DependencyImpl<?> dependency) {
-        lockWrite(transaction, taskFactory);
+    void addIncomingDependency(final TransactionImpl transaction, final DependencyImpl<?> dependency) {
+        lockWrite(transaction, transaction);
         final boolean dependencyUp;
         synchronized (this) {
             incomingDependencies.add(dependency);
             dependencyUp = controller != null && controller.getState() == STATE_UP;
         }
         if (dependencyUp) {
-            dependency.dependencyUp(transaction, taskFactory);
+            dependency.dependencyUp(transaction, transaction);
         }
     }
 
