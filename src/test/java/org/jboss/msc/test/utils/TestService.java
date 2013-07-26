@@ -18,11 +18,17 @@
 package org.jboss.msc.test.utils;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jboss.msc.service.Dependency;
+import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.ServiceContext;
@@ -35,13 +41,20 @@ import org.jboss.msc.txn.ServiceContext;
  */
 public final class TestService implements Service<Void> {
 
+    private final ServiceContext serviceContext;
+    private final Dependency<?>[] dependencies;
     private final boolean failToStart; 
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
-    private ServiceContext serviceContext;
 
-    public TestService(final boolean failToStart) {
+    public TestService(ServiceBuilder<Void> serviceBuilder, final boolean failToStart, final DependencyInfo<?>... dependencyInfos) {
+        this.serviceContext = serviceBuilder.getServiceContext();
+        assertNotNull(serviceContext);
         this.failToStart = failToStart;
+        this.dependencies = new Dependency[dependencyInfos.length];
+        for (int i = 0; i < dependencies.length; i++) {
+            dependencies[i] = dependencyInfos[i].add(serviceBuilder);
+        }
     }
 
     @Override
@@ -77,7 +90,45 @@ public final class TestService implements Service<Void> {
         return serviceContext;
     }
 
-    public void setServiceContext(ServiceContext serviceContext) {
-        this.serviceContext = serviceContext;
+    public Dependency<?> getDependency(int index) {
+        return dependencies[index];
+    }
+
+    public static class DependencyInfo<T> {
+        private final ServiceName name;
+        private final ServiceRegistry registry;
+        private final DependencyFlag[] flags;
+
+        public DependencyInfo(ServiceName name) {
+            this(name, null, (DependencyFlag[]) null);
+        }
+
+        public DependencyInfo(ServiceName name, DependencyFlag... flags) {
+            this(name, null, flags);
+        }
+
+        public DependencyInfo(ServiceName name, ServiceRegistry registry, DependencyFlag... flags) {
+            assertNotNull(name);
+            this.name = name;
+            this.registry = registry;
+            this.flags = flags;
+        }
+
+        public Dependency<T> add(ServiceBuilder<?> serviceBuilder) {
+            // make sure we support all signatures so that test can invoke any of them, thus garanteeing coverage
+            if (registry == null) {
+                if (flags == null) {
+                    return serviceBuilder.addDependency(name);
+                } else {
+                    return serviceBuilder.addDependency(name, flags);
+                }
+            } else {
+                if (flags == null) {
+                    return serviceBuilder.addDependency(registry, name);
+                } else {
+                    return serviceBuilder.addDependency(registry, name, flags);
+                }
+            }
+        }
     }
 }

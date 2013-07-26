@@ -52,13 +52,20 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     private static final ServiceName secondSN = ServiceName.of("second");
 
     protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException {
+        // new transaction
         final Transaction txn = newTransaction();
-        final TestService service = new TestService(false);
+        // obtain service bulider from >> parent<< service context
         final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn);
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        // create and set test service
+        final TestService service = new TestService(serviceBuilder, false);
         serviceBuilder.setService(service);
+        // set mode
+        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        // install
         serviceBuilder.install();
+        // commit transaction
         commit(txn);
+        // check that parent service is there, and that child service is installed and up
         final TestService parentService = (TestService) serviceRegistry.getService(parentDependency);
         if (service.isUp() || (parentService != null && parentService.isUp())) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));

@@ -33,6 +33,7 @@ import org.jboss.msc.service.ServiceContainerFactory;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
@@ -115,17 +116,24 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
+        // new transaction
         final Transaction txn = newTransaction();
-        final TestService service = new TestService(failToStart);
+        // create service builder
         final ServiceContext serviceContext = transactionController.getServiceContext();
         final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
-        service.setServiceContext(serviceBuilder.getServiceContext());
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
-        serviceBuilder.setService(service);
-        for (ServiceName dependency: dependencies) {
-            serviceBuilder.addDependency(dependency);
+        // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
+        DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
+        for (int i = 0; i < dependencies.length; i++) {
+            dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i]);
         }
+        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
+        final TestService service = new TestService(serviceBuilder, failToStart, dependencyInfos);
+        serviceBuilder.setService(service);
+        // set mode
+        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        // install
         serviceBuilder.install();
+        // attempt to commit or check rolled back installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
             return service;
@@ -158,16 +166,24 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
+        // new transaction
         final Transaction txn = newTransaction();
-        final TestService service = new TestService(failToStart);
+        // create service builder
         final ServiceContext serviceContext = transactionController.getServiceContext();
         final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
-        serviceBuilder.setService(service);
-        for (ServiceName dependency: dependencies) {
-            serviceBuilder.addDependency(dependency, dependencyFlags);
+        // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
+        DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
+        for (int i = 0; i < dependencies.length; i++) {
+            dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i], dependencyFlags);
         }
+        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
+        final TestService service = new TestService(serviceBuilder, failToStart, dependencyInfos);
+        serviceBuilder.setService(service);
+        // set mode
+        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        // install
         serviceBuilder.install();
+        // attempt to commit or check rolled back installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
             return service;
