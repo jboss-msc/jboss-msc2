@@ -41,27 +41,37 @@ public final class ManagementContextImpl implements ManagementContext {
 
     @Override
     public void disableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((TransactionImpl) transaction);
     }
 
     @Override
     public void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((TransactionImpl) transaction);
     }
 
     @Override
     public void disableRegistry(ServiceRegistry registry, Transaction transaction) {
-        ((ServiceRegistryImpl)registry).disable(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
+        ((ServiceRegistryImpl)registry).disable((TransactionImpl) transaction);
     }
 
     @Override
     public void enableRegistry(ServiceRegistry registry, Transaction transaction) {
-        ((ServiceRegistryImpl)registry).enable(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
+        ((ServiceRegistryImpl)registry).enable((TransactionImpl) transaction);
     }
 
     @Override
     public void shutdownContainer(ServiceContainer container, Transaction transaction) {
-        ((ServiceContainerImpl)container).shutdown(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert container instanceof ServiceContainerImpl;
+        ((ServiceContainerImpl)container).shutdown((TransactionImpl) transaction);
     }
 
 }

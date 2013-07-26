@@ -20,7 +20,6 @@ package org.jboss.msc._private;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Parent dependency. The dependent is created whenever dependency is satisfied, and is removed whenever
@@ -35,36 +34,36 @@ final class ParentDependency<T> extends DependencyDecorator<T> implements Depend
     // child service builder, used to created child service whenever needed
     private final ServiceBuilderImpl<?> childServiceBuilder;
 
-    ParentDependency(DependencyImpl<T> dependency, ServiceBuilderImpl<?> childServiceBuilder, Transaction transaction) {
+    ParentDependency(DependencyImpl<T> dependency, ServiceBuilderImpl<?> childServiceBuilder, TransactionImpl transaction) {
         super(dependency);
         this.childServiceBuilder = childServiceBuilder;
     }
 
-    public void install(Transaction transaction) {
+    public void install(TransactionImpl transaction) {
         // only at this moment the child service may be invoked
         // for that reason, only at this moment we invoke setDependent at dependency
         dependency.setDependent(this, transaction, transaction);
     }
 
     @Override
-    public void setDependent(Dependent dependent, Transaction transaction, TaskFactory taskFactory) {
+    public void setDependent(Dependent dependent, TransactionImpl transaction, TaskFactory taskFactory) {
         // do nothing
     }
 
     @Override
-    public void clearDependent(Transaction transaction, TaskFactory taskFactory) {
+    public void clearDependent(TransactionImpl transaction, TaskFactory taskFactory) {
         // do nothing
     }
 
     @Override
-    public TaskController<?> dependencySatisfied(Transaction transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
         childService = childServiceBuilder.performInstallation(this, transaction, taskFactory);
         childService.dependencySatisfied(transaction, taskFactory);
         return null;
     }
 
     @Override
-    public TaskController<?> dependencyUnsatisfied(Transaction transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
         return childService.remove(transaction, taskFactory);
     }
 

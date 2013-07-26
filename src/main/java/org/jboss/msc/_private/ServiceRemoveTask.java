@@ -21,7 +21,6 @@ import static org.jboss.msc._private.ServiceController.STATE_REMOVED;
 
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Service removal task.
@@ -30,10 +29,10 @@ import org.jboss.msc.txn.Transaction;
  *
  */
 final class ServiceRemoveTask implements Executable<Void> {
-    private final Transaction transaction;
+    private final TransactionImpl transaction;
     private final ServiceController<?> serviceController;
 
-    ServiceRemoveTask(ServiceController<?> serviceController, Transaction transaction) {
+    ServiceRemoveTask(ServiceController<?> serviceController, TransactionImpl transaction) {
         this.transaction = transaction;
         this.serviceController = serviceController;
     }

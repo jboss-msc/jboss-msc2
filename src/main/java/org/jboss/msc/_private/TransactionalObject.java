@@ -30,7 +30,6 @@ import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackContext;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.Validatable;
 import org.jboss.msc.txn.ValidateContext;
 
@@ -50,7 +49,7 @@ abstract class TransactionalObject {
     private static AttachmentKey<Map<TransactionalObject, Object>> TRANSACTIONAL_OBJECTS = AttachmentKey.create();
 
     // inner lock
-    private Transaction lock;
+    private TransactionImpl lock;
 
     /**
      * Write locks this object under {@code transaction}. If another transaction holds the lock, this method will block
@@ -61,11 +60,11 @@ abstract class TransactionalObject {
      * @param transaction the transaction that is attempting to modify current's object state
      * @param taskFactory the  task factory
      */
-    final void lockWrite(Transaction transaction, TaskFactory taskFactory) {
+    final void lockWrite(TransactionImpl transaction, TaskFactory taskFactory) {
         assert !Thread.holdsLock(this);
         final Object snapshot;
         while (true) {
-            Transaction currentLock;
+            TransactionImpl currentLock;
             synchronized (this) {
                 currentLock = lock;
             }
@@ -73,14 +72,13 @@ abstract class TransactionalObject {
                 if (currentLock == transaction) {
                     return;
                 }
-                TransactionImpl transactionImpl = ((TransactionImpl) transaction);
                 try {
-                    transactionImpl.waitFor(lock);
+                    transaction.waitFor(lock);
                 } catch (DeadlockException e) {
                     // TODO review this: isn't there a better way of adding this problem, specifically why do we need
                     // a task controller, and how will that look like in the log?
                     final Problem problem = new Problem(null, e);
-                    transactionImpl.getProblemReport().addProblem(problem);
+                    transaction.getProblemReport().addProblem(problem);
                 } catch (InterruptedException e) {
                 }
             } else {
@@ -124,7 +122,7 @@ abstract class TransactionalObject {
      * @param transaction an active transaction
      * @return {@code true} only if this object is locked by {@code transaction}.
      */
-    synchronized final boolean isWriteLocked(Transaction transaction) {
+    synchronized final boolean isWriteLocked(TransactionImpl transaction) {
         return lock == transaction;
     }
 
@@ -162,7 +160,7 @@ abstract class TransactionalObject {
      * @param transaction the transaction under which this object is locked
      * @param context     the service context
      */
-    void writeLocked(Transaction transaction) {}
+    void writeLocked(TransactionImpl transaction) {}
 
     /**
      * Notifies that this object is now write unlocked.

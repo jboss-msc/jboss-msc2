@@ -34,6 +34,7 @@ import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.ProblemReport;
 import org.jboss.msc.txn.TaskBuilder;
+import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionRolledBackException;
 
@@ -41,7 +42,7 @@ import org.jboss.msc.txn.TransactionRolledBackException;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TransactionImpl extends Transaction {
+public final class TransactionImpl extends Transaction implements TaskFactory {
 
     static {
         MSCLogger.ROOT.greeting(Version.getVersionString());

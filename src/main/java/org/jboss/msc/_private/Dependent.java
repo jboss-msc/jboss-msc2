@@ -44,7 +44,7 @@ public interface Dependent {
      * @param taskFactory the task factory
      * @return the transition task resulting of this notification, if any
      */
-    public TaskController<?> dependencySatisfied(Transaction transaction, TaskFactory taskFactory);
+    public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory);
 
     /**
      * Notifies that a dependency no longer satisfied.
@@ -53,6 +53,6 @@ public interface Dependent {
      * @param taskFactory the task factory
      * @return the transition task resulting of this notification, if any
      */
-    public TaskController<?> dependencyUnsatisfied(Transaction transaction, TaskFactory taskFactory);
+    public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory);
 
 }

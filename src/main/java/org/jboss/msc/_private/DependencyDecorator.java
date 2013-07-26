@@ -20,7 +20,6 @@ package org.jboss.msc._private;
 import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Dependency decorator. Builds extra functionality on top of {@link SimpleDependency}.
@@ -37,12 +36,12 @@ class DependencyDecorator<T> extends DependencyImpl<T> {
     }
 
     @Override
-    public void setDependent(Dependent dependent, Transaction transaction, TaskFactory taskFactory) {
+    public void setDependent(Dependent dependent, TransactionImpl transaction, TaskFactory taskFactory) {
         dependency.setDependent(dependent, transaction, taskFactory);
     }
 
     @Override
-    public void clearDependent(Transaction transaction, TaskFactory taskFactory) {
+    public void clearDependent(TransactionImpl transaction, TaskFactory taskFactory) {
         dependency.clearDependent(transaction, taskFactory);
     }
 
@@ -52,22 +51,22 @@ class DependencyDecorator<T> extends DependencyImpl<T> {
     }
 
     @Override
-    public void demand(Transaction transaction, TaskFactory taskFactory) {
+    public void demand(TransactionImpl transaction, TaskFactory taskFactory) {
         dependency.demand(transaction, taskFactory);
     }
 
     @Override
-    public void undemand(Transaction transaction, TaskFactory taskFactory) {
+    public void undemand(TransactionImpl transaction, TaskFactory taskFactory) {
         dependency.undemand(transaction, taskFactory);
     }
 
     @Override
-    public TaskController<?> dependencyUp(Transaction transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencyUp(TransactionImpl transaction, TaskFactory taskFactory) {
         return dependency.dependencyUp(transaction, taskFactory);
     }
 
     @Override
-    public TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencyDown(TransactionImpl transaction, TaskFactory taskFactory) {
         return dependency.dependencyDown(transaction, taskFactory);
     }
 

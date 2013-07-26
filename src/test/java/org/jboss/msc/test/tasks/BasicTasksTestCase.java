@@ -71,7 +71,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
@@ -89,7 +89,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // commit transaction
         commit(transaction);
@@ -107,7 +107,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
@@ -127,7 +127,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
@@ -145,7 +145,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
@@ -165,7 +165,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // roll back transaction
         rollback(transaction);
@@ -202,7 +202,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         }
         // install task
         Task task = new Task(3, 4);
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
@@ -220,11 +220,11 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // instal first task
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder1 = transaction.newTask(task1);
+        final TaskBuilder<Object> taskBuilder1 = transactionController.newTask(transaction, task1);
         final TaskController<Object> controller1 = taskBuilder1.release();
         // instal second task depending on first one
         final TrackingTask task2 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder2 = transaction.newTask(task2).addDependency(controller1);
+        final TaskBuilder<Object> taskBuilder2 = transactionController.newTask(transaction, task2).addDependency(controller1);
         final TaskController<Object> controller2 = taskBuilder2.release();
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
@@ -248,14 +248,14 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task1);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task1);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
         // install task 2 - should fail because transaction have been prepared
         final TrackingTask task2 = new TrackingTask();
         try {
-            transaction.newTask(task2).release();
+            transactionController.newTask(transaction, task2).release();
             fail("cannot add new tasks to prepared transaction");
         } catch (InvalidTransactionStateException expected) {
         }
@@ -279,14 +279,14 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task1);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task1);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
         // install task 2 - should fail because transaction have been commited
         final TrackingTask task2 = new TrackingTask();
         try {
-            transaction.newTask(task2).release();
+            transactionController.newTask(transaction, task2).release();
             fail("cannot add new tasks to committed transaction");
         } catch (InvalidTransactionStateException expected) {
         }
@@ -308,14 +308,14 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final Transaction transaction = newTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = transaction.newTask(task1);
+        final TaskBuilder<Object> taskBuilder = transactionController.newTask(transaction, task1);
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
         // install task 2 - should fail because transaction have been rolled back
         final TrackingTask task2 = new TrackingTask();
         try {
-            transaction.newTask(task2).release();
+            transactionController.newTask(transaction, task2).release();
             fail("cannot add new tasks to rolled back transaction");
         } catch (InvalidTransactionStateException expected) {
         }
@@ -343,7 +343,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             for (int j = 0; j < 8; j++) {
                 final TrackingTask task = new TrackingTask();
                 tasks[i][j] = task;
-                final TaskBuilder<Object> builder = transaction.newTask(task);
+                final TaskBuilder<Object> builder = transactionController.newTask(transaction, task);
                 if (i > 0) {
                     int x = r.nextInt();
                     for (int b = 0; b < 8; b++) {

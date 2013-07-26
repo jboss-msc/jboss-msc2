@@ -31,7 +31,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * A service registry.  Registries can return services by name, or get a collection of service names.
@@ -76,7 +75,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return registration.getController() == null? null: registration.getController().getService();
     }
 
-    Registration getOrCreateRegistration(Transaction transaction, TaskFactory taskFactory, ServiceName name) {
+    Registration getOrCreateRegistration(TransactionImpl transaction, TaskFactory taskFactory, ServiceName name) {
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
@@ -102,7 +101,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return controller;
     }
 
-    void remove(Transaction transaction) {
+    void remove(TransactionImpl transaction) {
         synchronized(this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -118,7 +117,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void newServiceInstalled(ServiceController<?> service, Transaction transaction) {
+    synchronized void newServiceInstalled(ServiceController<?> service, TransactionImpl transaction) {
         checkRemoved();
         if (Bits.anyAreSet(state, ENABLED)) {
             service.enableRegistry(transaction);
@@ -127,7 +126,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void disable(Transaction transaction) {
+    synchronized void disable(TransactionImpl transaction) {
         checkRemoved();
         // idempotent
         if (!Bits.anyAreSet(state, ENABLED)) {
@@ -142,7 +141,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void enable(Transaction transaction) {
+    synchronized void enable(TransactionImpl transaction) {
         checkRemoved();
         // idempotent
         if (Bits.anyAreSet(state, ENABLED)) {

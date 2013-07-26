@@ -30,11 +30,10 @@ import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Factory;
 import org.jboss.msc.txn.Problem;
+import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Tasks executed when a service is starting.
@@ -64,7 +63,7 @@ final class StartingServiceTasks {
      *                           conclusion of starting transition.
      */
     static <T> TaskController<Void> create(ServiceController<T> serviceController,
-            TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+            TaskController<?> taskDependency, TransactionImpl transaction, TaskFactory taskFactory) {
 
         final Service<T> serviceValue = serviceController.getService();
 
@@ -99,7 +98,7 @@ final class StartingServiceTasks {
      * @return                   the final task to be executed. Can be used for creating tasks that depend on the
      *                           conclusion of starting transition.
      */
-    static <T> TaskController<Void> create(ServiceController<T> serviceController, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceController<T> serviceController, TransactionImpl transaction, TaskFactory taskFactory) {
         return create(serviceController, null, transaction, taskFactory);
     }
 
@@ -112,10 +111,10 @@ final class StartingServiceTasks {
      */
     private static class NotifyDependentStartTask implements Executable<Void> {
 
-        private final Transaction transaction;
+        private final TransactionImpl transaction;
         private final ServiceController<?> serviceController;
 
-        public NotifyDependentStartTask(Transaction transaction, ServiceController<?> serviceController) {
+        public NotifyDependentStartTask(TransactionImpl transaction, ServiceController<?> serviceController) {
             this.transaction = transaction;
             this.serviceController = serviceController;
         }
@@ -141,9 +140,9 @@ final class StartingServiceTasks {
     static class StartServiceTask<T> implements Executable<T> {
 
         private final Service<T> service;
-        private final Transaction transaction;
+        private final TransactionImpl transaction;
 
-        StartServiceTask(final Service<T> service, final Transaction transaction) {
+        StartServiceTask(final Service<T> service, final TransactionImpl transaction) {
             this.service = service;
             this.transaction = transaction;
         }
@@ -234,9 +233,9 @@ final class StartingServiceTasks {
 
         private final ServiceController<T> service;
         private final TaskController<T> serviceStartTask;
-        private final Transaction transaction;
+        private final TransactionImpl transaction;
 
-        private SetServiceUpTask (ServiceController<T> service, TaskController<T> serviceStartTask, Transaction transaction) {
+        private SetServiceUpTask (ServiceController<T> service, TaskController<T> serviceStartTask, TransactionImpl transaction) {
             this.service = service;
             this.serviceStartTask = serviceStartTask;
             this.transaction = transaction;

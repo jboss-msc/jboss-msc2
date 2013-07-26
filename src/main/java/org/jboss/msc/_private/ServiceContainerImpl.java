@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * A transactional service container.
@@ -43,7 +42,7 @@ public final class ServiceContainerImpl implements ServiceContainer {
         return returnValue;
     }
 
-    void shutdown(final Transaction txn) {
+    void shutdown(final TransactionImpl txn) {
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

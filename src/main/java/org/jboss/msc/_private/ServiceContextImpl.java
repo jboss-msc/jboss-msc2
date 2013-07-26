@@ -45,6 +45,8 @@ public class ServiceContextImpl implements ServiceContext {
 
     @Override
     public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
         }
@@ -54,11 +56,13 @@ public class ServiceContextImpl implements ServiceContext {
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<T>(registry, name, transaction);
+        return new ServiceBuilderImpl<T>((ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
     }
 
     @Override
     public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
         }
@@ -68,11 +72,13 @@ public class ServiceContextImpl implements ServiceContext {
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<Void>(registry, name, transaction);
+        return new ServiceBuilderImpl<Void>((ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
     }
 
     @Override
     public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
         }
@@ -87,12 +93,14 @@ public class ServiceContextImpl implements ServiceContext {
         if (controller == null) {
             return;
         }
-        controller.remove(transaction, transaction); // FIXME we need an appropriate task factory to pass along as second parameter
+        controller.remove((TransactionImpl) transaction, (TransactionImpl) transaction);
     }
 
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
-        ((ServiceRegistryImpl)registry).remove(transaction);
+        assert transaction instanceof TransactionImpl;
+        assert registry instanceof ServiceRegistryImpl;
+        ((ServiceRegistryImpl)registry).remove((TransactionImpl) transaction);
     }
 
     @Override

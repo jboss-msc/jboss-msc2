@@ -32,7 +32,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * A service builder.
@@ -56,7 +55,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // dependencies
     private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<ServiceName, DependencyImpl<?>>();
     // active transaction
-    private final Transaction transaction;
+    private final TransactionImpl transaction;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -70,8 +69,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * @param name         service name
      * @param transaction  active transaction
      */
-    ServiceBuilderImpl(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        this.transaction = transaction;
+    ServiceBuilderImpl(final ServiceRegistryImpl registry, final ServiceName name, final TransactionImpl transaction) {
+        this.transaction = (TransactionImpl) transaction;
         this.registry = (ServiceRegistryImpl)registry;
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
@@ -223,7 +222,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * 
      * @return the installed service controller
      */
-    ServiceController<?> performInstallation(ParentDependency<?> parentDependency, Transaction transaction, TaskFactory taskFactory) {
+    ServiceController<?> performInstallation(ParentDependency<?> parentDependency, TransactionImpl transaction, TaskFactory taskFactory) {
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, taskFactory, name);
 

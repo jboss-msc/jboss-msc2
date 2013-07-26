@@ -25,7 +25,6 @@ import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Task for undemanding dependencies.
@@ -34,7 +33,7 @@ import org.jboss.msc.txn.Transaction;
  */
 class UndemandDependenciesTask implements Executable<Void> {
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
     private ServiceController<?> service;
 
     /**
@@ -46,7 +45,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @return the task controller
      */
     @SuppressWarnings("unchecked")
-    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, TransactionImpl transaction, TaskFactory taskFactory) {
         return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
@@ -61,7 +60,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @param taskFactory      the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, Collection<TaskController<?>> taskDependencies, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, Collection<TaskController<?>> taskDependencies, TransactionImpl transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -72,7 +71,7 @@ class UndemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private UndemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
+    private UndemandDependenciesTask(TransactionImpl transaction, ServiceController<?> service) {
         this.transaction = transaction;
         this.service = service;
     }

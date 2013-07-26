@@ -28,7 +28,6 @@ import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 
 /**
@@ -75,7 +74,7 @@ class DependencyImpl<T> implements Dependency<T> {
      *                               should be demanded when {@link #demand(Transaction, ServiceContext) requested}.
      * @param transaction            the active transaction
      */
-    protected DependencyImpl(final Registration dependencyRegistration, final Transaction transaction, final DependencyFlag... flags) {
+    protected DependencyImpl(final Registration dependencyRegistration, final TransactionImpl transaction, final DependencyFlag... flags) {
         byte translatedFlags = 0;
         for (final DependencyFlag flag : flags) {
             if (flag != null) {
@@ -123,7 +122,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction  the active transaction
      * @param taskFactory  the task factory
      */
-    void setDependent(Dependent dependent, Transaction transaction, TaskFactory taskFactory) {
+    void setDependent(Dependent dependent, TransactionImpl transaction, TaskFactory taskFactory) {
         synchronized (this) {
             this.dependent = dependent;
             dependencyRegistration.addIncomingDependency(transaction, taskFactory, this);
@@ -141,7 +140,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction   the active transaction
      * @param taskFactory   the task factory
      */
-    void clearDependent(Transaction transaction, TaskFactory taskFactory) {
+    void clearDependent(TransactionImpl transaction, TaskFactory taskFactory) {
         dependencyRegistration.removeIncomingDependency(transaction, taskFactory, this);
     }
 
@@ -160,7 +159,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void demand(Transaction transaction, TaskFactory taskFactory) {
+    void demand(TransactionImpl transaction, TaskFactory taskFactory) {
         if (propagateDemand) {
             dependencyRegistration.addDemand(transaction, taskFactory);
         }
@@ -172,7 +171,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void undemand(Transaction transaction, TaskFactory taskFactory) {
+    void undemand(TransactionImpl transaction, TaskFactory taskFactory) {
         if (propagateDemand) {
             dependencyRegistration.removeDemand(transaction, taskFactory);
         }
@@ -184,7 +183,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction   the active transaction
      * @param context       the service context
      */
-    TaskController<?> dependencyUp(Transaction transaction, TaskFactory taskFactory) {
+    TaskController<?> dependencyUp(TransactionImpl transaction, TaskFactory taskFactory) {
         return dependent.dependencySatisfied(transaction, taskFactory);
     }
 
@@ -194,7 +193,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction    the active transaction
      * @param taskFactory    the task factory
      */
-    TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
+    TaskController<?> dependencyDown(TransactionImpl transaction, TaskFactory taskFactory) {
         return dependent.dependencyUnsatisfied(transaction, taskFactory);
     }
 

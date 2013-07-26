@@ -22,7 +22,6 @@ import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TaskFactory;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Task for demanding dependencies.
@@ -31,7 +30,7 @@ import org.jboss.msc.txn.Transaction;
  */
 class DemandDependenciesTask implements Executable<Void> {
 
-    private Transaction transaction;
+    private TransactionImpl transaction;
     private ServiceController<?> service;
 
     /**
@@ -42,7 +41,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory  the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, TransactionImpl transaction, TaskFactory taskFactory) {
         return create(service, null, transaction, taskFactory);
     }
 
@@ -57,7 +56,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory    the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, TaskController<?> taskDependency, TransactionImpl transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -68,7 +67,7 @@ class DemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private DemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
+    private DemandDependenciesTask(TransactionImpl transaction, ServiceController<?> service) {
         this.transaction = transaction;
         this.service = service;
     }
