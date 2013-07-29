@@ -50,7 +50,7 @@ import org.junit.Before;
  */
 public abstract class AbstractTransactionTest {
 
-    protected static final TransactionController transactionController = TransactionController.getInstance();
+    protected static final TransactionController transactionController = TransactionController.createInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
     @Before
@@ -233,7 +233,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void prepareAndRollbackFromListener(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final RevertingListener transactionListener = new RevertingListener();
+        final RevertingListener transactionListener = new RevertingListener(transactionController);
         transactionController.prepare(transaction, transactionListener);
         transactionListener.awaitRollback();
         assertReverted(transaction);
@@ -241,7 +241,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void prepareAndCommitFromListener(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final CommittingListener transactionListener = new CommittingListener();
+        final CommittingListener transactionListener = new CommittingListener(transactionController);
         transactionController.prepare(transaction, transactionListener);
         transactionListener.awaitCommit();
         assertCommitted(transaction);

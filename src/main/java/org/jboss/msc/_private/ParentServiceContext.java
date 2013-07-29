@@ -21,6 +21,7 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.TransactionController;
 
 /**
  * Parent service context: behaves just like service context super class except that newly created services are
@@ -32,7 +33,8 @@ import org.jboss.msc.txn.Transaction;
 public class ParentServiceContext extends ServiceContextImpl {
     private final Registration parentRegistration;
 
-    public ParentServiceContext(Registration parentRegistration) {
+    public ParentServiceContext(Registration parentRegistration, TransactionController transactionController) {
+        super (transactionController);
         this.parentRegistration = parentRegistration;
     }
 

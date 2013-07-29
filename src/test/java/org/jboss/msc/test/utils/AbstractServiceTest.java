@@ -110,7 +110,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void shutdownContainer(final ServiceContainer serviceContainer) throws Exception {
         final Transaction txn = newTransaction();
-        transactionController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn)).release();
+        transactionController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn, transactionController)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -233,7 +233,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
         assertNotNull(serviceRegistry.getService(serviceName));
         final Transaction txn = newTransaction();
-        transactionController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName,txn)).release();
+        transactionController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName,txn, transactionController)).release();
         if (attemptToCommit(txn)) {
             assertNoCriticalProblems(txn);
             assertNull(serviceRegistry.getService(serviceName));

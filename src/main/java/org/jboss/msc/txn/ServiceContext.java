@@ -23,8 +23,10 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 
 /**
- * A service context, which can be used to add new tasks, services and registries inside a transaction context. Can only
- * be used with active transactions, that have not been prepared to commit nor rolled back.
+ * A service context can be used to add new tasks, and to create and remove services and registries.
+ * Each one of these operations is controlled by a transaction, which must belong to the same {@code
+ * TransactionController} that provided this service context, {@link org.jboss.msc.txn.TransactionController#
+ * getServiceContext() directly} or {@link ServiceBuilder#getServiceContext() indirectly}.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>

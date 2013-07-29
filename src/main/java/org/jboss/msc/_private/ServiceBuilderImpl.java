@@ -31,6 +31,7 @@ import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.ServiceContext;
+import org.jboss.msc.txn.TransactionController;
 
 /**
  * A service builder.
@@ -43,6 +44,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
     static final DependencyFlag[] noFlags = new DependencyFlag[0];
 
+    // the transaction controller
+    private final TransactionController transactionController;
     // the service registry
     private final ServiceRegistryImpl registry;
     // service name
@@ -66,7 +69,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * @param name         service name
      * @param transaction  active transaction
      */
-    ServiceBuilderImpl(final ServiceRegistryImpl registry, final ServiceName name, final TransactionImpl transaction) {
+    ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final TransactionImpl transaction) {
+        this.transactionController = transactionController;
         this.transaction = (TransactionImpl) transaction;
         this.registry = (ServiceRegistryImpl)registry;
         this.name = name;
@@ -170,7 +174,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
     @Override
     public ServiceContext getServiceContext() {
-        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name));
+        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name), transactionController);
     }
 
     private static boolean calledFromConstructorOf(Object obj) {

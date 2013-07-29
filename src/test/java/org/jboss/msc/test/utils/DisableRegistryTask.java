@@ -41,7 +41,7 @@ final class DisableRegistryTask implements Executable<Void> {
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.getInstance().getManagementContext();
+        final ManagementContext managementContext = TransactionController.createInstance().getManagementContext();
         managementContext.disableRegistry(registry, transaction);
         context.complete();
     }

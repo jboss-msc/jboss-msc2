@@ -35,6 +35,7 @@ import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.ProblemReport;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.TransactionRolledBackException;
 
 /**
@@ -96,6 +97,7 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
     private static final int T_COMMITTING_to_COMMITTED  = 8;
 
     private final long startTime = System.nanoTime();
+    private final TransactionController controller;
     private final Executor taskExecutor;
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
@@ -133,9 +135,14 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
 
     private volatile boolean isRollbackRequested;
 
-    private TransactionImpl(final Executor taskExecutor, final Problem.Severity maxSeverity) {
+    private TransactionImpl(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        this.controller = controller;
         this.taskExecutor = taskExecutor;
         this.maxSeverity = maxSeverity;
+    }
+
+    public TransactionController getController() {
+        return controller;
     }
 
     public Executor getExecutor() {
@@ -460,8 +467,8 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
         }
     }
 
-    public static TransactionImpl createTransactionImpl(final Executor taskExecutor, final Problem.Severity maxSeverity) {
-        final TransactionImpl txn = new TransactionImpl(taskExecutor, maxSeverity);
+    public static TransactionImpl createTransactionImpl(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        final TransactionImpl txn = new TransactionImpl(controller, taskExecutor, maxSeverity);
         try {
             Transactions.register(txn);
         } catch (final IllegalStateException e) {

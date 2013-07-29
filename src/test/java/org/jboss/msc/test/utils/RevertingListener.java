@@ -30,8 +30,12 @@ import org.jboss.msc.txn.TransactionController;
  */
 public final class RevertingListener implements Listener<Transaction> {
 
-    private final TransactionController transactionController = TransactionController.getInstance();
+    private final TransactionController transactionController;
     private final CompletionListener listener = new CompletionListener();
+
+    public RevertingListener(TransactionController transactionController) {
+        this.transactionController = transactionController;
+    }
 
     @Override
     public void handleEvent(final Transaction subject) {

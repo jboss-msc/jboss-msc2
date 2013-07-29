@@ -26,6 +26,7 @@ import org.jboss.msc.txn.ProblemReport;
 import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.TransactionController;
 
 /**
  * ServiceContext implementation.
@@ -33,19 +34,15 @@ import org.jboss.msc.txn.Transaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class ServiceContextImpl implements ServiceContext {
+public class ServiceContextImpl extends TransactionControllerContext implements ServiceContext {
 
-    private static ServiceContextImpl instance = new ServiceContextImpl();
-
-    ServiceContextImpl() {}
-
-    public static ServiceContextImpl getInstance() {
-        return instance;
+    public ServiceContextImpl(TransactionController transactionController) {
+        super(transactionController);
     }
 
     @Override
     public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
@@ -56,12 +53,12 @@ public class ServiceContextImpl implements ServiceContext {
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<T>((ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
+        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
     }
 
     @Override
     public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
@@ -72,12 +69,12 @@ public class ServiceContextImpl implements ServiceContext {
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<Void>((ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
+        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
     }
 
     @Override
     public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         if (registry == null) {
             throw new IllegalArgumentException("registry is null");
@@ -98,14 +95,14 @@ public class ServiceContextImpl implements ServiceContext {
 
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         ((ServiceRegistryImpl)registry).remove((TransactionImpl) transaction);
     }
 
     @Override
     public ReportableContext getReportableContext(Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         final ProblemReport problemReport = ((TransactionImpl) transaction).getProblemReport();
         return new ReportableContext() {
 

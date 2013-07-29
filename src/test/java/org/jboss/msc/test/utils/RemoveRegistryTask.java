@@ -42,7 +42,7 @@ final class RemoveRegistryTask implements Executable<Void> {
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ServiceContext serviceContext = TransactionController.getInstance().getServiceContext();
+        final ServiceContext serviceContext = TransactionController.createInstance().getServiceContext();
         serviceContext.removeRegistry(registry, transaction);
         context.complete();
     }

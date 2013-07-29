@@ -22,6 +22,7 @@ import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.TransactionController;
 
 /**
  * ManagementContext implementation.
@@ -29,47 +30,42 @@ import org.jboss.msc.txn.Transaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public final class ManagementContextImpl implements ManagementContext {
+public final class ManagementContextImpl extends TransactionControllerContext implements ManagementContext {
 
-    private static final ManagementContextImpl instance = new ManagementContextImpl();
-
-    public static ManagementContextImpl getInstance() {
-        return instance;
+    public ManagementContextImpl(TransactionController transactionController) {
+        super(transactionController);
     }
-
-    private ManagementContextImpl() {}
 
     @Override
     public void disableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
-        assert registry instanceof ServiceRegistryImpl;
+        validateTransaction(transaction);
         ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((TransactionImpl) transaction);
     }
 
     @Override
     public void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((TransactionImpl) transaction);
     }
 
     @Override
     public void disableRegistry(ServiceRegistry registry, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         ((ServiceRegistryImpl)registry).disable((TransactionImpl) transaction);
     }
 
     @Override
     public void enableRegistry(ServiceRegistry registry, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
         ((ServiceRegistryImpl)registry).enable((TransactionImpl) transaction);
     }
 
     @Override
     public void shutdownContainer(ServiceContainer container, Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert container instanceof ServiceContainerImpl;
         ((ServiceContainerImpl)container).shutdown((TransactionImpl) transaction);
     }

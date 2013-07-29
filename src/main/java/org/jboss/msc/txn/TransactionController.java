@@ -36,12 +36,13 @@ import org.jboss.msc.service.ManagementContext;
  */
 public class TransactionController extends SimpleAttachable {
 
-    private static final TransactionController instance = new TransactionController();
+    private final ManagementContext managementContext = new ManagementContextImpl(this);
+    private final ServiceContext serviceContext = new ServiceContextImpl(this);
 
     private TransactionController() {}
 
-    public static TransactionController getInstance() {
-        return instance;
+    public static TransactionController createInstance() {
+        return new TransactionController();
     }
 
     /**
@@ -51,7 +52,7 @@ public class TransactionController extends SimpleAttachable {
      * @return the transaction
      */
     public Transaction create(final Executor executor) {
-        return TransactionImpl.createTransactionImpl(executor, Problem.Severity.WARNING);
+        return TransactionImpl.createTransactionImpl(this, executor, Problem.Severity.WARNING);
     }
 
     /**
@@ -71,7 +72,14 @@ public class TransactionController extends SimpleAttachable {
         if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
             throw TXN.illegalSeverity("maxSeverity");
         }
-        return TransactionImpl.createTransactionImpl(executor, maxSeverity);
+        return TransactionImpl.createTransactionImpl(this, executor, maxSeverity);
+    }
+
+    private void validateTransaction(Transaction transaction) {
+        assert transaction instanceof TransactionImpl;
+        if (((TransactionImpl) transaction).getController() != this) {
+            throw new IllegalArgumentException("Transaction not created by this ontroller");
+        }
     }
 
     /**
@@ -81,12 +89,12 @@ public class TransactionController extends SimpleAttachable {
      * @return the transaction executor
      */
     public Executor getExecutor(Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         return ((TransactionImpl) transaction).getExecutor();
     }
 
     public ProblemReport getProblemReport(Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         return ((TransactionImpl) transaction).getProblemReport();
     }
 
@@ -96,7 +104,7 @@ public class TransactionController extends SimpleAttachable {
      * @return the service context
      */
     public ServiceContext getServiceContext() {
-        return ServiceContextImpl.getInstance();
+        return serviceContext;
     }
 
     /**
@@ -105,7 +113,7 @@ public class TransactionController extends SimpleAttachable {
      * @return the management context
      */
     public ManagementContext getManagementContext() {
-        return ManagementContextImpl.getInstance();
+        return managementContext;
     }
 
     /**
@@ -119,7 +127,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws IllegalStateException if the transaction is not open
      */
     public <T> TaskBuilder<T> newTask(Transaction transaction, Executable<T> task) throws IllegalStateException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         return ((TransactionImpl) transaction).newTask(task);
     }
 
@@ -131,7 +139,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws IllegalStateException if the transaction is not open
      */
     public TaskBuilder<Void> newTask(Transaction transaction) throws IllegalStateException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         return ((TransactionImpl) transaction).newTask();
     }
 
@@ -146,7 +154,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
      */
     public void prepare(Transaction transaction, Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         ((TransactionImpl) transaction).prepare(completionListener);
     }
 
@@ -159,7 +167,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      */
     public void commit(Transaction transaction, Listener<? super Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         ((TransactionImpl) transaction).commit(completionListener);
     }
 
@@ -172,7 +180,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if commit has already been initiated
      */
     public void rollback(Transaction transaction, Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         ((TransactionImpl) transaction).rollback(completionListener);
     }
 
@@ -184,7 +192,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction is not prepared
      */
     public boolean canCommit(Transaction transaction) throws InvalidTransactionStateException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         return ((TransactionImpl) transaction).canCommit();
     }
 
@@ -198,7 +206,7 @@ public class TransactionController extends SimpleAttachable {
      * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
      */
     public void waitFor(Transaction transaction, Transaction other) throws InterruptedException, DeadlockException {
-        assert transaction instanceof TransactionImpl;
+        validateTransaction(transaction);
         assert other instanceof TransactionImpl;
         ((TransactionImpl) transaction).waitFor(other);
     }

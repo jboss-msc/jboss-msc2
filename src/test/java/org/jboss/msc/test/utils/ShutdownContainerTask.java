@@ -34,15 +34,16 @@ final class ShutdownContainerTask implements Executable<Void> {
     
     private final ServiceContainer container;
     private final Transaction transaction;
+    private final ManagementContext managementContext;
 
-    ShutdownContainerTask(final ServiceContainer container, final Transaction transaction) {
+    ShutdownContainerTask(final ServiceContainer container, final Transaction transaction, final TransactionController transactionController) {
         this.container = container;
         this.transaction = transaction;
+        this.managementContext = transactionController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.getInstance().getManagementContext();
         managementContext.shutdownContainer(container, transaction);
         context.complete();
     }

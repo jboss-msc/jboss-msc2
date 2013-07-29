@@ -36,16 +36,17 @@ final class RemoveServiceTask implements Executable<Void> {
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction transaction;
+    private final ServiceContext serviceContext;
 
-    RemoveServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction transaction) {
+    RemoveServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction transaction, final TransactionController transactionController) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.transaction = transaction;
+        this.serviceContext = transactionController.getServiceContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ServiceContext serviceContext = TransactionController.getInstance().getServiceContext();
         serviceContext.removeService(registry, serviceName, transaction);
         context.complete();
     }
