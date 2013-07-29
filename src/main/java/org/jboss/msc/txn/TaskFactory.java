@@ -21,7 +21,6 @@ package org.jboss.msc.txn;
  * A task factory.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
  */
 public interface TaskFactory {
 
@@ -30,8 +29,7 @@ public interface TaskFactory {
      * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
      * builder properties will be pre-initialized.
      * 
-     * @param task        the task
-     * @param transaction the transaction
+     * @param task the task
      * @param <T> the result value type (may be {@link Void})
      * @return the builder for the task
      * @throws IllegalStateException if this context is not accepting new tasks
@@ -41,7 +39,6 @@ public interface TaskFactory {
     /**
      * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
      * 
-     * @param transaction  the transaction
      * @return the builder for the task
      * @throws IllegalStateException if this context is not accepting new tasks
      */
