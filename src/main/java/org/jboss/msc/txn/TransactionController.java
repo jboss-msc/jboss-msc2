@@ -109,7 +109,9 @@ public class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Add a task to {@code transaction}.
+     * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
+     * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
+     * builder properties will be pre-initialized.
      *
      * @param transaction the transaction
      * @param task        the task
@@ -119,6 +121,18 @@ public class TransactionController extends SimpleAttachable {
     public <T> TaskBuilder<T> newTask(Transaction transaction, Executable<T> task) throws IllegalStateException {
         assert transaction instanceof TransactionImpl;
         return ((TransactionImpl) transaction).newTask(task);
+    }
+
+    /**
+     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
+     *
+     * @param transaction the transaction
+     * @return the subtask builder
+     * @throws IllegalStateException if the transaction is not open
+     */
+    public TaskBuilder<Void> newTask(Transaction transaction) throws IllegalStateException {
+        assert transaction instanceof TransactionImpl;
+        return ((TransactionImpl) transaction).newTask();
     }
 
     /**
