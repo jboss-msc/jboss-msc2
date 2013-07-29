@@ -1,0 +1,126 @@
+/*
+ * JBoss, Home of Professional Open Source.
+ * Copyright 2013 Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.jboss.msc.txn;
+
+import com.arjuna.ats.arjuna.common.Uid;
+import com.arjuna.ats.arjuna.coordinator.AbstractRecord;
+import com.arjuna.ats.arjuna.coordinator.RecordType;
+import com.arjuna.ats.arjuna.coordinator.TwoPhaseOutcome;
+
+/**
+ * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ */
+final class ArjunaRecordImplementation extends AbstractRecord {
+
+    private final ArjunaResource arjunaResource;
+    private final Transaction transaction;
+
+    private volatile Object value;
+
+    ArjunaRecordImplementation(final ArjunaResource arjunaResource, final Transaction transaction) {
+        super(new Uid());
+        this.arjunaResource = arjunaResource;
+        this.transaction = transaction;
+    }
+
+    ArjunaResource getArjunaResource() {
+        return arjunaResource;
+    }
+
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    public int typeIs() {
+        return RecordType.USER_DEF_FIRST0;
+    }
+
+    public Object value() {
+        return value;
+    }
+
+    public void setValue(final Object value) {
+        this.value = value;
+    }
+
+    public int nestedAbort() {
+        return TwoPhaseOutcome.FINISH_OK;
+    }
+
+    public int nestedCommit() {
+        return TwoPhaseOutcome.FINISH_ERROR;
+    }
+
+    public int nestedPrepare() {
+        return TwoPhaseOutcome.PREPARE_NOTOK;
+    }
+
+    public int topLevelAbort() {
+        final TransactionController controller = arjunaResource.getTransactionController();
+        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        controller.rollback(transaction, listener);
+        listener.awaitUninterruptibly();
+        // todo - map outcomes
+        return TwoPhaseOutcome.FINISH_OK;
+    }
+
+    public int topLevelCommit() {
+        final TransactionController controller = arjunaResource.getTransactionController();
+        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        controller.commit(transaction, listener);
+        listener.awaitUninterruptibly();
+        // todo - map outcomes
+        return TwoPhaseOutcome.FINISH_OK;
+    }
+
+    public int topLevelPrepare() {
+        final TransactionController controller = arjunaResource.getTransactionController();
+        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        controller.prepare(transaction, listener);
+        listener.awaitUninterruptibly();
+        // todo - map outcomes
+        return TwoPhaseOutcome.FINISH_OK;
+    }
+
+    public void merge(final AbstractRecord a) {
+    }
+
+    public void alter(final AbstractRecord a) {
+    }
+
+    public boolean shouldAdd(final AbstractRecord a) {
+        return false;
+    }
+
+    public boolean shouldAlter(final AbstractRecord a) {
+        return false;
+    }
+
+    public boolean shouldMerge(final AbstractRecord a) {
+        return false;
+    }
+
+    public boolean shouldReplace(final AbstractRecord a) {
+        return false;
+    }
+
+    public String type() {
+        return super.type() + "/MSC";
+    }
+}

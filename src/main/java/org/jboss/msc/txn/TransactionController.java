@@ -34,7 +34,7 @@ import org.jboss.msc.service.ManagementContext;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public class TransactionController {
+public class TransactionController extends SimpleAttachable {
 
     private static final TransactionController instance = new TransactionController();
 
@@ -188,5 +188,4 @@ public class TransactionController {
         assert other instanceof TransactionImpl;
         ((TransactionImpl) transaction).waitFor(other);
     }
-
 }

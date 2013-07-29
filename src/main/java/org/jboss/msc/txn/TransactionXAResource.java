@@ -18,11 +18,14 @@
 
 package org.jboss.msc.txn;
 
+import java.io.InvalidObjectException;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,43 +41,65 @@ import javax.transaction.xa.Xid;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public final class TransactionXAResource implements XAResource, Serializable {
-    private static final long serialVersionUID = -5916852431271162444L;
+final class TransactionXAResource implements XAResource, Serializable {
 
-    private static final ConcurrentMap<XidKey, Transaction> incompleteTransactions = new ConcurrentHashMap<XidKey, Transaction>();
-    private static final ThreadLocal<Transaction> currentTransaction = new ThreadLocal<Transaction>();
-    private static final TransactionXAResource INSTANCE = new TransactionXAResource();
+    private static final long serialVersionUID = 5782608772597704946L;
 
     private static final AttachmentKey<XidKey> XID_KEY = AttachmentKey.create();
     private static final Xid[] NO_XIDS = new Xid[0];
-    private static final AttachmentKey<TransactionManager> TM_KEY = AttachmentKey.create();
 
-    public static TransactionXAResource getInstance() {
-        return INSTANCE;
+    private static final ConcurrentMap<UUID, TransactionXAResource> XA_RESOURCE_MAP = new ConcurrentHashMap<>();
+
+    private final TransactionController transactionController;
+    private final ConcurrentMap<XidKey, Transaction> incompleteTransactions = new ConcurrentHashMap<>();
+    private final UUID uuid = UUID.randomUUID();
+
+    TransactionXAResource(final TransactionController transactionController) {
+        this.transactionController = transactionController;
+    }
+
+    private static final AttachmentKey<TransactionXAResource> KEY = AttachmentKey.create();
+
+    /**
+     * Get the XA resource associated with a transaction controller.  The resultant resource can be used to enlist
+     * transactions in a JTA transaction manager.
+     *
+     * @return the XA resource associated with the transaction controller
+     */
+    public static TransactionXAResource getXAResource(TransactionController controller) {
+        TransactionXAResource xaResource = controller.getAttachmentIfPresent(KEY);
+        if (xaResource == null) {
+            xaResource = new TransactionXAResource(controller);
+            TransactionXAResource appearing = controller.putAttachmentIfAbsent(KEY, xaResource);
+            if (appearing != null) {
+                xaResource = appearing;
+            }
+        }
+        return xaResource;
     }
 
     /**
-     * Get the current managed transaction.  May be {@code null} if no transaction manager has enlisted the resource.
+     * Enlist a transaction (belonging to this resource's transaction controller) with the given transaction manager.
      *
-     * @return the current transaction
+     * @param transaction the transaction to enlist
+     * @param transactionManager the transaction manager to enlist with
+     * @throws SystemException if the transaction manager failed to enlist the resource
+     * @throws RollbackException if the transaction manager failed to enlist the resource
      */
-    public static Transaction getCurrentTransaction() {
-        return currentTransaction.get();
-    }
-
-    public static TransactionManager getTransactionManagerFor(Transaction transaction) {
-        return transaction.getAttachmentIfPresent(TM_KEY);
-    }
-
     public void enlist(Transaction transaction, TransactionManager transactionManager) throws SystemException, RollbackException {
-        if (! transaction.ensureAttachmentValue(TM_KEY, transactionManager)) {
+//        if (! transactionController.owns(transaction)) {
+//            throw new SecurityException("Transaction does not belong with this resource");
+//        }
+        // todo - users might bypass this method; we need to hook into the enlistment process from the other way perhaps
+        final TransactionManagementScheme scheme = transaction.getAttachmentIfPresent(TransactionManagementScheme.KEY);
+        if (! (scheme instanceof JTATransactionManagementScheme)) {
+            throw new IllegalStateException("Transaction is already associated with another transaction manager");
+        }
+        final TransactionManager existingTransactionManager = ((JTATransactionManagementScheme) scheme).getTransactionManager();
+        if (transactionManager != existingTransactionManager) {
             throw new IllegalStateException("Transaction is already associated with another transaction manager");
         }
         transactionManager.getTransaction().enlistResource(this);
-    }
-
-    private static XidKey getKeyFor(Transaction transaction) {
-        return transaction.getAttachment(XID_KEY);
     }
 
     public boolean isSameRM(final XAResource resource) throws XAException {
@@ -88,7 +113,7 @@ public final class TransactionXAResource implements XAResource, Serializable {
             case TMSTARTRSCAN: break;
             default: throw new XAException(XAException.XAER_INVAL);
         }
-        List<Xid> list = new ArrayList<Xid>(incompleteTransactions.size());
+        List<Xid> list = new ArrayList<>(incompleteTransactions.size());
         for (Map.Entry<XidKey, Transaction> entry : incompleteTransactions.entrySet()) {
             list.add(entry.getKey().getXid());
         }
@@ -96,7 +121,7 @@ public final class TransactionXAResource implements XAResource, Serializable {
     }
 
     public void start(final Xid xid, final int flags) throws XAException {
-        if (xid == null || currentTransaction.get() != null) {
+        if (xid == null) {
             throw new XAException(XAException.XAER_INVAL);
         }
         XidKey key = new XidKey(xid);
@@ -108,17 +133,45 @@ public final class TransactionXAResource implements XAResource, Serializable {
         if ((appearing = transaction.putAttachmentIfAbsent(XID_KEY, key)) != null) {
             if (! appearing.equals(key)) {
                 // transaction is already associated with a different Xid...
-                throw new XAException(XAException.XAER_RMERR);
+                throw new XAException(XAException.XAER_INVAL);
             }
         }
-        currentTransaction.set(transaction);
     }
 
     public void end(final Xid xid, final int flags) throws XAException {
-
+        if (xid == null) {
+            throw new XAException(XAException.XAER_INVAL);
+        }
+        XidKey key = new XidKey(xid);
+        Transaction transaction = incompleteTransactions.get(key);
+        if (transaction == null) {
+            throw new XAException(XAException.XAER_NOTA);
+        }
+        if (flags == TMFAIL) {
+            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            transactionController.rollback(transaction, listener);
+            listener.awaitUninterruptibly();
+            // todo check rollback result..?
+        }
     }
 
     public void forget(final Xid xid) throws XAException {
+        if (xid == null) {
+            throw new XAException(XAException.XAER_INVAL);
+        }
+        XidKey key = new XidKey(xid);
+        Transaction transaction = incompleteTransactions.remove(key);
+        if (transaction != null) try {
+            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            transactionController.rollback(transaction, listener);
+            listener.awaitUninterruptibly();
+            // todo check rollback result..?
+        } catch (TransactionRolledBackException ignored) {
+        } catch (InvalidTransactionStateException e) {
+            final XAException e2 = new XAException(XAException.XAER_PROTO);
+            e2.initCause(e);
+            throw e2;
+        }
     }
 
     public int getTransactionTimeout() throws XAException {
@@ -126,22 +179,82 @@ public final class TransactionXAResource implements XAResource, Serializable {
     }
 
     public int prepare(final Xid xid) throws XAException {
-        return 0;
+        Transaction transaction = getTransaction(xid);
+        try {
+            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            transactionController.prepare(transaction, listener);
+            listener.awaitUninterruptibly();
+            if (transactionController.canCommit(transaction)) {
+                // todo - a way to establish whether changes were made?
+                return XA_OK;
+            } else {
+                throw new XAException(XAException.XA_RBROLLBACK);
+            }
+        } catch (TransactionRolledBackException e) {
+            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
+            e2.initCause(e);
+            throw e2;
+        } catch (InvalidTransactionStateException e) {
+            final XAException e2 = new XAException(XAException.XAER_PROTO);
+            e2.initCause(e);
+            throw e2;
+        }
     }
 
     public void commit(final Xid xid, final boolean onePhase) throws XAException {
-
+        Transaction transaction = getTransaction(xid);
+        try {
+            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            transactionController.commit(transaction, listener);
+            listener.awaitUninterruptibly();
+            if (false) {
+                // todo - detect rollback
+                throw new XAException(XAException.XA_RBROLLBACK);
+            }
+        } catch (TransactionRolledBackException e) {
+            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
+            e2.initCause(e);
+            throw e2;
+        } catch (InvalidTransactionStateException e) {
+            final XAException e2 = new XAException(XAException.XAER_PROTO);
+            e2.initCause(e);
+            throw e2;
+        }
     }
 
     public void rollback(final Xid xid) throws XAException {
+        Transaction transaction = getTransaction(xid);
+        try {
+            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            transactionController.rollback(transaction, listener);
+            listener.awaitUninterruptibly();
+        } catch (TransactionRolledBackException e) {
+            return;
+        } catch (InvalidTransactionStateException e) {
+            final XAException e2 = new XAException(XAException.XAER_PROTO);
+            e2.initCause(e);
+            throw e2;
+        }
+    }
+
+    private Transaction getTransaction(final Xid xid) throws XAException {
+        if (xid == null) {
+            throw new XAException(XAException.XAER_INVAL);
+        }
+        XidKey key = new XidKey(xid);
+        Transaction transaction = incompleteTransactions.remove(key);
+        if (transaction == null) {
+            throw new XAException(XAException.XAER_NOTA);
+        }
+        return transaction;
     }
 
     public boolean setTransactionTimeout(final int timeout) throws XAException {
         return false;
     }
 
-    protected Object readResolve() {
-        return INSTANCE;
+    Object writeReplace() {
+        return new Serialized(uuid);
     }
 
     private static final class XidKey {
@@ -172,6 +285,29 @@ public final class TransactionXAResource implements XAResource, Serializable {
 
         public int hashCode() {
             return hashCode;
+        }
+    }
+
+    static class Serialized implements Serializable {
+
+        private static final long serialVersionUID = -4368950567895021414L;
+
+        private final UUID uuid;
+
+        Serialized(final UUID uuid) {
+            this.uuid = uuid;
+        }
+
+        UUID getUuid() {
+            return uuid;
+        }
+
+        Object readResolve() throws ObjectStreamException {
+            final TransactionXAResource xaResource = XA_RESOURCE_MAP.get(uuid);
+            if (xaResource == null) {
+                throw new InvalidObjectException("No corresponding XAResource for this serialized instance");
+            }
+            return xaResource;
         }
     }
 }
