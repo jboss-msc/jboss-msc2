@@ -19,7 +19,6 @@ package org.jboss.msc._private;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
 
 /**
  * Parent dependency. The dependent is created whenever dependency is satisfied, and is removed whenever

@@ -816,7 +816,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         final Executable<T> exec = executable;
         if (exec != null) try {
             setClassLoader();
-            exec.execute(new ExecuteContext<T>() {
+            final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
                 @Override
                 public void complete(final T result) {
                     execComplete(result);
@@ -876,7 +876,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 public TaskBuilder<Void> newTask() throws IllegalStateException {
                     return new TaskBuilderImpl<Void>(getTransaction(), TaskControllerImpl.this);
                 }
-            });
+            }
+            exec.execute(new ExecuteContextImpl());
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);
             problemReport.addProblem(new Problem(this, t, Problem.Severity.CRITICAL));

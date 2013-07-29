@@ -29,8 +29,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
-
 
 /**
  * A service registration.

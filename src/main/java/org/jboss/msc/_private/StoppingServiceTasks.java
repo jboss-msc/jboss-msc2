@@ -29,7 +29,6 @@ import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Problem;
-import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
@@ -225,9 +224,10 @@ final class StoppingServiceTasks {
 
         @Override
         public void execute(ExecuteContext<Void> context) {
+            assert context instanceof TaskFactory;
             try {
                 // set down state
-                serviceController.setTransition(STATE_DOWN, transaction, context);
+                serviceController.setTransition(STATE_DOWN, transaction, (TaskFactory)context);
 
                 // clear service value, thus performing an automatic uninjection
                 serviceController.setValue(null);
@@ -236,7 +236,7 @@ final class StoppingServiceTasks {
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                     ServiceController<?> dependencyController = dependency.getDependencyRegistration().getController();
                     if (dependencyController != null) {
-                        dependencyController.dependentStopped(transaction, context);
+                        dependencyController.dependentStopped(transaction, (TaskFactory)context);
                     }
                 }
             } finally {

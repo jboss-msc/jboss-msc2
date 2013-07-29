@@ -39,12 +39,13 @@ final class ServiceRemoveTask implements Executable<Void> {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
+        assert context instanceof TaskFactory;
         try {
-            serviceController.getPrimaryRegistration().clearController(transaction, context);
+            serviceController.getPrimaryRegistration().clearController(transaction, (TaskFactory)context);
             for (Registration registration: serviceController.getAliasRegistrations()) {
-                registration.clearController(transaction, context);
+                registration.clearController(transaction, (TaskFactory)context);
             }
-            serviceController.setTransition(STATE_REMOVED, transaction, context);
+            serviceController.setTransition(STATE_REMOVED, transaction, (TaskFactory)context);
         } finally {
             context.complete();
         }

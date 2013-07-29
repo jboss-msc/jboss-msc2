@@ -29,7 +29,6 @@ import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackContext;
-import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Validatable;
 import org.jboss.msc.txn.ValidateContext;
 

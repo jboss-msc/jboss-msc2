@@ -30,7 +30,6 @@ import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Factory;
 import org.jboss.msc.txn.Problem;
-import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
@@ -121,10 +120,11 @@ final class StartingServiceTasks {
 
         @Override
         public void execute(ExecuteContext<Void> context) {
+            assert context instanceof TaskFactory;
             for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                 ServiceController<?> dependencyController = dependency.getDependencyRegistration().getController();
                 if (dependencyController != null) {
-                    dependencyController.dependentStarted(transaction, context);
+                    dependencyController.dependentStarted(transaction, (TaskFactory)context);
                 }
             }
             context.complete();
@@ -243,15 +243,16 @@ final class StartingServiceTasks {
 
         @Override
         public void execute(ExecuteContext<Void> context) {
+            assert context instanceof TaskFactory;
             try {
                 T result = serviceStartTask.getResult();
                 // service failed
                 if (result == null && transaction.getAttachment(FAILED_SERVICES).contains(service.getService())) {
                     MSCLogger.FAIL.startFailed(service.getServiceName());
-                    service.setTransition(STATE_FAILED, transaction, context);
+                    service.setTransition(STATE_FAILED, transaction, (TaskFactory)context);
                 } else {
                     service.setValue(result);
-                    service.setTransition(STATE_UP, transaction, context);
+                    service.setTransition(STATE_UP, transaction, (TaskFactory)context);
                 }
             } finally {
                 context.complete();

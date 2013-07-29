@@ -34,7 +34,6 @@ import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.ProblemReport;
 import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionRolledBackException;
 

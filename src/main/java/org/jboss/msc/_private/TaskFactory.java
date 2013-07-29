@@ -15,14 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc.txn;
+package org.jboss.msc._private;
+
+import org.jboss.msc.txn.Executable;
+import org.jboss.msc.txn.TaskBuilder;
 
 /**
  * A task factory.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface TaskFactory {
+interface TaskFactory {
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary

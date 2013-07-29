@@ -27,8 +27,6 @@ import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
-
 
 /**
  * Dependency implementation.

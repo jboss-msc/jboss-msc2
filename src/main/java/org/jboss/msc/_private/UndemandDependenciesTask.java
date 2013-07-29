@@ -24,7 +24,6 @@ import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
 
 /**
  * Task for undemanding dependencies.
@@ -78,9 +77,10 @@ class UndemandDependenciesTask implements Executable<Void> {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
+        assert context instanceof TaskFactory;
         try {
             for (DependencyImpl<?> dependency: service.getDependencies()) {
-                dependency.undemand(transaction, context);
+                dependency.undemand(transaction, (TaskFactory)context);
             }
         } finally {
             context.complete();

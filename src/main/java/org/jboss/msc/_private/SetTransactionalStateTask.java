@@ -40,8 +40,9 @@ class SetTransactionalStateTask implements Executable<Void> {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
+        assert context instanceof TaskFactory;
         try {
-            service.setTransition(state, transaction, context);
+            service.setTransition(state, transaction, (TaskFactory)context);
         } finally {
             context.complete();
         }

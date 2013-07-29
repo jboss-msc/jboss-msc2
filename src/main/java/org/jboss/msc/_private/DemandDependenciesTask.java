@@ -21,7 +21,6 @@ import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
 
 /**
  * Task for demanding dependencies.
@@ -74,9 +73,10 @@ class DemandDependenciesTask implements Executable<Void> {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
+        assert context instanceof TaskFactory;
         try {
             for (DependencyImpl<?> dependency: service.getDependencies()) {
-                dependency.demand(transaction, context);
+                dependency.demand(transaction, (TaskFactory)context);
             }
         } finally {
             context.complete();

@@ -20,7 +20,6 @@ package org.jboss.msc._private;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.TaskFactory;
 import org.jboss.msc.txn.Transaction;
 
 /**
