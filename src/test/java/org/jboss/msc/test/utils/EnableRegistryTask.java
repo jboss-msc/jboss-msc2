@@ -33,18 +33,22 @@ import org.jboss.msc.txn.TransactionController;
 final class EnableRegistryTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
-    private final Transaction transaction;
+    private final Transaction txn;
+    private final ManagementContext mgmtContext;
 
-    EnableRegistryTask(final ServiceRegistry registry, final Transaction transaction) {
+    EnableRegistryTask(final ServiceRegistry registry, final Transaction txn, final TransactionController txnController) {
         this.registry = registry;
-        this.transaction = transaction;
+        this.txn = txn;
+        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.createInstance().getManagementContext();
-        managementContext.enableRegistry(registry, transaction);
-        context.complete();
+        try {
+            mgmtContext.enableRegistry(registry, txn);
+        } finally {
+            context.complete();
+        }
     }
     
 }

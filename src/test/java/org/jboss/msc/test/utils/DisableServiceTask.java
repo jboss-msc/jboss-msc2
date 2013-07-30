@@ -35,19 +35,23 @@ final class DisableServiceTask implements Executable<Void> {
     
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
-    private final Transaction transaction;
+    private final Transaction txn;
+    private final ManagementContext mgmtContext;
 
-    DisableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction transaction) {
+    DisableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction txn, final TransactionController txnController) {
         this.registry = registry;
         this.serviceName = serviceName;
-        this.transaction = transaction;
+        this.txn = txn;
+        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.createInstance().getManagementContext();
-        managementContext.disableService(registry, serviceName, transaction);
-        context.complete();
+        try {
+            mgmtContext.disableService(registry, serviceName, txn);
+        } finally {
+            context.complete();
+        }
     }
     
 }

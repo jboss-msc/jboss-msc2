@@ -33,18 +33,22 @@ import org.jboss.msc.txn.TransactionController;
 final class RemoveRegistryTask implements Executable<Void> {
     
     private final ServiceRegistry registry;
-    private final Transaction transaction;
+    private final Transaction txn;
+    private final ServiceContext serviceContext;
 
-    RemoveRegistryTask(final ServiceRegistry registry, final Transaction transaction) {
+    RemoveRegistryTask(final ServiceRegistry registry, final Transaction txn, final TransactionController txnController) {
         this.registry = registry;
-        this.transaction = transaction;
+        this.txn = txn;
+        serviceContext = txnController.getServiceContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ServiceContext serviceContext = TransactionController.createInstance().getServiceContext();
-        serviceContext.removeRegistry(registry, transaction);
-        context.complete();
+        try {
+            serviceContext.removeRegistry(registry, txn);
+        } finally {
+            context.complete();
+        }
     }
     
 }

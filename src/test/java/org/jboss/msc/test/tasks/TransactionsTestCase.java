@@ -133,7 +133,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     @Test
     public void testTransactionSelfWaits() throws Exception {
         final Transaction transaction = newTransaction();
-        transactionController.waitFor(transaction, transaction);
+        txnController.waitFor(transaction, transaction);
         rollback(transaction);
     }
 
@@ -347,7 +347,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
             try {
                 if (dependency != null) {
-                    transactionController.waitFor(dependent, dependency);
+                    txnController.waitFor(dependent, dependency);
                 }
                 CountDownLatch startSignal = null;
                 synchronized (this) {

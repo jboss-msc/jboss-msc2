@@ -35,19 +35,23 @@ final class EnableServiceTask implements Executable<Void> {
     
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
-    private final Transaction transaction;
+    private final Transaction txn;
+    private final ManagementContext mgmtContext;
 
-    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction transaction) {
+    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction txn, final TransactionController txnController) {
         this.registry = registry;
         this.serviceName = serviceName;
-        this.transaction = transaction;
+        this.txn = txn;
+        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.createInstance().getManagementContext();
-        managementContext.enableService(registry, serviceName, transaction);
-        context.complete();
+        try {
+            mgmtContext.enableService(registry, serviceName, txn);
+        } finally {
+            context.complete();
+        }
     }
     
 }

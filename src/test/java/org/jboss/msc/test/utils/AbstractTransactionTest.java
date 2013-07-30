@@ -50,7 +50,7 @@ import org.junit.Before;
  */
 public abstract class AbstractTransactionTest {
 
-    protected static final TransactionController transactionController = TransactionController.createInstance();
+    protected static final TransactionController txnController = TransactionController.createInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
     @Before
@@ -80,7 +80,7 @@ public abstract class AbstractTransactionTest {
     }
 
     protected static <T> TaskController<T> newTask(final Transaction transaction, final Executable<T> e, final Validatable v, final Revertible r, final Committable c, final TaskController<?>... dependencies) {
-        return transactionController.newTask(transaction, e).addDependencies(dependencies).setValidatable(v).setRevertible(r).setCommittable(c).release();
+        return txnController.newTask(transaction, e).addDependencies(dependencies).setValidatable(v).setRevertible(r).setCommittable(c).release();
     }
 
     protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Validatable v, final Revertible r, final Committable c, final TaskController<?>... dependencies) {
@@ -88,29 +88,29 @@ public abstract class AbstractTransactionTest {
     }
 
     protected static void prepare(Transaction transaction, Listener<? super Transaction> listener) {
-        transactionController.prepare(transaction, listener);
+        txnController.prepare(transaction, listener);
     }
 
     protected static boolean canCommit(Transaction transaction) {
-        return transactionController.canCommit(transaction);
+        return txnController.canCommit(transaction);
     }
 
     protected static void commit(Transaction transaction, Listener<? super Transaction> listener) {
-        transactionController.commit(transaction, listener);
+        txnController.commit(transaction, listener);
     }
     
     protected static void rollback(Transaction transaction, Listener<? super Transaction> listener) {
-        transactionController.rollback(transaction, listener);
+        txnController.rollback(transaction, listener);
     }
 
     protected Transaction newTransaction() {
         assertNotNull(defaultExecutor);
-        return transactionController.create(defaultExecutor);
+        return txnController.create(defaultExecutor);
     }
 
     protected Transaction newTransaction(final Executor executor) {
         assertNotNull(executor);
-        return transactionController.create(executor);
+        return txnController.create(executor);
     }
 
     protected static void assertCalled(final TestTask task) {
@@ -146,9 +146,9 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertPrepared(final Transaction transaction, final boolean committable) {
         assertNotNull(transaction);
-        assertEquals(committable, transactionController.canCommit(transaction));
+        assertEquals(committable, txnController.canCommit(transaction));
         try {
-            transactionController.prepare(transaction, null);
+            txnController.prepare(transaction, null);
             fail("Cannot call prepare() more than once on transaction");
         } catch (final InvalidTransactionStateException expected) {
         } catch (final TransactionRolledBackException rolledbackException) {
@@ -158,21 +158,21 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertReverted(final Transaction transaction) {
         assertNotNull(transaction);
-        assertFalse(transactionController.canCommit(transaction));
+        assertFalse(txnController.canCommit(transaction));
         // ensure it's not possible to call prepare on rolled back transaction
         try {
-            transactionController.prepare(transaction, null);
+            txnController.prepare(transaction, null);
             fail("Cannot call prepare() on rolled back transaction");
         } catch (final TransactionRolledBackException expected) {
         }
         try {
-            transactionController.commit(transaction, null);
+            txnController.commit(transaction, null);
             fail("Cannot call commit() on rolled back transaction");
         } catch (final TransactionRolledBackException expected) {
         }
         // ensure it's not possible to call rollback on rolled back transaction more than once
         try {
-            transactionController.rollback(transaction, null);
+            txnController.rollback(transaction, null);
             fail("Cannot call rollback() on rolled back transaction");
         } catch (final TransactionRolledBackException expected) {
         }
@@ -181,22 +181,22 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertCommitted(final Transaction transaction) {
         assertNotNull(transaction);
-        assertFalse(transactionController.canCommit(transaction));
+        assertFalse(txnController.canCommit(transaction));
         // ensure it's not possible to call prepare() on committed transaction
         try {
-            transactionController.prepare(transaction, null);
+            txnController.prepare(transaction, null);
             fail("Cannot call prepare() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
         // ensure it's not possible to call commit on committed transaction more than once
         try {
-            transactionController.commit(transaction, null);
+            txnController.commit(transaction, null);
             fail("Cannot call commit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
         // ensure it's not possible to call rollback() on committed transaction
         try {
-            transactionController.rollback(transaction, null);
+            txnController.rollback(transaction, null);
             fail("Cannot call rollback() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
@@ -210,7 +210,7 @@ public abstract class AbstractTransactionTest {
     protected static void prepare(final Transaction transaction, boolean committable) throws InterruptedException {
         assertNotNull(transaction);
         final CompletionListener prepareListener = new CompletionListener();
-        transactionController.prepare(transaction, prepareListener);
+        txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletion();
         assertPrepared(transaction, committable);
     }
@@ -218,7 +218,7 @@ public abstract class AbstractTransactionTest {
     protected static void commit(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
         final CompletionListener commitListener = new CompletionListener();
-        transactionController.commit(transaction, commitListener);
+        txnController.commit(transaction, commitListener);
         commitListener.awaitCompletion();
         assertCommitted(transaction);
     }
@@ -226,23 +226,23 @@ public abstract class AbstractTransactionTest {
     protected static void rollback(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
         final CompletionListener rollbackListener = new CompletionListener();
-        transactionController.rollback(transaction, rollbackListener);
+        txnController.rollback(transaction, rollbackListener);
         rollbackListener.awaitCompletion();
         assertReverted(transaction);
     }
 
     protected static void prepareAndRollbackFromListener(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final RevertingListener transactionListener = new RevertingListener(transactionController);
-        transactionController.prepare(transaction, transactionListener);
+        final RevertingListener transactionListener = new RevertingListener(txnController);
+        txnController.prepare(transaction, transactionListener);
         transactionListener.awaitRollback();
         assertReverted(transaction);
     }
 
     protected static void prepareAndCommitFromListener(final Transaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final CommittingListener transactionListener = new CommittingListener(transactionController);
-        transactionController.prepare(transaction, transactionListener);
+        final CommittingListener transactionListener = new CommittingListener(txnController);
+        txnController.prepare(transaction, transactionListener);
         transactionListener.awaitCommit();
         assertCommitted(transaction);
     }

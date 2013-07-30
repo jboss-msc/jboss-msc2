@@ -31,19 +31,24 @@ import org.jboss.msc.txn.TransactionController;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class DisableRegistryTask implements Executable<Void> {
-    private final ServiceRegistry registry;
-    private final Transaction transaction;
 
-    DisableRegistryTask(final ServiceRegistry registry, final Transaction transaction) {
+    private final ServiceRegistry registry;
+    private final Transaction txn;
+    private final ManagementContext mgmtContext;
+
+    DisableRegistryTask(final ServiceRegistry registry, final Transaction txn, final TransactionController txnController) {
         this.registry = registry;
-        this.transaction = transaction;
+        this.txn = txn;
+        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        final ManagementContext managementContext = TransactionController.createInstance().getManagementContext();
-        managementContext.disableRegistry(registry, transaction);
-        context.complete();
+        try {
+            mgmtContext.disableRegistry(registry, txn);
+        } finally {
+            context.complete();
+        }
     }
     
 }
