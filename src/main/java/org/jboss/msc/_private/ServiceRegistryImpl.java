@@ -131,7 +131,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         if (!Bits.anyAreSet(state, ENABLED)) {
             return;
         }
-        state = (byte) (state | ~ENABLED);
+        state = (byte) (state & ~ENABLED);
         for (Registration registration: registry.values()) {
             final ServiceController<?> controller = registration.getController();
             if (controller != null) {
