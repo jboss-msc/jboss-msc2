@@ -36,12 +36,18 @@ import org.jboss.msc.service.ManagementContext;
  */
 public class TransactionController extends SimpleAttachable {
 
+    private static final RuntimePermission TXN_CONTROLLER_CREATE_PERM = new RuntimePermission("canCreateTransactionController");
+
     private final ManagementContext managementContext = new ManagementContextImpl(this);
     private final ServiceContext serviceContext = new ServiceContextImpl(this);
 
     private TransactionController() {}
 
     public static TransactionController createInstance() {
+        final SecurityManager sm = System.getSecurityManager();
+        if (sm != null) {
+            sm.checkPermission(TXN_CONTROLLER_CREATE_PERM);
+        }
         return new TransactionController();
     }
 
