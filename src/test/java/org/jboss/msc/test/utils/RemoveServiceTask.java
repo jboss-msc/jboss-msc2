@@ -18,11 +18,11 @@
 
 package org.jboss.msc.test.utils;
 
+import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
 
@@ -36,19 +36,19 @@ final class RemoveServiceTask implements Executable<Void> {
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction transaction;
-    private final ServiceContext serviceContext;
+    private final ManagementContext mgmtContext;
 
     RemoveServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction transaction, final TransactionController transactionController) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.transaction = transaction;
-        serviceContext = transactionController.getServiceContext();
+        mgmtContext = transactionController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            serviceContext.removeService(registry, serviceName, transaction);
+            mgmtContext.removeService(registry, serviceName, transaction);
         } finally {
             context.complete();
         }

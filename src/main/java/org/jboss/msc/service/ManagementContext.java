@@ -51,6 +51,15 @@ public interface ManagementContext {
     void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction);
 
     /**
+     * Removes a service, causing this service to stop if it is {@code UP}.
+     *
+     * @param registry    the service registry
+     * @param name        the service name
+     * @param transaction the transaction
+     */
+    void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction);
+
+    /**
      * Disables {@code registry} and all its services, causing {@code UP} services to stop.
      *
      * @param registry    the service registry
@@ -67,6 +76,14 @@ public interface ManagementContext {
      * @param transaction the transaction
      */
     void enableRegistry(ServiceRegistry registry, Transaction transaction);
+
+    /**
+     * Removes registry and its services from the {@code container}, causing {@code UP} services to stop.
+     *
+     * @param registry    the service registry
+     * @param transaction the transaction
+     */
+    void removeRegistry(ServiceRegistry registry, Transaction transaction);
 
     /**
      * Shuts down the container, removing all registries and their services.

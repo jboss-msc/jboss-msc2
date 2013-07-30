@@ -73,34 +73,6 @@ public class ServiceContextImpl extends TransactionControllerContext implements 
     }
 
     @Override
-    public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
-        if (registry == null) {
-            throw new IllegalArgumentException("registry is null");
-        }
-        if (name == null) {
-            throw new IllegalArgumentException("name is null");
-        }
-        final Registration registration = ((ServiceRegistryImpl) registry).getRegistration(name);
-        if (registration == null) {
-            return;
-        }
-        final ServiceController<?> controller = registration.getController();
-        if (controller == null) {
-            return;
-        }
-        controller.remove((TransactionImpl) transaction, (TransactionImpl) transaction);
-    }
-
-    @Override
-    public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
-        validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
-        ((ServiceRegistryImpl)registry).remove((TransactionImpl) transaction);
-    }
-
-    @Override
     public ReportableContext getReportableContext(Transaction transaction) {
         validateTransaction(transaction);
         final ProblemReport problemReport = ((TransactionImpl) transaction).getProblemReport();
