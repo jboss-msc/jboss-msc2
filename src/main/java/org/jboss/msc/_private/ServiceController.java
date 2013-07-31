@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
@@ -152,9 +153,21 @@ final class ServiceController<T> extends TransactionalObject {
         assert isWriteLocked(transaction);
         // if registry is removed, get an exception right away
         registry.newServiceInstalled(this, transaction);
-        primaryRegistration.setController(transaction, this);
+        if (!primaryRegistration.setController(transaction, this)) {
+            throw new DuplicateServiceException("Service " + primaryRegistration.getServiceName() + " is already installed");
+        }
+        int installedAliases = 0; 
         for (Registration alias: aliasRegistrations) {
-            alias.setController(transaction, this);
+            // attempt to install controller at alias
+            if (!alias.setController(transaction, this)) {
+                // first of all, uninstall controller from installed aliases
+                primaryRegistration.clearController(transaction, transaction);
+                for (int j = 0; j < installedAliases; j++) {
+                    aliasRegistrations[j].clearController(transaction, transaction);
+                }
+                throw new DuplicateServiceException("Service " + alias.getServiceName() + " is already installed");
+            }
+            installedAliases ++;
         }
         boolean demandDependencies;
         synchronized (this) {

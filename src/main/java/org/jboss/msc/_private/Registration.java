@@ -66,16 +66,20 @@ final class Registration extends TransactionalObject {
         return controller;
     }
 
-    void setController(final TransactionImpl transaction, final ServiceController<?> serviceController) {
+    boolean setController(final TransactionImpl transaction, final ServiceController<?> serviceController) {
         lockWrite(transaction, transaction);
         final boolean upDemanded;
         synchronized (this) {
+            if (this.controller != null) {
+                return false;
+            }
             this.controller = serviceController;
             upDemanded = upDemandedByCount > 0;
         }
         if (upDemanded) {
             serviceController.upDemanded(transaction, transaction);
         }
+        return true;
     }
 
     void clearController(final TransactionImpl transaction, final TaskFactory taskFactory) {

@@ -124,6 +124,6 @@ public interface ServiceBuilder<T> {
     /**
      * Initiates installation of this configured service to the container.
      */
-    void install() throws IllegalStateException;
+    void install() throws IllegalStateException, DuplicateServiceException;
 
 }
