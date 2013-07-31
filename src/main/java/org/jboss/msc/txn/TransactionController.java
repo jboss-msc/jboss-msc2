@@ -231,9 +231,7 @@ public final class TransactionController extends SimpleAttachable {
      * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
      */
     public boolean owns(final Transaction transaction) {
-        if (transaction == null) return false;
-        if (!(transaction instanceof TransactionImpl)) return false;
-        return ((TransactionImpl) transaction).getController() == this;
+        return transaction instanceof TransactionImpl && this == ((TransactionImpl) transaction).getController();
     }
 
     private void validateTransaction(final Transaction transaction) throws SecurityException {

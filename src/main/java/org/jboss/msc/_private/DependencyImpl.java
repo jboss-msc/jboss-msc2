@@ -125,7 +125,7 @@ class DependencyImpl<T> implements Dependency<T> {
             dependencyRegistration.addIncomingDependency(transaction, this);
             if (!propagateDemand) {
                 if (hasDemandedFlag()) {
-                    dependencyRegistration.addDemand(transaction, transaction);
+                    dependencyRegistration.addDemand(transaction, transaction.getTaskFactory());
                 }
             }
         }

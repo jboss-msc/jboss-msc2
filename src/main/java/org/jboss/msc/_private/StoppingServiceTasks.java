@@ -61,7 +61,7 @@ final class StoppingServiceTasks {
 
         // undemand dependencies if needed
         if (service.getDependencies().length > 0) {
-            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, taskDependencies, transaction, transaction);
+            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, taskDependencies, transaction, transaction.getTaskFactory());
             stopTaskBuilder.addDependency(undemandDependenciesTask);
         } else if (!taskDependencies.isEmpty()) {
             stopTaskBuilder.addDependencies(taskDependencies);
@@ -120,7 +120,7 @@ final class StoppingServiceTasks {
 
         // undemand dependencies if needed
         if (service.getDependencies().length > 0) {
-            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, transaction, transaction);
+            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, transaction, transaction.getTaskFactory());
             setServiceDownBuilder.addDependency(undemandDependenciesTask);
         }
 

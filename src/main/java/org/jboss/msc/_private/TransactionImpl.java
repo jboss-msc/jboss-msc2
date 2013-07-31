@@ -42,7 +42,7 @@ import org.jboss.msc.txn.TransactionRolledBackException;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TransactionImpl extends Transaction implements TaskFactory {
+public final class TransactionImpl extends Transaction {
 
     static {
         MSCLogger.ROOT.greeting(Version.getVersionString());
@@ -123,6 +123,15 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
         }
     };
     private final Problem.Severity maxSeverity;
+    private final TaskFactory taskFactory = new TaskFactory() {
+        public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
+            return new TaskBuilderImpl<T>(TransactionImpl.this, topParent, task);
+        }
+
+        public TaskBuilder<Void> newTask() throws IllegalStateException {
+            return new TaskBuilderImpl<Void>(TransactionImpl.this, topParent);
+        }
+    };
 
     private long endTime;
     private int state;
@@ -430,14 +439,6 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
         return problemReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
-    public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
-        return new TaskBuilderImpl<T>(this, topParent, task);
-    }
-
-    public TaskBuilder<Void> newTask() throws IllegalStateException {
-        return new TaskBuilderImpl<Void>(this, topParent);
-    }
-
     public void waitFor(final Transaction other) throws InterruptedException, DeadlockException {
         if (other instanceof TransactionImpl) {
             Transactions.waitFor(this,  other);
@@ -583,6 +584,18 @@ public final class TransactionImpl extends Transaction implements TaskFactory {
     private static boolean stateIsIn(int state, int sid1, int sid2, int sid3) {
         final int sid = stateOf(state);
         return sid == sid1 || sid == sid2 || sid == sid3;
+    }
+
+    public TaskFactory getTaskFactory() {
+        return taskFactory;
+    }
+
+    public <T> TaskBuilder<T> newTask(final Executable<T> task) throws IllegalStateException {
+        return taskFactory.newTask(task);
+    }
+
+    public TaskBuilder<Void> newTask() throws IllegalStateException {
+        return taskFactory.newTask();
     }
 
     class AsyncTask implements Runnable {

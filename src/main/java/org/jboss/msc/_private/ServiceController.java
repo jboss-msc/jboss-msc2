@@ -129,7 +129,7 @@ final class ServiceController<T> extends TransactionalObject {
         this.dependencies = dependencies;
         this.aliasRegistrations = aliasRegistrations;
         this.primaryRegistration = primaryRegistration;
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         unsatisfiedDependencies = dependencies.length;
         for (DependencyImpl<?> dependency: dependencies) {
             dependency.setDependent(this, transaction);
@@ -161,9 +161,9 @@ final class ServiceController<T> extends TransactionalObject {
             // attempt to install controller at alias
             if (!alias.setController(transaction, this)) {
                 // first of all, uninstall controller from installed aliases
-                primaryRegistration.clearController(transaction, transaction);
+                primaryRegistration.clearController(transaction, transaction.getTaskFactory());
                 for (int j = 0; j < installedAliases; j++) {
-                    aliasRegistrations[j].clearController(transaction, transaction);
+                    aliasRegistrations[j].clearController(transaction, transaction.getTaskFactory());
                 }
                 throw new DuplicateServiceException("Service " + alias.getServiceName() + " is already installed");
             }
@@ -176,9 +176,9 @@ final class ServiceController<T> extends TransactionalObject {
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
-            DemandDependenciesTask.create(this, transaction, transaction);
+            DemandDependenciesTask.create(this, transaction, transaction.getTaskFactory());
         }
-        transactionalInfo.transition(transaction, transaction);
+        transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
     /**
@@ -247,13 +247,13 @@ final class ServiceController<T> extends TransactionalObject {
      * Management operation for disabling a service. As a result, this service will stop if it is {@code UP}.
      */
     void disableService(TransactionImpl transaction) {
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction);
+        transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
     /**
@@ -262,13 +262,13 @@ final class ServiceController<T> extends TransactionalObject {
      * <p> Services are enabled by default.
      */
     void enableService(TransactionImpl transaction) {
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction);
+        transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
     private boolean isServiceEnabled() {
@@ -277,23 +277,23 @@ final class ServiceController<T> extends TransactionalObject {
     }
 
     void disableRegistry(TransactionImpl transaction) {
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         synchronized (this) {
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction);
+        transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
     void enableRegistry(TransactionImpl transaction) {
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         synchronized (this) {
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction);
+        transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
     private boolean isRegistryEnabled() {
@@ -307,7 +307,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction the active transaction
      */
     void retry(TransactionImpl transaction) {
-        lockWrite(transaction, transaction);
+        lockWrite(transaction, transaction.getTaskFactory());
         transactionalInfo.retry(transaction);
     }
 
@@ -514,7 +514,7 @@ final class ServiceController<T> extends TransactionalObject {
                 return;
             }
             assert completeTransitionTask == null;
-            completeTransitionTask = StartingServiceTasks.create(ServiceController.this, transaction, transaction);
+            completeTransitionTask = StartingServiceTasks.create(ServiceController.this, transaction, transaction.getTaskFactory());
         }
 
         private synchronized TaskController<?> transition(TransactionImpl transaction, TaskFactory taskFactory) {
@@ -531,7 +531,7 @@ final class ServiceController<T> extends TransactionalObject {
                 case STATE_STOPPING:
                     if (unsatisfiedDependencies == 0 && !shouldStop() && !isStarting()) {
                         // ongoing transition from UP to DOWN, transition to UP just once service is DOWN
-                        TaskController<?> setStartingState = transaction.newTask(new SetTransactionalStateTask(ServiceController.this, STATE_STARTING, transaction))
+                        TaskController<?> setStartingState = transaction.getTaskFactory().newTask(new SetTransactionalStateTask(ServiceController.this, STATE_STARTING, transaction))
                             .addDependency(completeTransitionTask).release();
                         completeTransitionTask = StartingServiceTasks.create(ServiceController.this, setStartingState, transaction, taskFactory);
                         completeTransitionState = STATE_UP;
@@ -558,8 +558,7 @@ final class ServiceController<T> extends TransactionalObject {
                 case STATE_STARTING:
                     if ((unsatisfiedDependencies > 0 || !shouldStart()) && !isStopping()) {
                         // ongoing transition from DOWN to UP, transition to DOWN just once service is UP
-                        TaskController<?> setStoppingState = transaction.newTask(new SetTransactionalStateTask(
-                                ServiceController.this, STATE_STOPPING, transaction))
+                        TaskController<?> setStoppingState = transaction.getTaskFactory().newTask(new SetTransactionalStateTask(ServiceController.this, STATE_STOPPING, transaction))
                                 .addDependency(completeTransitionTask).release();
                         completeTransitionTask = StoppingServiceTasks.create(ServiceController.this, setStoppingState, transaction, taskFactory);
                         completeTransitionState = STATE_DOWN;

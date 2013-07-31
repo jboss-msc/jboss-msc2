@@ -67,7 +67,7 @@ public final class ManagementContextImpl extends TransactionControllerContext im
         if (controller == null) {
             return;
         }
-        controller.remove((TransactionImpl) transaction, (TransactionImpl) transaction);
+        controller.remove((TransactionImpl) transaction, ((TransactionImpl) transaction).getTaskFactory());
     }
 
     @Override
