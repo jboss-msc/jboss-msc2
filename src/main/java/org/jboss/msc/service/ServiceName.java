@@ -246,9 +246,6 @@ public final class ServiceName implements Comparable<ServiceName>, Serializable 
      */
     @Override
     public String toString() {
-        if (parent != null) {
-            return parent.toString() + "." + getCanonicalName();
-        }
         return getCanonicalName();
     }
 
