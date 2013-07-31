@@ -465,6 +465,8 @@ final class ServiceController<T> extends TransactionalObject {
         private byte transactionalState = ServiceController.this.currentState();
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<Void> completeTransitionTask = null;
+        // the expected state when complete transition task finishes
+        private byte completeTransitionState = 0;
         // the total number of setTransition calls expected until completeTransitionTask is finished
         private int transitionCount;
 
@@ -490,6 +492,7 @@ final class ServiceController<T> extends TransactionalObject {
                         throw new IllegalStateException("Illegal state for finishing transition: " + transactionalState);
                 }
                 completeTransitionTask = null;
+                completeTransitionState = 0;
             }
         }
 
@@ -505,43 +508,48 @@ final class ServiceController<T> extends TransactionalObject {
             assert !holdsLock(ServiceController.this);
             switch (transactionalState) {
                 case STATE_DOWN:
-                    if (unsatisfiedDependencies == 0 && shouldStart()) {
+                    if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
                         transactionalState = STATE_STARTING;
                         completeTransitionTask = StartingServiceTasks.create(ServiceController.this, transaction, taskFactory);
+                        completeTransitionState = STATE_UP;
                         transitionCount ++;
                     }
                     break;
                 case STATE_STOPPING:
-                    if (unsatisfiedDependencies == 0 && !shouldStop()) {
+                    if (unsatisfiedDependencies == 0 && !shouldStop() && !isStarting()) {
                         // ongoing transition from UP to DOWN, transition to UP just once service is DOWN
                         TaskController<?> setStartingState = transaction.newTask(new SetTransactionalStateTask(ServiceController.this, STATE_STARTING, transaction))
                             .addDependency(completeTransitionTask).release();
                         completeTransitionTask = StartingServiceTasks.create(ServiceController.this, setStartingState, transaction, taskFactory);
+                        completeTransitionState = STATE_UP;
                         transitionCount += 2;
                     }
                     break;
                 case STATE_FAILED:
-                    if (unsatisfiedDependencies > 0 || shouldStop()) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         transactionalState = STATE_STOPPING;
                         completeTransitionTask = StoppingServiceTasks.createForFailedService(ServiceController.this, transaction, taskFactory);
+                        completeTransitionState = STATE_DOWN;
                         transitionCount ++;
                     }
                     break;
                 case STATE_UP:
-                    if (unsatisfiedDependencies > 0 || shouldStop()) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
                         completeTransitionTask = StoppingServiceTasks.create(ServiceController.this, dependentTasks, transaction, taskFactory);
+                        completeTransitionState = STATE_DOWN;
                         transitionCount ++;
                     }
                     break;
                 case STATE_STARTING:
-                    if (unsatisfiedDependencies > 0 || !shouldStart()) {
+                    if ((unsatisfiedDependencies > 0 || !shouldStart()) && !isStopping()) {
                         // ongoing transition from DOWN to UP, transition to DOWN just once service is UP
                         TaskController<?> setStoppingState = transaction.newTask(new SetTransactionalStateTask(
                                 ServiceController.this, STATE_STOPPING, transaction))
                                 .addDependency(completeTransitionTask).release();
                         completeTransitionTask = StoppingServiceTasks.create(ServiceController.this, setStoppingState, transaction, taskFactory);
+                        completeTransitionState = STATE_DOWN;
                         transitionCount +=2;
                     }
                     break;
@@ -587,6 +595,7 @@ final class ServiceController<T> extends TransactionalObject {
                 removeTaskBuilder.addDependency(completeTransitionTask);
             }
             completeTransitionTask = removeTaskBuilder.release();
+            completeTransitionState = STATE_REMOVED;
             transitionCount ++;
             return completeTransitionTask;
         }
@@ -597,6 +606,14 @@ final class ServiceController<T> extends TransactionalObject {
 
         private byte getState() {
             return transactionalState;
+        }
+
+        private boolean isStarting() {
+            return completeTransitionState == STATE_UP;
+        }
+
+        private boolean isStopping() {
+            return completeTransitionState == STATE_DOWN || completeTransitionState == STATE_REMOVED;
         }
     }
 
