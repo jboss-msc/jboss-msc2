@@ -58,7 +58,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
             // obtain service builder from >> parent<< service context
             final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn);
             // create and set test service
-            final TestService service = new TestService(serviceBuilder, false);
+            final TestService service = new TestService(serviceName, serviceBuilder, false);
             serviceBuilder.setService(service);
             // set mode
             if (serviceMode != null)

@@ -40,15 +40,16 @@ import org.jboss.msc.txn.ServiceContext;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public final class TestService implements Service<Void> {
-
+    private final ServiceName serviceName;
     private final ServiceContext serviceContext;
     private final Dependency<?>[] dependencies;
     private final boolean failToStart; 
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
 
-    public TestService(ServiceBuilder<Void> serviceBuilder, final boolean failToStart, final DependencyInfo<?>... dependencyInfos) {
+    public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart, final DependencyInfo<?>... dependencyInfos) {
         this.serviceContext = serviceBuilder.getServiceContext();
+        this.serviceName = serviceName;
         assertNotNull(serviceContext);
         this.failToStart = failToStart;
         this.dependencies = new Dependency[dependencyInfos.length];
@@ -92,6 +93,10 @@ public final class TestService implements Service<Void> {
 
     public Dependency<?> getDependency(int index) {
         return dependencies[index];
+    }
+
+    public String toString() {
+        return serviceName.toString();
     }
 
     public static class DependencyInfo<T> {

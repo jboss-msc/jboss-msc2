@@ -115,6 +115,10 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNoCriticalProblems(txn);
     }
 
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode) throws InterruptedException {
+        return addService(serviceRegistry, serviceName, failToStart, serviceMode, new DependencyInfo[0]);
+    }
+
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
         // new transaction
         final Transaction txn = newTransaction();
@@ -127,7 +131,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i]);
         }
         // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
-        final TestService service = new TestService(serviceBuilder, failToStart, dependencyInfos);
+        final TestService service = new TestService(serviceName, serviceBuilder, failToStart, dependencyInfos);
         serviceBuilder.setService(service);
         // set mode
         if (serviceMode != null) serviceBuilder.setMode(serviceMode);
@@ -166,18 +170,30 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
-        // new transaction
-        final Transaction txn = newTransaction();
-        // create service builder
-        final ServiceContext serviceContext = txnController.getServiceContext();
-        final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
         // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
         DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
         for (int i = 0; i < dependencies.length; i++) {
             dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i], dependencyFlags);
         }
+        return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencyInfos);
+    }
+
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+        return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE);
+    }
+
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final DependencyInfo<?>... dependencies) throws InterruptedException {
+        return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE, dependencies);
+    }
+
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) throws InterruptedException {
+        // new transaction
+        final Transaction txn = newTransaction();
+        // create service builder
+        final ServiceContext serviceContext = txnController.getServiceContext();
+        final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
         // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
-        final TestService service = new TestService(serviceBuilder, failToStart, dependencyInfos);
+        final TestService service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);
         serviceBuilder.setService(service);
         // set mode
         if (serviceMode != null) serviceBuilder.setMode(serviceMode);
