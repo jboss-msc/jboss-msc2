@@ -360,9 +360,11 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                     synchronized (out) {
                         out.append(" terminated").append(id);
                     }
-                    endSignal.countDown();
-                    if (prepare) {
+                    synchronized (this) {
                         endSignal.countDown();
+                        if (prepare) {
+                            endSignal.countDown();
+                        }
                     }
                     return;
                 }

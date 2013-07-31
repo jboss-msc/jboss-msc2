@@ -72,7 +72,7 @@ abstract class TransactionalObject {
                     return;
                 }
                 try {
-                    transaction.waitFor(lock);
+                    transaction.waitFor(currentLock);
                 } catch (DeadlockException e) {
                     // TODO review this: isn't there a better way of adding this problem, specifically why do we need
                     // a task controller, and how will that look like in the log?
