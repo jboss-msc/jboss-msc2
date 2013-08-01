@@ -16,26 +16,22 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
-import static org.jboss.msc._private.Bits.allAreSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * A service controller.
@@ -123,7 +119,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction         the active transaction
      */
     ServiceController(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Service<T> service,
-            final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final TransactionImpl transaction) {
+            final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final Transaction transaction) {
         this.service = service;
         setMode(mode);
         this.dependencies = dependencies;
@@ -149,7 +145,7 @@ final class ServiceController<T> extends TransactionalObject {
      *
      * @param transaction the active transaction
      */
-    void install(ServiceRegistryImpl registry, TransactionImpl transaction) {
+    void install(ServiceRegistryImpl registry, Transaction transaction) {
         assert isWriteLocked(transaction);
         // if registry is removed, get an exception right away
         registry.newServiceInstalled(this, transaction);
@@ -232,7 +228,7 @@ final class ServiceController<T> extends TransactionalObject {
      * 
      * @param transaction the transaction
      */
-    synchronized int getState(TransactionImpl transaction) {
+    synchronized int getState(Transaction transaction) {
         if (super.isWriteLocked(transaction)) {
             return this.transactionalInfo.getState();
         }
@@ -246,7 +242,7 @@ final class ServiceController<T> extends TransactionalObject {
     /**
      * Management operation for disabling a service. As a result, this service will stop if it is {@code UP}.
      */
-    void disableService(TransactionImpl transaction) {
+    void disableService(Transaction transaction) {
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (!isServiceEnabled()) return;
@@ -261,7 +257,7 @@ final class ServiceController<T> extends TransactionalObject {
      * ServiceMode mode} rules.
      * <p> Services are enabled by default.
      */
-    void enableService(TransactionImpl transaction) {
+    void enableService(Transaction transaction) {
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (isServiceEnabled()) return;
@@ -273,10 +269,10 @@ final class ServiceController<T> extends TransactionalObject {
 
     private boolean isServiceEnabled() {
         assert holdsLock(this);
-        return allAreSet(state, SERVICE_ENABLED);
+        return Bits.allAreSet(state, SERVICE_ENABLED);
     }
 
-    void disableRegistry(TransactionImpl transaction) {
+    void disableRegistry(Transaction transaction) {
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized (this) {
             if (!isRegistryEnabled()) return;
@@ -286,7 +282,7 @@ final class ServiceController<T> extends TransactionalObject {
         transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
 
-    void enableRegistry(TransactionImpl transaction) {
+    void enableRegistry(Transaction transaction) {
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized (this) {
             if (isRegistryEnabled()) return;
@@ -298,7 +294,7 @@ final class ServiceController<T> extends TransactionalObject {
 
     private boolean isRegistryEnabled() {
         assert holdsLock(this);
-        return allAreSet(state, REGISTRY_ENABLED);
+        return Bits.allAreSet(state, REGISTRY_ENABLED);
     }
 
     /**
@@ -306,7 +302,7 @@ final class ServiceController<T> extends TransactionalObject {
      * 
      * @param transaction the active transaction
      */
-    void retry(TransactionImpl transaction) {
+    void retry(Transaction transaction) {
         lockWrite(transaction, transaction.getTaskFactory());
         transactionalInfo.retry(transaction);
     }
@@ -320,7 +316,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @return the task that completes removal. Once this task is executed, the service will be at the
      *         {@code REMOVED} state.
      */
-    TaskController<Void> remove(TransactionImpl transaction, TaskFactory taskFactory) {
+    TaskController<Void> remove(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         return transactionalInfo.scheduleRemoval(transaction, taskFactory);
     }
@@ -331,7 +327,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void upDemanded(TransactionImpl transaction, TaskFactory taskFactory) {
+    void upDemanded(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         final boolean propagate;
         synchronized (this) {
@@ -353,7 +349,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void upUndemanded(TransactionImpl transaction, TaskFactory taskFactory) {
+    void upUndemanded(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         final boolean propagate;
         synchronized (this) {
@@ -382,7 +378,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void dependentStarted(TransactionImpl transaction, TaskFactory taskFactory) {
+    void dependentStarted(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
             runningDependents++;
@@ -395,7 +391,7 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void dependentStopped(TransactionImpl transaction, TaskFactory taskFactory) {
+    void dependentStopped(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
             if (--runningDependents > 0) {
@@ -409,7 +405,7 @@ final class ServiceController<T> extends TransactionalObject {
         return primaryRegistration.getServiceName();
     }
 
-    public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencySatisfied(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
             if (-- unsatisfiedDependencies > 0) {
@@ -419,7 +415,7 @@ final class ServiceController<T> extends TransactionalObject {
         return transition(transaction, taskFactory);
     }
 
-    public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencyUnsatisfied(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
            if (++ unsatisfiedDependencies > 1) {
@@ -435,18 +431,18 @@ final class ServiceController<T> extends TransactionalObject {
      * @param transactionalState the transactional state
      * @param taskFactory        the task factory
      */
-    void setTransition(byte transactionalState, TransactionImpl transaction, TaskFactory taskFactory) {
+    void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
         assert isWriteLocked();
         transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
     }
 
-    private TaskController<?> transition(TransactionImpl transaction, TaskFactory taskFactory) {
+    private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
         assert isWriteLocked();
         return transactionalInfo.transition(transaction, taskFactory);
     }
 
     @Override
-    protected synchronized void writeLocked(TransactionImpl transaction) {
+    protected synchronized void writeLocked(Transaction transaction) {
         transactionalInfo = new TransactionalInfo();
     }
 
@@ -483,7 +479,7 @@ final class ServiceController<T> extends TransactionalObject {
         // the total number of setTransition calls expected until completeTransitionTask is finished
         private int transitionCount;
 
-        synchronized void setTransition(byte transactionalState, TransactionImpl transaction, TaskFactory taskFactory) {
+        synchronized void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
             this.transactionalState = transactionalState;
             assert transitionCount > 0;
             // transition has finally come to an end, and calling task equals completeTransitionTask
@@ -509,7 +505,7 @@ final class ServiceController<T> extends TransactionalObject {
             }
         }
 
-        private synchronized void retry(TransactionImpl transaction) {
+        private synchronized void retry(Transaction transaction) {
             if (transactionalState != STATE_FAILED) {
                 return;
             }
@@ -517,7 +513,7 @@ final class ServiceController<T> extends TransactionalObject {
             completeTransitionTask = StartingServiceTasks.create(ServiceController.this, transaction, transaction.getTaskFactory());
         }
 
-        private synchronized TaskController<?> transition(TransactionImpl transaction, TaskFactory taskFactory) {
+        private synchronized TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
             assert !holdsLock(ServiceController.this);
             switch (transactionalState) {
                 case STATE_DOWN:
@@ -572,14 +568,14 @@ final class ServiceController<T> extends TransactionalObject {
             return completeTransitionTask;
         }
 
-        private void notifyServiceUp(TransactionImpl transaction, TaskFactory taskFactory) {
+        private void notifyServiceUp(Transaction transaction, TaskFactory taskFactory) {
             primaryRegistration.serviceUp(transaction, taskFactory);
             for (Registration registration: aliasRegistrations) {
                 registration.serviceUp(transaction, taskFactory);
             }
         }
 
-        private Collection<TaskController<?>> notifyServiceDown(TransactionImpl transaction, TaskFactory taskFactory) {
+        private Collection<TaskController<?>> notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
             final List<TaskController<?>> tasks = new ArrayList<TaskController<?>>();
             primaryRegistration.serviceDown(transaction, taskFactory, tasks);
             for (Registration registration: aliasRegistrations) {
@@ -588,7 +584,7 @@ final class ServiceController<T> extends TransactionalObject {
             return tasks;
         }
 
-        private synchronized TaskController<Void> scheduleRemoval(TransactionImpl transaction, TaskFactory taskFactory) {
+        private synchronized TaskController<Void> scheduleRemoval(Transaction transaction, TaskFactory taskFactory) {
             // idempotent
             if (getState() == STATE_REMOVED) {
                 return null;
@@ -787,11 +783,11 @@ final class ServiceController<T> extends TransactionalObject {
     }
 
     private synchronized boolean shouldStart() {
-        return (isMode(MODE_ACTIVE) || upDemandedByCount > 0) && allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ACTIVE) || upDemandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
     }
 
     private synchronized boolean shouldStop() {
-        return (isMode(MODE_ON_DEMAND) && upDemandedByCount == 0) || !allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ON_DEMAND) && upDemandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
     }
 
     private void setMode(final byte mid) {

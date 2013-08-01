@@ -15,12 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
-
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
+package org.jboss.msc.txn;
 
 /**
  * Task for demanding dependencies.
@@ -29,7 +24,7 @@ import org.jboss.msc.txn.TaskController;
  */
 class DemandDependenciesTask implements Executable<Void> {
 
-    private TransactionImpl transaction;
+    private Transaction transaction;
     private ServiceController<?> service;
 
     /**
@@ -40,7 +35,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory  the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, TransactionImpl transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, null, transaction, taskFactory);
     }
 
@@ -55,7 +50,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory    the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, TaskController<?> taskDependency, TransactionImpl transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -66,7 +61,7 @@ class DemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private DemandDependenciesTask(TransactionImpl transaction, ServiceController<?> service) {
+    private DemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
         this.transaction = transaction;
         this.service = service;
     }

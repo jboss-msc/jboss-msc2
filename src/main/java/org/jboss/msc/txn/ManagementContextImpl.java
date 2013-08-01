@@ -15,14 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * ManagementContext implementation.
@@ -30,7 +28,7 @@ import org.jboss.msc.txn.TransactionController;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public final class ManagementContextImpl extends TransactionControllerContext implements ManagementContext {
+final class ManagementContextImpl extends TransactionControllerContext implements ManagementContext {
 
     public ManagementContextImpl(TransactionController transactionController) {
         super(transactionController);
@@ -39,14 +37,14 @@ public final class ManagementContextImpl extends TransactionControllerContext im
     @Override
     public void disableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((TransactionImpl) transaction);
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((Transaction) transaction);
     }
 
     @Override
     public void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((TransactionImpl) transaction);
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((Transaction) transaction);
     }
 
     @Override
@@ -67,35 +65,35 @@ public final class ManagementContextImpl extends TransactionControllerContext im
         if (controller == null) {
             return;
         }
-        controller.remove((TransactionImpl) transaction, ((TransactionImpl) transaction).getTaskFactory());
+        controller.remove((Transaction) transaction, ((Transaction) transaction).getTaskFactory());
     }
 
     @Override
     public void disableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
-        ((ServiceRegistryImpl)registry).disable((TransactionImpl) transaction);
+        ((ServiceRegistryImpl)registry).disable((Transaction) transaction);
     }
 
     @Override
     public void enableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
-        ((ServiceRegistryImpl)registry).enable((TransactionImpl) transaction);
+        ((ServiceRegistryImpl)registry).enable((Transaction) transaction);
     }
 
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         assert registry instanceof ServiceRegistryImpl;
-        ((ServiceRegistryImpl)registry).remove((TransactionImpl) transaction);
+        ((ServiceRegistryImpl)registry).remove((Transaction) transaction);
     }
 
     @Override
     public void shutdownContainer(ServiceContainer container, Transaction transaction) {
         validateTransaction(transaction);
         assert container instanceof ServiceContainerImpl;
-        ((ServiceContainerImpl)container).shutdown((TransactionImpl) transaction);
+        ((ServiceContainerImpl)container).shutdown((Transaction) transaction);
     }
 
 }

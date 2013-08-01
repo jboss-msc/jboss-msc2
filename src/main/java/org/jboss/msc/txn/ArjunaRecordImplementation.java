@@ -72,27 +72,24 @@ final class ArjunaRecordImplementation extends AbstractRecord {
     }
 
     public int topLevelAbort() {
-        final TransactionController controller = arjunaResource.getTransactionController();
         final SynchronousListener<Transaction> listener = new SynchronousListener<>();
-        controller.rollback(transaction, listener);
+        transaction.rollback(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes
         return TwoPhaseOutcome.FINISH_OK;
     }
 
     public int topLevelCommit() {
-        final TransactionController controller = arjunaResource.getTransactionController();
         final SynchronousListener<Transaction> listener = new SynchronousListener<>();
-        controller.commit(transaction, listener);
+        transaction.commit(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes
         return TwoPhaseOutcome.FINISH_OK;
     }
 
     public int topLevelPrepare() {
-        final TransactionController controller = arjunaResource.getTransactionController();
         final SynchronousListener<Transaction> listener = new SynchronousListener<>();
-        controller.prepare(transaction, listener);
+        transaction.prepare(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes
         return TwoPhaseOutcome.FINISH_OK;

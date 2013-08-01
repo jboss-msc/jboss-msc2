@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.Service;
@@ -30,8 +31,6 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * A service builder.
@@ -57,7 +56,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // dependencies
     private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<ServiceName, DependencyImpl<?>>();
     // active transaction
-    private final TransactionImpl transaction;
+    private final Transaction transaction;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -69,9 +68,9 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * @param name         service name
      * @param transaction  active transaction
      */
-    ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final TransactionImpl transaction) {
+    ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final Transaction transaction) {
         this.transactionController = transactionController;
-        this.transaction = (TransactionImpl) transaction;
+        this.transaction = (Transaction) transaction;
         this.registry = (ServiceRegistryImpl)registry;
         this.name = name;
         this.mode = ServiceMode.ACTIVE;

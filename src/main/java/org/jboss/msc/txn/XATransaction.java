@@ -18,19 +18,16 @@
 
 package org.jboss.msc.txn;
 
-import javax.transaction.TransactionManager;
+import java.util.concurrent.Executor;
 
 /**
+ * An XA transaction, which cannot be managed by the user.
+ *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class JTATransactionManagementScheme extends TransactionManagementScheme {
-    private final TransactionManager transactionManager;
+public final class XATransaction extends Transaction {
 
-    JTATransactionManagementScheme(final TransactionManager transactionManager) {
-        this.transactionManager = transactionManager;
-    }
-
-    TransactionManager getTransactionManager() {
-        return transactionManager;
+    XATransaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        super(controller, taskExecutor, maxSeverity);
     }
 }

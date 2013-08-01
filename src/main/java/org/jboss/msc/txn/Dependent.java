@@ -15,12 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Dependent service.
@@ -28,12 +25,12 @@ import org.jboss.msc.txn.Transaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @see DependencyImpl#setDependent(Dependent, Transaction, ServiceContext)
  */
-public interface Dependent {
+interface Dependent {
 
     /**
      * Returns dependent service name.
      */
-    public ServiceName getServiceName();
+    ServiceName getServiceName();
 
     /**
      * Notifies that a dependency is satisfied (during installation, all dependencies are
@@ -43,7 +40,7 @@ public interface Dependent {
      * @param taskFactory the task factory
      * @return the transition task resulting of this notification, if any
      */
-    public TaskController<?> dependencySatisfied(TransactionImpl transaction, TaskFactory taskFactory);
+    TaskController<?> dependencySatisfied(Transaction transaction, TaskFactory taskFactory);
 
     /**
      * Notifies that a dependency no longer satisfied.
@@ -52,6 +49,6 @@ public interface Dependent {
      * @param taskFactory the task factory
      * @return the transition task resulting of this notification, if any
      */
-    public TaskController<?> dependencyUnsatisfied(TransactionImpl transaction, TaskFactory taskFactory);
+    TaskController<?> dependencyUnsatisfied(Transaction transaction, TaskFactory taskFactory);
 
 }

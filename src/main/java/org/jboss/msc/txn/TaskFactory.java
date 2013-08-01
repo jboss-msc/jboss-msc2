@@ -15,10 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
-
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.TaskBuilder;
+package org.jboss.msc.txn;
 
 /**
  * A task factory.

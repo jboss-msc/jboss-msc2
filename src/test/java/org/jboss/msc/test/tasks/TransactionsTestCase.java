@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.txn.DeadlockException;
 import org.jboss.msc.txn.Listener;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -43,7 +43,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     @Test
     public void testMaximumActiveTransactions() throws Exception {
         // create transactions to fill in the transaction id limit
-        final Transaction[] transactions = new Transaction[MAX_ACTIVE_TRANSACTIONS];
+        final BasicTransaction[] transactions = new BasicTransaction[MAX_ACTIVE_TRANSACTIONS];
         for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
             transactions[i] = newTransaction();
         }
@@ -132,7 +132,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
 
     @Test
     public void testTransactionSelfWaits() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         txnController.waitFor(transaction, transaction);
         rollback(transaction);
     }
@@ -228,9 +228,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             throws Exception {
         final ThreadPoolExecutor executor = newExecutor(4);
         // prepare tasks
-        final Transaction txn0 = newTransaction();
-        final Transaction txn1 = newTransaction();
-        final Transaction txn2 = newTransaction();
+        final BasicTransaction txn0 = newTransaction();
+        final BasicTransaction txn1 = newTransaction();
+        final BasicTransaction txn2 = newTransaction();
         final StringBuffer out = new StringBuffer();
         final TransactionTask[] tasks = new TransactionTask[4];
         // create wait queue
@@ -329,8 +329,8 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         private final int id;
         private CountDownLatch startSignal;
         private CountDownLatch endSignal;
-        private Transaction dependency;
-        private Transaction dependent;
+        private BasicTransaction dependency;
+        private BasicTransaction dependent;
         private Throwable t;
 
         private TransactionTask(final StringBuffer out, final boolean prepare, final boolean rollback, final int id) {
@@ -372,9 +372,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                     out.append(" started").append(id);
                 }
                 if (prepare) {
-                    prepare(dependent, new Listener<Transaction>() {
+                    prepare(dependent, new Listener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final Transaction subject) {
+                        public void handleEvent(final BasicTransaction subject) {
                             synchronized (out) {
                                 out.append(" prepared").append(id);
                             }
@@ -385,9 +385,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                     });
                 }
                 if (!rollback) {
-                    commit(dependent, new Listener<Transaction>() {
+                    commit(dependent, new Listener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final Transaction subject) {
+                        public void handleEvent(final BasicTransaction subject) {
                             synchronized (out) {
                                 out.append(" committed").append(id);
                             }
@@ -397,9 +397,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                         }
                     });
                 } else {
-                    rollback(dependent, new Listener<Transaction>() {
+                    rollback(dependent, new Listener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final Transaction subject) {
+                        public void handleEvent(final BasicTransaction subject) {
                             synchronized (out) {
                                 out.append(" reverted").append(id);
                             }
@@ -420,20 +420,20 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
         }
 
-        private void setDependency(final Transaction dependency) {
+        private void setDependency(final BasicTransaction dependency) {
             this.dependency = dependency;
         }
 
         @SuppressWarnings("unused")
-        private Transaction getDependency() {
+        private BasicTransaction getDependency() {
             return this.dependency;
         }
 
-        private void setDependent(final Transaction dependent) {
+        private void setDependent(final BasicTransaction dependent) {
             this.dependent = dependent;
         }
 
-        private Transaction getDependent() {
+        private BasicTransaction getDependent() {
             return this.dependent;
         }
 

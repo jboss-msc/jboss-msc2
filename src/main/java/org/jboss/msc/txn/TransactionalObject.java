@@ -15,22 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.jboss.msc.txn.AttachmentKey;
-import org.jboss.msc.txn.CommitContext;
-import org.jboss.msc.txn.Committable;
-import org.jboss.msc.txn.DeadlockException;
-import org.jboss.msc.txn.Problem;
-import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.Revertible;
-import org.jboss.msc.txn.RollbackContext;
-import org.jboss.msc.txn.Validatable;
-import org.jboss.msc.txn.ValidateContext;
 
 /**
  * Object with write lock support per transaction.
@@ -48,7 +37,7 @@ abstract class TransactionalObject {
     private static AttachmentKey<Map<TransactionalObject, Object>> TRANSACTIONAL_OBJECTS = AttachmentKey.create();
 
     // inner lock
-    private TransactionImpl lock;
+    private Transaction lock;
 
     /**
      * Write locks this object under {@code transaction}. If another transaction holds the lock, this method will block
@@ -59,11 +48,11 @@ abstract class TransactionalObject {
      * @param transaction the transaction that is attempting to modify current's object state
      * @param taskFactory the  task factory
      */
-    final void lockWrite(TransactionImpl transaction, TaskFactory taskFactory) {
+    final void lockWrite(Transaction transaction, TaskFactory taskFactory) {
         assert !Thread.holdsLock(this);
         final Object snapshot;
         while (true) {
-            TransactionImpl currentLock;
+            Transaction currentLock;
             synchronized (this) {
                 currentLock = lock;
             }
@@ -121,7 +110,7 @@ abstract class TransactionalObject {
      * @param transaction an active transaction
      * @return {@code true} only if this object is locked by {@code transaction}.
      */
-    synchronized final boolean isWriteLocked(TransactionImpl transaction) {
+    synchronized final boolean isWriteLocked(Transaction transaction) {
         return lock == transaction;
     }
 
@@ -159,7 +148,7 @@ abstract class TransactionalObject {
      * @param transaction the transaction under which this object is locked
      * @param context     the service context
      */
-    void writeLocked(TransactionImpl transaction) {}
+    void writeLocked(Transaction transaction) {}
 
     /**
      * Notifies that this object is now write unlocked.

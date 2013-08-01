@@ -15,9 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
-
-import static org.jboss.msc._private.ServiceController.STATE_DOWN;
+package org.jboss.msc.txn;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,12 +24,7 @@ import java.util.List;
 
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * Tasks executed when a service is stopping.
@@ -52,7 +45,7 @@ final class StoppingServiceTasks {
      *                         conclusion of stopping transition.
      */
     static <T> TaskController<Void> create(ServiceController<T> service, Collection<TaskController<?>> taskDependencies,
-            TransactionImpl transaction, TaskFactory taskFactory) {
+            Transaction transaction, TaskFactory taskFactory) {
 
         final Service<T> serviceValue = service.getService();
 
@@ -84,7 +77,7 @@ final class StoppingServiceTasks {
      *                         conclusion of stopping transition.
      */
     static <T> TaskController<Void> create(ServiceController<T> service, TaskController<?> taskDependency,
-            TransactionImpl transaction, TaskFactory taskFactory) {
+            Transaction transaction, TaskFactory taskFactory) {
 
         final List<TaskController<?>> taskDependencies = new ArrayList<TaskController<?>>(1);
         taskDependencies.add(taskDependency);
@@ -100,7 +93,7 @@ final class StoppingServiceTasks {
      *                        conclusion of stopping transition.
      */
     @SuppressWarnings("unchecked")
-    static <T> TaskController<Void> create(ServiceController<T> service, TransactionImpl transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceController<T> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
@@ -113,7 +106,7 @@ final class StoppingServiceTasks {
      *                        conclusion of stopping transition.
      */
     // TODO discuss: what if we just set the service down after it fails?
-    static <T> TaskController<Void> createForFailedService(ServiceController<T> service, TransactionImpl transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> createForFailedService(ServiceController<T> service, Transaction transaction, TaskFactory taskFactory) {
 
         // post stop task
         final TaskBuilder<Void> setServiceDownBuilder = taskFactory.newTask(new SetServiceDownTask(service, transaction));
@@ -214,10 +207,10 @@ final class StoppingServiceTasks {
      */
     private static class SetServiceDownTask implements Executable<Void> {
 
-        private final TransactionImpl transaction;
+        private final Transaction transaction;
         private final ServiceController<?> serviceController;
 
-        private SetServiceDownTask(ServiceController<?> serviceController, TransactionImpl transaction) {
+        private SetServiceDownTask(ServiceController<?> serviceController, Transaction transaction) {
             this.transaction = transaction;
             this.serviceController = serviceController;
         }
@@ -227,7 +220,7 @@ final class StoppingServiceTasks {
             assert context instanceof TaskFactory;
             try {
                 // set down state
-                serviceController.setTransition(STATE_DOWN, transaction, (TaskFactory)context);
+                serviceController.setTransition(ServiceController.STATE_DOWN, transaction, (TaskFactory)context);
 
                 // clear service value, thus performing an automatic uninjection
                 serviceController.setValue(null);

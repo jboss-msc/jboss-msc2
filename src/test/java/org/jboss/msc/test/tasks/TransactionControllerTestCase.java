@@ -21,10 +21,10 @@ import static org.junit.Assert.assertNotNull;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.CompletionListener;
+import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.DeadlockException;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     @Test
     public void outsiderTransaction() throws InterruptedException, DeadlockException {
         final TransactionController outsiderController = TransactionController.createInstance();
-        final Transaction outsiderTransaction = outsiderController.create(defaultExecutor);
+        final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
         final CompletionListener listener = new CompletionListener();
         SecurityException expected = null;
         try {
@@ -107,7 +107,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         assertNotNull(expected);
 
         expected = null;
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         try {
             txnController.waitFor(outsiderTransaction, transaction);
         } catch (SecurityException e) {

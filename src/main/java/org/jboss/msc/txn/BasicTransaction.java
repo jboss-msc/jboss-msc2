@@ -18,9 +18,15 @@
 
 package org.jboss.msc.txn;
 
+import java.util.concurrent.Executor;
+
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class ArjunaTransactionManagementScheme extends TransactionManagementScheme {
+public final class BasicTransaction extends Transaction {
+
+    BasicTransaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        super(controller, taskExecutor, maxSeverity);
+    }
 
 }

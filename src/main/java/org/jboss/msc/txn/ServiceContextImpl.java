@@ -15,18 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
-import org.jboss.msc.txn.ProblemReport;
-import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * ServiceContext implementation.
@@ -34,7 +28,7 @@ import org.jboss.msc.txn.TransactionController;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class ServiceContextImpl extends TransactionControllerContext implements ServiceContext {
+class ServiceContextImpl extends TransactionControllerContext implements ServiceContext {
 
     public ServiceContextImpl(TransactionController transactionController) {
         super(transactionController);
@@ -53,7 +47,7 @@ public class ServiceContextImpl extends TransactionControllerContext implements 
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
+        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, (Transaction) transaction);
     }
 
     @Override
@@ -69,13 +63,13 @@ public class ServiceContextImpl extends TransactionControllerContext implements 
         if (transaction == null) {
             throw new IllegalArgumentException("transaction is null");
         }
-        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, (TransactionImpl) transaction);
+        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, (Transaction) transaction);
     }
 
     @Override
     public ReportableContext getReportableContext(Transaction transaction) {
         validateTransaction(transaction);
-        final ProblemReport problemReport = ((TransactionImpl) transaction).getProblemReport();
+        final ProblemReport problemReport = ((Transaction) transaction).getProblemReport();
         return new ReportableContext() {
 
             @Override

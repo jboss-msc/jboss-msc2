@@ -28,7 +28,7 @@ import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -48,7 +48,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      */
     @Test
     public void usecase1() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestValidatable child0v = new TestValidatable();
@@ -149,7 +149,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      */
     @Test
     public void usecase2() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestValidatable child0v = new TestValidatable();
@@ -251,7 +251,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      */
     @Test
     public void usecase3() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestValidatable child0v = new TestValidatable();
@@ -351,7 +351,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      */
     @Test
     public void usecase4() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestValidatable child0v = new TestValidatable();

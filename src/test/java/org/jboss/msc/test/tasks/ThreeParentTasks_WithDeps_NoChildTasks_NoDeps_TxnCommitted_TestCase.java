@@ -26,8 +26,9 @@ import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
+import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -47,7 +48,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase1() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestValidatable v0 = new TestValidatable();
@@ -114,7 +115,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase2() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestValidatable v0 = new TestValidatable();
@@ -183,7 +184,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase3() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestValidatable v0 = new TestValidatable();
@@ -250,7 +251,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase4() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestValidatable v0 = new TestValidatable();

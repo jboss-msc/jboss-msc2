@@ -18,7 +18,7 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc._private.ServiceContainerImpl;
+import org.jboss.msc.txn.ServiceContainerImpl;
 
 /**
  * A {@link ServiceContainerImpl} factory. This singleton is thread safe.

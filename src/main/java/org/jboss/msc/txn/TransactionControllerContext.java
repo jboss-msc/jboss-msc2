@@ -15,10 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
-
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
+package org.jboss.msc.txn;
 
 /**
  * A context scoped by a {@link TransactionController}. This context can be used with multiple transactions,
@@ -47,8 +44,8 @@ abstract class TransactionControllerContext {
      *                                  that created this context
      */
     void validateTransaction(Transaction transaction) {
-        assert transaction instanceof TransactionImpl;
-        if (((TransactionImpl) transaction).getController() != transactionController) {
+        assert transaction instanceof Transaction;
+        if (((Transaction) transaction).getController() != transactionController) {
             // cannot be used by this context
             throw new IllegalArgumentException("Transaction does not belong to this context (transaction was created by a different transaction controller)");
         }

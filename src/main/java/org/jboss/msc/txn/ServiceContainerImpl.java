@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,7 +32,9 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class ServiceContainerImpl implements ServiceContainer {
+public // << TODO Remove this
+final class ServiceContainerImpl implements ServiceContainer {
+
 
     private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
 
@@ -42,7 +44,7 @@ public final class ServiceContainerImpl implements ServiceContainer {
         return returnValue;
     }
 
-    void shutdown(final TransactionImpl txn) {
+    void shutdown(final Transaction txn) {
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

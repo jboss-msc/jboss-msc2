@@ -16,30 +16,13 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
-import static org.jboss.msc._private.Bits.allAreClear;
-import static org.jboss.msc._private.Bits.allAreSet;
-import static org.jboss.msc._private.Bits.anyAreSet;
-import static org.jboss.msc._private.Bits.intBitMask;
-import static org.jboss.msc._private.Bits.oneIsSet;
 
 import java.util.ArrayList;
 
-import org.jboss.msc.txn.CommitContext;
-import org.jboss.msc.txn.Committable;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Problem;
-import org.jboss.msc.txn.ProblemReport;
-import org.jboss.msc.txn.Revertible;
-import org.jboss.msc.txn.RollbackContext;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Validatable;
-import org.jboss.msc.txn.ValidateContext;
+import org.jboss.msc._private.MSCLogger;
 
 /**
  * A controller for an installed subtask.
@@ -246,14 +229,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_SEND_COMMIT_REQ           = 1 << 23; // to children
     private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 24; // to dependents
 
-    private static final int SEND_FLAGS = intBitMask(13, 24);
+    private static final int SEND_FLAGS = Bits.intBitMask(13, 24);
 
     private static final int FLAG_DO_EXECUTE        = 1 << 25;
     private static final int FLAG_DO_VALIDATE       = 1 << 26;
     private static final int FLAG_DO_COMMIT         = 1 << 27;
     private static final int FLAG_DO_ROLLBACK       = 1 << 28;
 
-    private static final int DO_FLAGS = intBitMask(25, 28);
+    private static final int DO_FLAGS = Bits.intBitMask(25, 28);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -271,7 +254,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         state = STATE_NEW;
     }
 
-    public TransactionImpl getTransaction() {
+    public Transaction getTransaction() {
         return parent.getTransaction();
     }
 
@@ -298,14 +281,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         int sid = stateOf(state);
         switch (sid) {
             case STATE_NEW: {
-                if (allAreSet(state, FLAG_INSTALL_FAILED)) {
+                if (Bits.allAreSet(state, FLAG_INSTALL_FAILED)) {
                     return T_NEW_to_TERMINATED;
                 } else {
                     return T_NEW_to_EXECUTE_WAIT;
                 }
             }
             case STATE_EXECUTE_WAIT: {
-                if (allAreSet(state, FLAG_CANCEL_REQ)) {
+                if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_WAIT_to_TERMINATE_WAIT;
                 } else if (unfinishedDependencies == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
@@ -314,34 +297,34 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE: {
-                if (allAreSet(state, FLAG_EXECUTE_DONE)) {
+                if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
                     return T_EXECUTE_to_EXECUTE_DONE;
-                } else if (allAreSet(state, FLAG_CANCEL_REQ)) {
+                } else if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_to_TERMINATE_WAIT;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_EXECUTE_DONE: {
-                if (allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_EXECUTE_DONE_to_ROLLBACK_WAIT;
-                } else if (allAreSet(state, FLAG_VALIDATE_REQ) && unfinishedChildren == 0 && unvalidatedDependencies == 0) {
+                } else if (Bits.allAreSet(state, FLAG_VALIDATE_REQ) && unfinishedChildren == 0 && unvalidatedDependencies == 0) {
                     return T_EXECUTE_DONE_to_VALIDATE;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_VALIDATE: {
-                if (allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_VALIDATE_to_ROLLBACK_WAIT;
-                } else if (allAreSet(state, FLAG_VALIDATE_DONE)) {
+                } else if (Bits.allAreSet(state, FLAG_VALIDATE_DONE)) {
                     return T_VALIDATE_to_VALIDATE_CHILDREN_WAIT;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_VALIDATE_CHILDREN_WAIT: {
-                if (allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT;
                 } else if (unvalidatedChildren == 0) {
                     return T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE;
@@ -350,9 +333,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_VALIDATE_DONE: {
-                if (allAreSet(state, FLAG_COMMIT_REQ)) {
+                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_VALIDATE_DONE_to_COMMIT_WAIT;
-                } else if (allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                } else if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_VALIDATE_DONE_to_ROLLBACK_WAIT;
                 } else {
                     return T_NONE;
@@ -366,7 +349,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_COMMIT: {
-                if (allAreSet(state, FLAG_COMMIT_DONE)) {
+                if (Bits.allAreSet(state, FLAG_COMMIT_DONE)) {
                     return T_COMMIT_to_TERMINATE_WAIT;
                 } else {
                     return T_NONE;
@@ -380,7 +363,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_ROLLBACK: {
-                if (allAreSet(state, FLAG_ROLLBACK_DONE)) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_DONE)) {
                     return T_ROLLBACK_to_TERMINATE_WAIT;
                 } else {
                     return T_NONE;
@@ -528,90 +511,90 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     private void executeTasks(final int state) {
-        final boolean userThread = allAreSet(state, FLAG_USER_THREAD);
-        if (allAreSet(state, FLAG_SEND_DEPENDENCY_DONE)) {
+        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
+        if (Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_DONE)) {
             for (TaskControllerImpl<?> dependent : cachedDependents) {
                 dependent.dependencyExecutionComplete(userThread);
             }
             cachedDependents = null;
         }
-        if (allAreSet(state, FLAG_SEND_CHILD_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_DONE)) {
             parent.childExecutionFinished(userThread);
         }
-        if (allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
+        if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
             for (TaskChild child : children) {
                 child.childInitiateValidate(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_CANCEL_REQ)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CANCEL_REQ)) {
             for (TaskChild child : children) {
                 child.forceCancel(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
+        if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskChild child : children) {
                 child.childInitiateRollback(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
+        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskChild child : children) {
                 child.childInitiateCommit(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_VALIDATE_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_DONE)) {
             for (TaskControllerImpl<?> dependent : dependents) {
                 dependent.dependencyValidationComplete(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
             parent.childValidationFinished(userThread);
         }
-        if (allAreSet(state, FLAG_SEND_COMMIT_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_DONE)) {
             for (TaskControllerImpl<?> dependent : dependents) {
                 dependent.dependencyCommitComplete(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             parent.childTerminated(userThread);
         }
-        if (allAreSet(state, FLAG_SEND_TERMINATED)) {
+        if (Bits.allAreSet(state, FLAG_SEND_TERMINATED)) {
             for (TaskControllerImpl<?> dependency : dependencies) {
                 dependency.dependentTerminated(userThread);
             }
         }
-        if (allAreSet(state, FLAG_SEND_CANCEL_DEPENDENTS)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CANCEL_DEPENDENTS)) {
             for (TaskControllerImpl<?> dependent : cachedDependents) {
                 dependent.forceCancel(userThread);
             }
             cachedDependents = null;
         }
 
-        assert allAreClear(state, DO_FLAGS) || oneIsSet(state, DO_FLAGS);
+        assert Bits.allAreClear(state, DO_FLAGS) || Bits.oneIsSet(state, DO_FLAGS);
 
         if (userThread) {
-            if (allAreSet(state, FLAG_DO_EXECUTE)) {
+            if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
                 safeExecute(new AsyncTask(FLAG_DO_EXECUTE));
             }
-            if (allAreSet(state, FLAG_DO_VALIDATE)) {
+            if (Bits.allAreSet(state, FLAG_DO_VALIDATE)) {
                 safeExecute(new AsyncTask(FLAG_DO_VALIDATE));
             }
-            if (allAreSet(state, FLAG_DO_ROLLBACK)) {
+            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
                 safeExecute(new AsyncTask(FLAG_DO_ROLLBACK));
             }
-            if (allAreSet(state, FLAG_DO_COMMIT)) {
+            if (Bits.allAreSet(state, FLAG_DO_COMMIT)) {
                 safeExecute(new AsyncTask(FLAG_DO_COMMIT));
             }
         } else {
-            if (allAreSet(state, FLAG_DO_EXECUTE)) {
+            if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
                 execute();
             }
-            if (allAreSet(state, FLAG_DO_VALIDATE)) {
+            if (Bits.allAreSet(state, FLAG_DO_VALIDATE)) {
                 validate();
             }
-            if (allAreSet(state, FLAG_DO_ROLLBACK)) {
+            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
                 rollback();
             }
-            if (allAreSet(state, FLAG_DO_COMMIT)) {
+            if (Bits.allAreSet(state, FLAG_DO_COMMIT)) {
                 commit();
             }
         }
@@ -1083,7 +1066,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             switch (stateOf(state)) {
                 case STATE_TERMINATED:
                 case STATE_TERMINATE_WAIT: {
-                    if (anyAreSet(state, FLAG_CANCEL_REQ)) {
+                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         dependencyCancelled = true;
                         break;
                     }

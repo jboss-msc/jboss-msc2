@@ -21,9 +21,6 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.concurrent.Executor;
 
-import org.jboss.msc._private.ManagementContextImpl;
-import org.jboss.msc._private.ServiceContextImpl;
-import org.jboss.msc._private.TransactionImpl;
 import org.jboss.msc.service.ManagementContext;
 
 
@@ -57,8 +54,8 @@ public final class TransactionController extends SimpleAttachable {
      * @param executor the executor to use to run tasks
      * @return the transaction
      */
-    public Transaction create(final Executor executor) {
-        return TransactionImpl.createTransactionImpl(this, executor, Problem.Severity.WARNING);
+    public BasicTransaction create(final Executor executor) {
+        return create(executor, Problem.Severity.WARNING);
     }
 
     /**
@@ -68,7 +65,7 @@ public final class TransactionController extends SimpleAttachable {
      * @param maxSeverity the maximum severity to allow
      * @return the transaction
      */
-    public Transaction create(final Executor executor, final Problem.Severity maxSeverity) {
+    public BasicTransaction create(final Executor executor, final Problem.Severity maxSeverity) {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
         }
@@ -78,7 +75,19 @@ public final class TransactionController extends SimpleAttachable {
         if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
             throw TXN.illegalSeverity("maxSeverity");
         }
-        return TransactionImpl.createTransactionImpl(this, executor, maxSeverity);
+        return registerTransaction(new BasicTransaction(this, executor, maxSeverity));
+    }
+
+
+
+    <T extends Transaction> T registerTransaction(final T transaction) {
+        try {
+            Transactions.register(transaction);
+        } catch (final IllegalStateException e) {
+            transaction.forceStateRolledBack();
+            throw e;
+        }
+        return transaction;
     }
 
     /**
@@ -90,7 +99,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public Executor getExecutor(final Transaction transaction) throws SecurityException {
         validateTransaction(transaction);
-        return ((TransactionImpl) transaction).getExecutor();
+        return transaction.getExecutor();
     }
 
     /**
@@ -102,7 +111,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public ProblemReport getProblemReport(final Transaction transaction) throws SecurityException {
         validateTransaction(transaction);
-        return ((TransactionImpl) transaction).getProblemReport();
+        return transaction.getProblemReport();
     }
 
     /**
@@ -136,7 +145,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
-        return ((TransactionImpl) transaction).newTask(task);
+        return transaction.newTask(task);
     }
 
     /**
@@ -149,13 +158,14 @@ public final class TransactionController extends SimpleAttachable {
      */
     public TaskBuilder<Void> newTask(final Transaction transaction) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
-        return ((TransactionImpl) transaction).newTask();
+        return transaction.newTask();
     }
 
     /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
-     * Once this method returns, either {@link #commit(Transaction, Listener)} or {@link #rollback(Transaction,Listener)} must be called.
+     * Once this method returns, either {@link #commit(BasicTransaction, Listener)} or {@link #rollback(BasicTransaction, Listener)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
+     *
      *
      * @param transaction        the transaction to be prepared
      * @param completionListener the listener to call when the prepare is complete or has failed
@@ -163,13 +173,14 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void prepare(final Transaction transaction, final Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void prepare(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        ((TransactionImpl) transaction).prepare(completionListener);
+        transaction.prepare((Listener<? super Transaction>) completionListener);
     }
 
     /**
-     * Commit the work done by {@link #prepare(Transaction,Listener)} and terminate {@code transaction}.
+     * Commit the work done by {@link #prepare(BasicTransaction, Listener)} and terminate {@code transaction}.
      *
      * @param transaction        the transaction to be committed
      * @param completionListener the listener to call when the rollback is complete
@@ -177,9 +188,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void commit(final Transaction transaction, final Listener<? super Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void commit(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException, SecurityException {
         validateTransaction(transaction);
-        ((TransactionImpl) transaction).commit(completionListener);
+        transaction.commit((Listener<? super Transaction>) completionListener);
     }
 
     /**
@@ -191,9 +203,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void rollback(final Transaction transaction, final Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void rollback(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        ((TransactionImpl) transaction).rollback(completionListener);
+        transaction.rollback((Listener<? super Transaction>) completionListener);
     }
 
     /**
@@ -206,7 +219,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public boolean canCommit(final Transaction transaction) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        return ((TransactionImpl) transaction).canCommit();
+        return transaction.canCommit();
     }
 
     /**
@@ -221,8 +234,8 @@ public final class TransactionController extends SimpleAttachable {
      */
     public void waitFor(final Transaction transaction, final Transaction other) throws InterruptedException, DeadlockException, SecurityException {
         validateTransaction(transaction);
-        assert other instanceof TransactionImpl;
-        ((TransactionImpl) transaction).waitFor(other);
+        assert other instanceof Transaction;
+        transaction.waitFor(other);
     }
 
     /**
@@ -231,10 +244,10 @@ public final class TransactionController extends SimpleAttachable {
      * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
      */
     public boolean owns(final Transaction transaction) {
-        return transaction instanceof TransactionImpl && this == ((TransactionImpl) transaction).getController();
+        return transaction instanceof Transaction && this == transaction.getController();
     }
 
-    private void validateTransaction(final Transaction transaction) throws SecurityException {
+    void validateTransaction(final Transaction transaction) throws SecurityException {
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
@@ -242,5 +255,4 @@ public final class TransactionController extends SimpleAttachable {
             throw new SecurityException("Transaction not created by this controller");
         }
     }
-
 }

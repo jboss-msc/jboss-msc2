@@ -33,7 +33,7 @@ import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -53,7 +53,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
      */
     @Test
     public void usecase1() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         final CountDownLatch childValidateSignal = new CountDownLatch(1);
         final CountDownLatch childCommitSignal = new CountDownLatch(1);
         // preparing child0 task

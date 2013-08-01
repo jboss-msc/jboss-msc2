@@ -15,13 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * Parent service context: behaves just like service context super class except that newly created services are
@@ -30,7 +28,7 @@ import org.jboss.msc.txn.TransactionController;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class ParentServiceContext extends ServiceContextImpl {
+class ParentServiceContext extends ServiceContextImpl {
     private final Registration parentRegistration;
 
     public ParentServiceContext(Registration parentRegistration, TransactionController transactionController) {
@@ -41,11 +39,11 @@ public class ParentServiceContext extends ServiceContextImpl {
     @Override
     public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
         assert registry instanceof ServiceRegistryImpl;
-        assert transaction instanceof TransactionImpl;
+        assert transaction instanceof Transaction;
         if (parentRegistration.getController() == null) {
             throw new IllegalStateException("Cannot add services on uninstalled service context");
         }
-        if (!Bits.allAreSet(parentRegistration.getController().getState((TransactionImpl) transaction), ServiceController.STATE_UP)) {
+        if (!Bits.allAreSet(parentRegistration.getController().getState((Transaction) transaction), ServiceController.STATE_UP)) {
             throw new IllegalStateException("Can only add services onto an UP service context.");
         }
         final ServiceBuilder<T> serviceBuilder = super.addService(valueType, registry, name, transaction);
@@ -56,11 +54,11 @@ public class ParentServiceContext extends ServiceContextImpl {
     @Override
     public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
         assert registry instanceof ServiceRegistryImpl;
-        assert transaction instanceof TransactionImpl;
+        assert transaction instanceof Transaction;
         if (parentRegistration.getController() == null) {
             throw new IllegalStateException("Cannot add services on uninstalled service context");
         }
-        if (!Bits.allAreSet(parentRegistration.getController().getState((TransactionImpl) transaction), ServiceController.STATE_UP)) {
+        if (!Bits.allAreSet(parentRegistration.getController().getState((Transaction) transaction), ServiceController.STATE_UP)) {
             throw new IllegalStateException("Can only add services onto an UP service context.");
         }
         final ServiceBuilder<Void> serviceBuilder = super.addService(registry, name, transaction);

@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.ServiceController.STATE_UP;
+import static org.jboss.msc.txn.ServiceController.STATE_UP;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,8 +27,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * A service registration.
@@ -66,7 +64,7 @@ final class Registration extends TransactionalObject {
         return controller;
     }
 
-    boolean setController(final TransactionImpl transaction, final ServiceController<?> serviceController) {
+    boolean setController(final Transaction transaction, final ServiceController<?> serviceController) {
         lockWrite(transaction, transaction.getTaskFactory());
         final boolean upDemanded;
         synchronized (this) {
@@ -82,14 +80,14 @@ final class Registration extends TransactionalObject {
         return true;
     }
 
-    void clearController(final TransactionImpl transaction, final TaskFactory taskFactory) {
+    void clearController(final Transaction transaction, final TaskFactory taskFactory) {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
             this.controller = null;
         }
     }
 
-    void addIncomingDependency(final TransactionImpl transaction, final DependencyImpl<?> dependency) {
+    void addIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
         lockWrite(transaction, transaction.getTaskFactory());
         final boolean dependencyUp;
         synchronized (this) {
@@ -101,19 +99,19 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void removeIncomingDependency(final TransactionImpl transaction, final TaskFactory taskFactory, final DependencyImpl<?> dependency) {
+    void removeIncomingDependency(final Transaction transaction, final TaskFactory taskFactory, final DependencyImpl<?> dependency) {
         lockWrite(transaction, taskFactory);
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
 
-    void serviceUp(final TransactionImpl transaction, final TaskFactory taskFactory) {
+    void serviceUp(final Transaction transaction, final TaskFactory taskFactory) {
         for (DependencyImpl<?> incomingDependency: incomingDependencies) {
             incomingDependency.dependencyUp(transaction, taskFactory);
         }
     }
 
-    void serviceDown(final TransactionImpl transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+    void serviceDown(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
         for (DependencyImpl<?> incomingDependency: incomingDependencies) {
             final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
             if (task != null) {
@@ -122,7 +120,7 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void addDemand(TransactionImpl transaction, TaskFactory taskFactory) {
+    void addDemand(Transaction transaction, TaskFactory taskFactory) {
         assert ! Thread.holdsLock(this);
         lockWrite(transaction, taskFactory);
         final ServiceController<?> controller;
@@ -137,7 +135,7 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void removeDemand(TransactionImpl transaction, TaskFactory taskFactory) {
+    void removeDemand(Transaction transaction, TaskFactory taskFactory) {
         assert ! Thread.holdsLock(this);
         lockWrite(transaction, taskFactory);
         synchronized (this) {

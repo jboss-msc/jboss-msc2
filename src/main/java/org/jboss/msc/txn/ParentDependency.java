@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.DependencyFlag;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * Parent dependency. The dependent is created whenever dependency is satisfied, and is removed whenever
@@ -29,12 +28,12 @@ import org.jboss.msc.txn.TaskController;
  */
 final class ParentDependency<T> extends DependencyImpl<T> {
 
-    ParentDependency(final Registration dependencyRegistration, final TransactionImpl transaction) {
+    ParentDependency(final Registration dependencyRegistration, final Transaction transaction) {
         super(dependencyRegistration, transaction, DependencyFlag.UNREQUIRED);
     }
 
     @Override
-    public TaskController<?> dependencyDown(TransactionImpl transaction, TaskFactory taskFactory) {
+    public TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
         return dependent.remove(transaction, taskFactory);
     }
 }

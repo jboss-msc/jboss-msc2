@@ -23,6 +23,8 @@ package org.jboss.msc.txn;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-abstract class TransactionManagementScheme {
-    static final AttachmentKey<TransactionManagementScheme> KEY = AttachmentKey.create();
+public abstract class TransactionManagementScheme<T extends Transaction> {
+
+    TransactionManagementScheme() {
+    }
 }

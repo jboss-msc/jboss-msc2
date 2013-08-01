@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
 
@@ -24,14 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
-
-import org.jboss.msc.txn.Committable;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.Revertible;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.Validatable;
 
 /**
  * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.

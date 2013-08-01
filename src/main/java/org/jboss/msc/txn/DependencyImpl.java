@@ -16,17 +16,14 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.Bits.allAreSet;
 import static org.jboss.msc._private.MSCLogger.SERVICE;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.txn.Problem.Severity;
-import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * Dependency implementation.
@@ -72,17 +69,17 @@ class DependencyImpl<T> implements Dependency<T> {
      *                               should be demanded when {@link #demand(Transaction, ServiceContext) requested}.
      * @param transaction            the active transaction
      */
-    protected DependencyImpl(final Registration dependencyRegistration, final TransactionImpl transaction, final DependencyFlag... flags) {
+    protected DependencyImpl(final Registration dependencyRegistration, final Transaction transaction, final DependencyFlag... flags) {
         byte translatedFlags = 0;
         for (final DependencyFlag flag : flags) {
             if (flag != null) {
                 translatedFlags |= (1 << flag.ordinal());
             }
         }
-        if (allAreSet(translatedFlags, UNDEMANDED_FLAG | DEMANDED_FLAG)) {
+        if (Bits.allAreSet(translatedFlags, UNDEMANDED_FLAG | DEMANDED_FLAG)) {
             throw SERVICE.mutuallyExclusiveFlags(DependencyFlag.DEMANDED.toString(), DependencyFlag.UNDEMANDED.toString());
         }
-        if (allAreSet(translatedFlags, REQUIRED_FLAG | UNREQUIRED_FLAG)) {
+        if (Bits.allAreSet(translatedFlags, REQUIRED_FLAG | UNREQUIRED_FLAG)) {
             throw SERVICE.mutuallyExclusiveFlags(DependencyFlag.REQUIRED.toString(), DependencyFlag.UNREQUIRED.toString());
         }
         this.flags = translatedFlags;
@@ -91,19 +88,19 @@ class DependencyImpl<T> implements Dependency<T> {
     }
 
     final boolean hasRequiredFlag() {
-        return allAreSet(flags, REQUIRED_FLAG);
+        return Bits.allAreSet(flags, REQUIRED_FLAG);
     }
 
     final boolean hasUnrequiredFlag() {
-        return allAreSet(flags, UNREQUIRED_FLAG);
+        return Bits.allAreSet(flags, UNREQUIRED_FLAG);
     }
 
     final boolean hasDemandedFlag() {
-        return allAreSet(flags, DEMANDED_FLAG);
+        return Bits.allAreSet(flags, DEMANDED_FLAG);
     }
 
     final boolean hasUndemandedFlag() {
-        return allAreSet(flags, UNDEMANDED_FLAG);
+        return Bits.allAreSet(flags, UNDEMANDED_FLAG);
     }
 
     public T get() {
@@ -119,7 +116,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param dependent    dependent associated with this dependency
      * @param transaction  the active transaction
      */
-    void setDependent(ServiceController<?> dependent, TransactionImpl transaction) {
+    void setDependent(ServiceController<?> dependent, Transaction transaction) {
         synchronized (this) {
             this.dependent = dependent;
             dependencyRegistration.addIncomingDependency(transaction, this);
@@ -137,7 +134,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction   the active transaction
      * @param taskFactory   the task factory
      */
-    void clearDependent(TransactionImpl transaction, TaskFactory taskFactory) {
+    void clearDependent(Transaction transaction, TaskFactory taskFactory) {
         dependencyRegistration.removeIncomingDependency(transaction, taskFactory, this);
     }
 
@@ -156,7 +153,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void demand(TransactionImpl transaction, TaskFactory taskFactory) {
+    void demand(Transaction transaction, TaskFactory taskFactory) {
         if (propagateDemand) {
             dependencyRegistration.addDemand(transaction, taskFactory);
         }
@@ -168,7 +165,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void undemand(TransactionImpl transaction, TaskFactory taskFactory) {
+    void undemand(Transaction transaction, TaskFactory taskFactory) {
         if (propagateDemand) {
             dependencyRegistration.removeDemand(transaction, taskFactory);
         }
@@ -180,7 +177,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction   the active transaction
      * @param context       the service context
      */
-    TaskController<?> dependencyUp(TransactionImpl transaction, TaskFactory taskFactory) {
+    TaskController<?> dependencyUp(Transaction transaction, TaskFactory taskFactory) {
         return dependent.dependencySatisfied(transaction, taskFactory);
     }
 
@@ -190,7 +187,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction    the active transaction
      * @param taskFactory    the task factory
      */
-    TaskController<?> dependencyDown(TransactionImpl transaction, TaskFactory taskFactory) {
+    TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
         return dependent.dependencyUnsatisfied(transaction, taskFactory);
     }
 

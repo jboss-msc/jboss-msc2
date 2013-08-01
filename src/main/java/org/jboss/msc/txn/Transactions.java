@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.Bits.allAreSet;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.IdentityHashMap;
@@ -28,9 +27,6 @@ import java.util.Map;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.jboss.msc.txn.DeadlockException;
-import org.jboss.msc.txn.Transaction;
 
 /**
  * Shared thread-safe utility class that keeps track of active transactions and their dependencies.
@@ -174,7 +170,7 @@ final class Transactions {
     private static void checkDeadlock(final int txnIndex, long visited) throws DeadlockException {
         // check deadlock
         final long bit = 1L << txnIndex;
-        if (allAreSet(visited, bit)) {
+        if (Bits.allAreSet(visited, bit)) {
             throw new DeadlockException();
         }
         visited |= bit;

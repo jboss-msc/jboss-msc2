@@ -15,15 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import java.util.Collection;
 import java.util.Collections;
-
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
 
 /**
  * Task for undemanding dependencies.
@@ -32,7 +27,7 @@ import org.jboss.msc.txn.TaskController;
  */
 class UndemandDependenciesTask implements Executable<Void> {
 
-    private TransactionImpl transaction;
+    private Transaction transaction;
     private ServiceController<?> service;
 
     /**
@@ -44,7 +39,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @return the task controller
      */
     @SuppressWarnings("unchecked")
-    static TaskController<Void> create(ServiceController<?> service, TransactionImpl transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
@@ -59,7 +54,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @param taskFactory      the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, Collection<TaskController<?>> taskDependencies, TransactionImpl transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceController<?> service, Collection<TaskController<?>> taskDependencies, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -70,7 +65,7 @@ class UndemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private UndemandDependenciesTask(TransactionImpl transaction, ServiceController<?> service) {
+    private UndemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
         this.transaction = transaction;
         this.service = service;
     }

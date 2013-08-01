@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -23,10 +23,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.txn.AttachmentKey;
-import org.jboss.msc.txn.Validatable;
-import org.jboss.msc.txn.ValidateContext;
 
 /**
  * Task that checks for dependency cycles.
@@ -45,7 +43,7 @@ final class CheckDependencyCycleTask implements Validatable {
      * @param service     the service to be verified
      * @param transaction the active transaction
      */
-    static void checkDependencyCycle(ServiceController<?> service, TransactionImpl transaction) {
+    static void checkDependencyCycle(ServiceController<?> service, Transaction transaction) {
         final CheckDependencyCycleTask task;
         if (transaction.hasAttachment(key)) {
             task = transaction.getAttachment(key);

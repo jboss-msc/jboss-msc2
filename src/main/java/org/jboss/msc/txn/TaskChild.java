@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 /**
  * Internal interface for task child operations.  Methods called from dependencies start with

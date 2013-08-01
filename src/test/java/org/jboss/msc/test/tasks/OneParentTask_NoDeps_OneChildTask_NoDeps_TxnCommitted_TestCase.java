@@ -30,7 +30,7 @@ import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -48,7 +48,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnCommitted_TestCas
      */
     @Test
     public void usecase1() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child task
         final TestExecutable<Void> e1 = new TestExecutable<Void>();
         final TestValidatable v1 = new TestValidatable();
@@ -103,7 +103,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnCommitted_TestCas
      */
     @Test
     public void usecase2() throws Exception {
-        final Transaction transaction = newTransaction();
+        final BasicTransaction transaction = newTransaction();
         // preparing child task
         final TestExecutable<Void> e1 = new TestExecutable<Void>("e1");
         final TestValidatable v1 = new TestValidatable("v1", Problem.Severity.CRITICAL);

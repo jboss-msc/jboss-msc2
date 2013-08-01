@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
 
@@ -74,7 +74,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return registration.getController() == null? null: registration.getController().getService();
     }
 
-    Registration getOrCreateRegistration(TransactionImpl transaction, ServiceName name) {
+    Registration getOrCreateRegistration(Transaction transaction, ServiceName name) {
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
@@ -100,7 +100,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return controller;
     }
 
-    void remove(TransactionImpl transaction) {
+    void remove(Transaction transaction) {
         synchronized(this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -116,7 +116,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void newServiceInstalled(ServiceController<?> service, TransactionImpl transaction) {
+    synchronized void newServiceInstalled(ServiceController<?> service, Transaction transaction) {
         checkRemoved();
         if (Bits.anyAreSet(state, ENABLED)) {
             service.enableRegistry(transaction);
@@ -125,7 +125,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void disable(TransactionImpl transaction) {
+    synchronized void disable(Transaction transaction) {
         checkRemoved();
         // idempotent
         if (!Bits.anyAreSet(state, ENABLED)) {
@@ -140,7 +140,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void enable(TransactionImpl transaction) {
+    synchronized void enable(Transaction transaction) {
         checkRemoved();
         // idempotent
         if (Bits.anyAreSet(state, ENABLED)) {

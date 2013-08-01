@@ -68,16 +68,6 @@ public final class ArjunaResource {
      * @param transaction the transaction to register
      */
     public void registerWithAction(AtomicAction action, Transaction transaction) {
-        TransactionManagementScheme scheme = transaction.getAttachmentIfPresent(TransactionManagementScheme.KEY);
-        if (scheme == null) {
-            scheme = transaction.putAttachmentIfAbsent(TransactionManagementScheme.KEY, SCHEME);
-            if (scheme == null) {
-                scheme = SCHEME;
-            }
-        }
-        if (scheme != SCHEME) {
-            throw new IllegalStateException("Transaction is already associated with another transaction manager");
-        }
         // todo - verify transaction against transactionController
         action.add(new ArjunaRecordImplementation(this, transaction));
     }

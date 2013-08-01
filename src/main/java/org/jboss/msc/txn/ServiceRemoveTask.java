@@ -15,34 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc._private;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
+import static org.jboss.msc.txn.ServiceController.STATE_REMOVED;
 
 /**
- * Task that sets the transactional state of a service.
+ * Service removal task.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-class SetTransactionalStateTask implements Executable<Void> {
+final class ServiceRemoveTask implements Executable<Void> {
+    private final Transaction transaction;
+    private final ServiceController<?> serviceController;
 
-    private final ServiceController<?> service;
-    private final byte state;
-    private final TransactionImpl transaction;
-
-    SetTransactionalStateTask(ServiceController<?> service, byte state, TransactionImpl transaction) {
-        this.service = service;
-        this.state = state;
+    ServiceRemoveTask(ServiceController<?> serviceController, Transaction transaction) {
         this.transaction = transaction;
+        this.serviceController = serviceController;
     }
 
     @Override
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            service.setTransition(state, transaction, (TaskFactory)context);
+            serviceController.getPrimaryRegistration().clearController(transaction, (TaskFactory)context);
+            for (Registration registration: serviceController.getAliasRegistrations()) {
+                registration.clearController(transaction, (TaskFactory)context);
+            }
+            serviceController.setTransition(STATE_REMOVED, transaction, (TaskFactory)context);
         } finally {
             context.complete();
         }
