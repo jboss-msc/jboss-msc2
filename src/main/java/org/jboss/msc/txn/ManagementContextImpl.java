@@ -40,14 +40,14 @@ final class ManagementContextImpl extends TransactionControllerContext implement
     public void disableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
         validateRegistry(registry);
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((Transaction) transaction);
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService(transaction);
     }
 
     @Override
     public void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
         validateRegistry(registry);
-        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((Transaction) transaction);
+        ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService(transaction);
     }
 
     @Override
@@ -65,28 +65,28 @@ final class ManagementContextImpl extends TransactionControllerContext implement
         if (controller == null) {
             return;
         }
-        controller.remove((Transaction) transaction, ((Transaction) transaction).getTaskFactory());
+        controller.remove(transaction, transaction.getTaskFactory());
     }
 
     @Override
     public void disableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         validateRegistry(registry);
-        ((ServiceRegistryImpl)registry).disable((Transaction) transaction);
+        ((ServiceRegistryImpl)registry).disable(transaction);
     }
 
     @Override
     public void enableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         validateRegistry(registry);
-        ((ServiceRegistryImpl)registry).enable((Transaction) transaction);
+        ((ServiceRegistryImpl)registry).enable(transaction);
     }
 
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
         validateRegistry(registry);
-        ((ServiceRegistryImpl)registry).remove((Transaction) transaction);
+        ((ServiceRegistryImpl)registry).remove(transaction);
     }
 
     @Override
@@ -98,7 +98,7 @@ final class ManagementContextImpl extends TransactionControllerContext implement
         if (!(container instanceof ServiceContainerImpl)) {
             throw new IllegalArgumentException("invalid container");
         }
-        ((ServiceContainerImpl)container).shutdown((Transaction) transaction);
+        ((ServiceContainerImpl)container).shutdown(transaction);
     }
 
 }

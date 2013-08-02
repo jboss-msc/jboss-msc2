@@ -54,7 +54,7 @@ abstract class TransactionControllerContext {
         //if (!(transaction instanceof BasicTransaction) && !(transaction instanceof XATransaction)) {
         //    throw TXN.methodParameterIsInvalid("transaction");
         //} TODO should we test this?
-        if (((Transaction) transaction).getController() != transactionController) {
+        if (transaction.getController() != transactionController) {
             // cannot be used by this context
             throw new IllegalArgumentException("Transaction does not belong to this context (transaction was created by a different transaction controller)");
         }

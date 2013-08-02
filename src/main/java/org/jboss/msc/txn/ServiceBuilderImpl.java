@@ -70,8 +70,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final Transaction transaction) {
         this.transactionController = transactionController;
-        this.transaction = (Transaction) transaction;
-        this.registry = (ServiceRegistryImpl)registry;
+        this.transaction = transaction;
+        this.registry = (ServiceRegistryImpl) registry;
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
     }

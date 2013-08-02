@@ -52,13 +52,13 @@ class ServiceContextImpl extends TransactionControllerContext implements Service
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, (Transaction) transaction);
+        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
     public ReportableContext getReportableContext(Transaction transaction) {
         validateTransaction(transaction);
-        final ProblemReport problemReport = ((Transaction) transaction).getProblemReport();
+        final ProblemReport problemReport = transaction.getProblemReport();
         return new ReportableContext() {
 
             @Override
