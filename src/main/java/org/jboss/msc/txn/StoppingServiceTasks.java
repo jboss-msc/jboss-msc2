@@ -44,7 +44,7 @@ final class StoppingServiceTasks {
      * @return                 the final task to be executed. Can be used for creating tasks that depend on the
      *                         conclusion of stopping transition.
      */
-    static <T> TaskController<Void> create(ServiceController<T> service, Collection<TaskController<?>> taskDependencies,
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Collection<TaskController<?>> taskDependencies,
             Transaction transaction, TaskFactory taskFactory) {
 
         final Service<T> serviceValue = service.getService();
@@ -76,7 +76,7 @@ final class StoppingServiceTasks {
      * @return                 the final task to be executed. Can be used for creating tasks that depend on the
      *                         conclusion of stopping transition.
      */
-    static <T> TaskController<Void> create(ServiceController<T> service, TaskController<?> taskDependency,
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, TaskController<?> taskDependency,
             Transaction transaction, TaskFactory taskFactory) {
 
         final List<TaskController<?>> taskDependencies = new ArrayList<TaskController<?>>(1);
@@ -93,7 +93,7 @@ final class StoppingServiceTasks {
      *                        conclusion of stopping transition.
      */
     @SuppressWarnings("unchecked")
-    static <T> TaskController<Void> create(ServiceController<T> service, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
@@ -106,7 +106,7 @@ final class StoppingServiceTasks {
      *                        conclusion of stopping transition.
      */
     // TODO discuss: what if we just set the service down after it fails?
-    static <T> TaskController<Void> createForFailedService(ServiceController<T> service, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> createForFailedService(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
 
         // post stop task
         final TaskBuilder<Void> setServiceDownBuilder = taskFactory.newTask(new SetServiceDownTask(service, transaction));
@@ -208,9 +208,9 @@ final class StoppingServiceTasks {
     private static class SetServiceDownTask implements Executable<Void> {
 
         private final Transaction transaction;
-        private final ServiceController<?> serviceController;
+        private final ServiceControllerImpl<?> serviceController;
 
-        private SetServiceDownTask(ServiceController<?> serviceController, Transaction transaction) {
+        private SetServiceDownTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
             this.transaction = transaction;
             this.serviceController = serviceController;
         }
@@ -220,14 +220,14 @@ final class StoppingServiceTasks {
             assert context instanceof TaskFactory;
             try {
                 // set down state
-                serviceController.setTransition(ServiceController.STATE_DOWN, transaction, (TaskFactory)context);
+                serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, (TaskFactory)context);
 
                 // clear service value, thus performing an automatic uninjection
                 serviceController.setValue(null);
 
                 // notify dependent is stopped
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceController<?> dependencyController = dependency.getDependencyRegistration().getController();
+                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
                     if (dependencyController != null) {
                         dependencyController.dependentStopped(transaction, (TaskFactory)context);
                     }

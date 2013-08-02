@@ -18,7 +18,7 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.ServiceController.STATE_UP;
+import static org.jboss.msc.txn.ServiceControllerImpl.STATE_UP;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,7 +41,7 @@ final class Registration extends TransactionalObject {
     /**
      * The service controller.
      */
-    private volatile ServiceController<?> controller;
+    private volatile ServiceControllerImpl<?> controller;
     /**
      * Incoming dependencies, i.e., dependent services.
      */
@@ -60,11 +60,11 @@ final class Registration extends TransactionalObject {
         return serviceName;
     }
 
-    ServiceController<?> getController() {
+    ServiceControllerImpl<?> getController() {
         return controller;
     }
 
-    boolean setController(final Transaction transaction, final ServiceController<?> serviceController) {
+    boolean setController(final Transaction transaction, final ServiceControllerImpl<?> serviceController) {
         lockWrite(transaction, transaction.getTaskFactory());
         final boolean upDemanded;
         synchronized (this) {
@@ -123,7 +123,7 @@ final class Registration extends TransactionalObject {
     void addDemand(Transaction transaction, TaskFactory taskFactory) {
         assert ! Thread.holdsLock(this);
         lockWrite(transaction, taskFactory);
-        final ServiceController<?> controller;
+        final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
             if (++ upDemandedByCount > 1) {
@@ -168,7 +168,7 @@ final class Registration extends TransactionalObject {
 
     private final class Snapshot {
 
-        private final ServiceController<?> controller;
+        private final ServiceControllerImpl<?> controller;
         private final Collection<DependencyImpl<?>> incomingDependencies;
         private final int upDemandedByCount;
 

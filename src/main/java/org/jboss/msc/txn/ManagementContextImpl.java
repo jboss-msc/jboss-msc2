@@ -61,7 +61,7 @@ final class ManagementContextImpl extends TransactionControllerContext implement
         if (registration == null) {
             return;
         }
-        final ServiceController<?> controller = registration.getController();
+        final ServiceControllerImpl<?> controller = registration.getController();
         if (controller == null) {
             return;
         }

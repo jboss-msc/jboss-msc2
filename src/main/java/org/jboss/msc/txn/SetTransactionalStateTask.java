@@ -25,11 +25,11 @@ package org.jboss.msc.txn;
  */
 class SetTransactionalStateTask implements Executable<Void> {
 
-    private final ServiceController<?> service;
+    private final ServiceControllerImpl<?> service;
     private final byte state;
     private final Transaction transaction;
 
-    SetTransactionalStateTask(ServiceController<?> service, byte state, Transaction transaction) {
+    SetTransactionalStateTask(ServiceControllerImpl<?> service, byte state, Transaction transaction) {
         this.service = service;
         this.state = state;
         this.transaction = transaction;

@@ -43,7 +43,7 @@ final class CheckDependencyCycleTask implements Validatable {
      * @param service     the service to be verified
      * @param transaction the active transaction
      */
-    static void checkDependencyCycle(ServiceController<?> service, Transaction transaction) {
+    static void checkDependencyCycle(ServiceControllerImpl<?> service, Transaction transaction) {
         final CheckDependencyCycleTask task;
         if (transaction.hasAttachment(key)) {
             task = transaction.getAttachment(key);
@@ -54,22 +54,22 @@ final class CheckDependencyCycleTask implements Validatable {
         task.checkService(service);
     }
 
-    private final List<ServiceController<?>> services;
+    private final List<ServiceControllerImpl<?>> services;
 
     private CheckDependencyCycleTask() {
-        services = new CopyOnWriteArrayList<ServiceController<?>>();
+        services = new CopyOnWriteArrayList<ServiceControllerImpl<?>>();
     }
 
-    private void checkService(ServiceController<?> service) {
+    private void checkService(ServiceControllerImpl<?> service) {
         services.add(service);
     }
 
     @Override
     public void validate(ValidateContext context) {
         try {
-            final Set<ServiceController<?>> checkedServices = new HashSet<ServiceController<?>>();
-            final LinkedHashMap<ServiceName, ServiceController<?>> pathTrace = new LinkedHashMap<ServiceName, ServiceController<?>>();
-            for (ServiceController<?> service: services) {
+            final Set<ServiceControllerImpl<?>> checkedServices = new HashSet<ServiceControllerImpl<?>>();
+            final LinkedHashMap<ServiceName, ServiceControllerImpl<?>> pathTrace = new LinkedHashMap<ServiceName, ServiceControllerImpl<?>>();
+            for (ServiceControllerImpl<?> service: services) {
                 if (checkedServices.contains(service)) {
                     continue;
                 }
@@ -84,9 +84,9 @@ final class CheckDependencyCycleTask implements Validatable {
         }
     }
 
-    private void verifyCycle(ServiceController<?> service, LinkedHashMap<ServiceName, ServiceController<?>> pathTrace, Set<ServiceController<?>> checkedServices, ValidateContext context) {
+    private void verifyCycle(ServiceControllerImpl<?> service, LinkedHashMap<ServiceName, ServiceControllerImpl<?>> pathTrace, Set<ServiceControllerImpl<?>> checkedServices, ValidateContext context) {
         for (DependencyImpl<?> dependency: service.getDependencies()) {
-            final ServiceController<?> dependencyController = dependency.getDependencyRegistration().getController();
+            final ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
             if (dependencyController != null && !checkedServices.contains(dependencyController)) {
                 if (pathTrace.containsValue(dependencyController)) {
                     final ServiceName[] cycle = pathTrace.keySet().toArray(new ServiceName[pathTrace.size()]);

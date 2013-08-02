@@ -56,7 +56,7 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * The incoming dependency.
      */
-    protected ServiceController<?> dependent;
+    protected ServiceControllerImpl<?> dependent;
 
     /**
      * Creates a simple dependency to {@code dependencyRegistration}.
@@ -105,7 +105,7 @@ class DependencyImpl<T> implements Dependency<T> {
 
     public T get() {
         @SuppressWarnings("unchecked")
-        ServiceController<T> dependencyController = (ServiceController<T>) dependencyRegistration.getController();
+        ServiceControllerImpl<T> dependencyController = (ServiceControllerImpl<T>) dependencyRegistration.getController();
         return dependencyController == null? null: dependencyController.getValue();
     }
 
@@ -116,7 +116,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param dependent    dependent associated with this dependency
      * @param transaction  the active transaction
      */
-    void setDependent(ServiceController<?> dependent, Transaction transaction) {
+    void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
         synchronized (this) {
             this.dependent = dependent;
             dependencyRegistration.addIncomingDependency(transaction, this);
@@ -197,7 +197,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param controllerDependency the dependency controller, if available
      * @param context              context where all validation problems found will be added
      */
-    void validate(ServiceController<?> dependencyController, ReportableContext context) {
+    void validate(ServiceControllerImpl<?> dependencyController, ReportableContext context) {
         if (dependencyController == null && !hasUnrequiredFlag()) {
             context.addProblem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName()));
         }

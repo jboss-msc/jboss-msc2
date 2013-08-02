@@ -19,6 +19,7 @@
 package org.jboss.msc.service;
 
 import org.jboss.msc.txn.ServiceContext;
+import org.jboss.msc.txn.ServiceController;
 
 
 /**
@@ -123,7 +124,9 @@ public interface ServiceBuilder<T> {
 
     /**
      * Initiates installation of this configured service to the container.
+     * 
+     * @return the controller for the installed service
      */
-    void install() throws IllegalStateException, DuplicateServiceException;
+    ServiceController install() throws IllegalStateException, DuplicateServiceException;
 
 }

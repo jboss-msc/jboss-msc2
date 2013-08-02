@@ -197,11 +197,11 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public void install() {
+    public ServiceController install() {
         assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
         if (installed) {
-            return;
+            return null;
         }
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, name);
@@ -218,8 +218,9 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         final DependencyImpl<?>[] dependenciesArray = new DependencyImpl<?>[dependencies.size()];
         dependencies.values().toArray(dependenciesArray);
         // create and install service controller
-        final ServiceController<T> serviceController =  new ServiceController<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
+        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
         serviceController.install(registry, transaction);
         CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
+        return serviceController;
     }
 }

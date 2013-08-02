@@ -41,7 +41,7 @@ class ParentServiceContext extends ServiceContextImpl {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
         }
         validateTransaction(transaction);
-        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceController.STATE_UP)) {
+        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceControllerImpl.STATE_UP)) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not UP");
         }
     }

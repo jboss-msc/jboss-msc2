@@ -38,6 +38,7 @@ import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
+import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.TransactionRolledBackException;
@@ -139,7 +140,8 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // set mode
         if (serviceMode != null) serviceBuilder.setMode(serviceMode);
         // install
-        serviceBuilder.install();
+        final ServiceController serviceController = serviceBuilder.install();
+        assertNotNull(serviceController);
         // attempt to commit or check rolled back installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
@@ -202,7 +204,8 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // set mode
         if (serviceMode != null) serviceBuilder.setMode(serviceMode);
         // install
-        serviceBuilder.install();
+        final ServiceController serviceController = serviceBuilder.install();
+        assertNotNull(serviceController);
         // attempt to commit or check rolled back installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));

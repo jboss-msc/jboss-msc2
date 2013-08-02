@@ -17,7 +17,7 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.ServiceController.STATE_REMOVED;
+import static org.jboss.msc.txn.ServiceControllerImpl.STATE_REMOVED;
 
 /**
  * Service removal task.
@@ -27,9 +27,9 @@ import static org.jboss.msc.txn.ServiceController.STATE_REMOVED;
  */
 final class ServiceRemoveTask implements Executable<Void> {
     private final Transaction transaction;
-    private final ServiceController<?> serviceController;
+    private final ServiceControllerImpl<?> serviceController;
 
-    ServiceRemoveTask(ServiceController<?> serviceController, Transaction transaction) {
+    ServiceRemoveTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
         this.transaction = transaction;
         this.serviceController = serviceController;
     }

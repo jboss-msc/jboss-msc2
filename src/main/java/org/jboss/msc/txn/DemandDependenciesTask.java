@@ -25,7 +25,7 @@ package org.jboss.msc.txn;
 class DemandDependenciesTask implements Executable<Void> {
 
     private Transaction transaction;
-    private ServiceController<?> service;
+    private ServiceControllerImpl<?> service;
 
     /**
      * Creates and releases the demand dependencies task.
@@ -35,7 +35,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory  the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, null, transaction, taskFactory);
     }
 
@@ -50,7 +50,7 @@ class DemandDependenciesTask implements Executable<Void> {
      * @param taskFactory    the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -61,7 +61,7 @@ class DemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private DemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
+    private DemandDependenciesTask(Transaction transaction, ServiceControllerImpl<?> service) {
         this.transaction = transaction;
         this.service = service;
     }

@@ -28,7 +28,7 @@ import java.util.Collections;
 class UndemandDependenciesTask implements Executable<Void> {
 
     private Transaction transaction;
-    private ServiceController<?> service;
+    private ServiceControllerImpl<?> service;
 
     /**
      * Creates and releases the undemand dependencies task.
@@ -39,7 +39,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @return the task controller
      */
     @SuppressWarnings("unchecked")
-    static TaskController<Void> create(ServiceController<?> service, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, Transaction transaction, TaskFactory taskFactory) {
         return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
@@ -54,7 +54,7 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @param taskFactory      the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceController<?> service, Collection<TaskController<?>> taskDependencies, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, Collection<TaskController<?>> taskDependencies, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
@@ -65,7 +65,7 @@ class UndemandDependenciesTask implements Executable<Void> {
         return taskBuilder.release();
     }
 
-    private UndemandDependenciesTask(Transaction transaction, ServiceController<?> service) {
+    private UndemandDependenciesTask(Transaction transaction, ServiceControllerImpl<?> service) {
         this.transaction = transaction;
         this.service = service;
     }

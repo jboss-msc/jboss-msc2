@@ -52,7 +52,7 @@ final class StartingServiceTasks {
      * @return                   the final task to be executed. Can be used for creating tasks that depend on the
      *                           conclusion of starting transition.
      */
-    static <T> TaskController<Void> create(ServiceController<T> serviceController,
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController,
             TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
         final Service<T> serviceValue = serviceController.getService();
@@ -88,11 +88,11 @@ final class StartingServiceTasks {
      * @return                   the final task to be executed. Can be used for creating tasks that depend on the
      *                           conclusion of starting transition.
      */
-    static <T> TaskController<Void> create(ServiceController<T> serviceController, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, Transaction transaction, TaskFactory taskFactory) {
         return create(serviceController, null, transaction, taskFactory);
     }
 
-    private static boolean hasDependencies(ServiceController<?> service) {
+    private static boolean hasDependencies(ServiceControllerImpl<?> service) {
         return service.getDependencies().length > 0;
     }
 
@@ -102,9 +102,9 @@ final class StartingServiceTasks {
     private static class NotifyDependentStartTask implements Executable<Void> {
 
         private final Transaction transaction;
-        private final ServiceController<?> serviceController;
+        private final ServiceControllerImpl<?> serviceController;
 
-        public NotifyDependentStartTask(Transaction transaction, ServiceController<?> serviceController) {
+        public NotifyDependentStartTask(Transaction transaction, ServiceControllerImpl<?> serviceController) {
             this.transaction = transaction;
             this.serviceController = serviceController;
         }
@@ -113,7 +113,7 @@ final class StartingServiceTasks {
         public void execute(ExecuteContext<Void> context) {
             assert context instanceof TaskFactory;
             for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                ServiceController<?> dependencyController = dependency.getDependencyRegistration().getController();
+                ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
                 if (dependencyController != null) {
                     dependencyController.dependentStarted(transaction, (TaskFactory)context);
                 }
@@ -222,11 +222,11 @@ final class StartingServiceTasks {
      */
     private static class SetServiceUpTask<T> implements Executable<Void> {
 
-        private final ServiceController<T> service;
+        private final ServiceControllerImpl<T> service;
         private final TaskController<T> serviceStartTask;
         private final Transaction transaction;
 
-        private SetServiceUpTask (ServiceController<T> service, TaskController<T> serviceStartTask, Transaction transaction) {
+        private SetServiceUpTask (ServiceControllerImpl<T> service, TaskController<T> serviceStartTask, Transaction transaction) {
             this.service = service;
             this.serviceStartTask = serviceStartTask;
             this.transaction = transaction;
@@ -240,10 +240,10 @@ final class StartingServiceTasks {
                 // service failed
                 if (result == null && transaction.getAttachment(FAILED_SERVICES).contains(service.getService())) {
                     MSCLogger.FAIL.startFailed(service.getServiceName());
-                    service.setTransition(ServiceController.STATE_FAILED, transaction, (TaskFactory)context);
+                    service.setTransition(ServiceControllerImpl.STATE_FAILED, transaction, (TaskFactory)context);
                 } else {
                     service.setValue(result);
-                    service.setTransition(ServiceController.STATE_UP, transaction, (TaskFactory)context);
+                    service.setTransition(ServiceControllerImpl.STATE_UP, transaction, (TaskFactory)context);
                 }
             } finally {
                 context.complete();
