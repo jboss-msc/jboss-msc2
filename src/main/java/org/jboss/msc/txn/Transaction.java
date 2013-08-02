@@ -456,15 +456,21 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     protected void finalize() {
         try {
-            if (!isTerminated()) {
-                rollback(null);
-            }
-        } catch (Throwable ignored) {
+            destroy();
         } finally {
             try {
                 super.finalize();
             } catch (Throwable ignored) {
             }
+        }
+    }
+
+    protected void destroy() {
+        try {
+            if (!isTerminated()) {
+                rollback(null);
+            }
+        } catch (Throwable ignored) {
         }
     }
 
