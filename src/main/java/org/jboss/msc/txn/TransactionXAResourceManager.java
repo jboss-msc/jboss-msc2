@@ -18,6 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.TXN;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -40,8 +42,32 @@ public final class TransactionXAResourceManager {
     private final TransactionController transactionController;
     private final UUID uuid = UUID.randomUUID();
 
-    TransactionXAResourceManager(final TransactionController transactionController) {
+    private TransactionXAResourceManager(final TransactionController transactionController) {
         this.transactionController = transactionController;
+    }
+    
+    public static TransactionXAResourceManager create(final TransactionController transactionController) {
+        if (transactionController == null) {
+            throw TXN.methodParameterIsNull("transactionController");
+        }
+        final TransactionXAResourceManager retVal = new TransactionXAResourceManager(transactionController);
+        RM_MAP.put(retVal.uuid, retVal);
+        return retVal;
+    }
+    
+    public void destroy() {
+        RM_MAP.remove(uuid, this);
+    }
+    
+    protected void finalize() {
+        try {
+            destroy();
+        } finally {
+            try {
+                super.finalize();
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     /**
