@@ -156,10 +156,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     private <D> Dependency<D> addDependencyInternal(final ServiceRegistry registry, final ServiceName name, final DependencyFlag... flags) {
         checkAlreadyInstalled();
         if (registry == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("registry");
+            throw MSCLogger.SERVICE.methodParameterIsNull("registry");
         }
         if (name == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("name");
+            throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
         final Registration dependencyRegistration = ((ServiceRegistryImpl) registry).getOrCreateRegistration(transaction, name);
         final DependencyImpl<D> dependency = new DependencyImpl<D>(dependencyRegistration, transaction, flags != null ? flags : noFlags);
