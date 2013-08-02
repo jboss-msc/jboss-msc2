@@ -216,7 +216,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         if (xid == null) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        Transaction transaction = resourceManager.getTransaction(xid);
+        final Transaction transaction = resourceManager.getTransaction(xid);
         if (transaction == null) {
             throw new XAException(XAException.XAER_NOTA);
         }
@@ -243,13 +243,13 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         if (xid == null) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        Transaction transaction = resourceManager.getTransaction(xid);
+        final Transaction transaction = resourceManager.getTransaction(xid);
         if (transaction == null) {
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
             final SynchronousListener<Transaction> listener = new SynchronousListener<>();
-            transaction.commit(listener);
+            transaction.rollback(listener);
             listener.awaitUninterruptibly();
             // todo - verify this detection method
             if (! transaction.isRollbackRequested()) {
