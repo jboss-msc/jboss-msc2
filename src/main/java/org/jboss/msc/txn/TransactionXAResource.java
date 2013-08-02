@@ -106,10 +106,10 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             if (transaction != null) {
                 throw new XAException(XAException.XAER_OUTSIDE);
             }
-            final XATransaction newTxn = new XATransaction(resourceManager.getController(), taskExecutor, maxSeverity);
+            transaction = new XATransaction(resourceManager.getController(), taskExecutor, maxSeverity);
             boolean ok = false;
             try {
-                if (! transactionUpdater.compareAndSet(this, null, newTxn)) {
+                if (! transactionUpdater.compareAndSet(this, null, transaction)) {
                     throw new XAException(XAException.XAER_OUTSIDE);
                 }
                 if (! resourceManager.registerTransaction(xid, transaction)) {
@@ -117,10 +117,11 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
                     transactionUpdater.compareAndSet(this, transaction, null);
                     throw new XAException(XAException.XAER_DUPID);
                 }
+                ok = true;
                 // association complete!
             } finally {
                 if (! ok) {
-                    newTxn.destroy();
+                    transaction.destroy();
                 }
             }
         } else {
@@ -132,10 +133,10 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         if (xid == null) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        XATransaction transaction;
         if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
             throw new XAException(XAException.XAER_INVAL);
         }
+        XATransaction transaction;
         do {
             transaction = this.transaction;
             if (transaction == null) {
