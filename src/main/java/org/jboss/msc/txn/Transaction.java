@@ -447,11 +447,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     public void waitFor(final Transaction other) throws InterruptedException, DeadlockException {
-        if (other instanceof Transaction) {
-            Transactions.waitFor(this,  other);
-        } else {
-            throw new IllegalArgumentException(); // todo i18n
-        }
+        Transactions.waitFor(this,  other);
     }
 
     protected void finalize() {

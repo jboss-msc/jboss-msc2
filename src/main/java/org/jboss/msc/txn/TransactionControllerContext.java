@@ -17,6 +17,10 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.TXN;
+
+import org.jboss.msc.service.ServiceRegistry;
+
 /**
  * A context scoped by a {@link TransactionController}. This context can be used with multiple transactions,
  * as long as those transactions belong to the same {@code TransactionController} that provided this context. 
@@ -44,10 +48,24 @@ abstract class TransactionControllerContext {
      *                                  that created this context
      */
     void validateTransaction(Transaction transaction) {
-        assert transaction instanceof Transaction;
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        //if (!(transaction instanceof BasicTransaction) && !(transaction instanceof XATransaction)) {
+        //    throw TXN.methodParameterIsInvalid("transaction");
+        //} TODO should we test this?
         if (((Transaction) transaction).getController() != transactionController) {
             // cannot be used by this context
             throw new IllegalArgumentException("Transaction does not belong to this context (transaction was created by a different transaction controller)");
+        }
+    }
+
+    void validateRegistry(ServiceRegistry registry) {
+        if (registry == null) {
+            throw TXN.methodParameterIsNull("registry");
+        }
+        if (!(registry instanceof ServiceRegistryImpl)) {
+            throw TXN.methodParameterIsInvalid("registry");
         }
     }
 }

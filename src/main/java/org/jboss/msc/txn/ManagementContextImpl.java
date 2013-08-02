@@ -17,6 +17,8 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.SERVICE;
+
 import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceName;
@@ -37,25 +39,23 @@ final class ManagementContextImpl extends TransactionControllerContext implement
     @Override
     public void disableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
+        validateRegistry(registry);
         ((ServiceRegistryImpl) registry).getRequiredServiceController(name).disableService((Transaction) transaction);
     }
 
     @Override
     public void enableService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
+        validateRegistry(registry);
         ((ServiceRegistryImpl) registry).getRequiredServiceController(name).enableService((Transaction) transaction);
     }
 
     @Override
     public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
-        if (registry == null) {
-            throw new IllegalArgumentException("registry is null");
-        }
+        validateRegistry(registry);
         if (name == null) {
-            throw new IllegalArgumentException("name is null");
+            throw SERVICE.methodParameterIsNull("name");
         }
         final Registration registration = ((ServiceRegistryImpl) registry).getRegistration(name);
         if (registration == null) {
@@ -71,28 +71,33 @@ final class ManagementContextImpl extends TransactionControllerContext implement
     @Override
     public void disableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
+        validateRegistry(registry);
         ((ServiceRegistryImpl)registry).disable((Transaction) transaction);
     }
 
     @Override
     public void enableRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
+        validateRegistry(registry);
         ((ServiceRegistryImpl)registry).enable((Transaction) transaction);
     }
 
     @Override
     public void removeRegistry(ServiceRegistry registry, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
+        validateRegistry(registry);
         ((ServiceRegistryImpl)registry).remove((Transaction) transaction);
     }
 
     @Override
     public void shutdownContainer(ServiceContainer container, Transaction transaction) {
         validateTransaction(transaction);
-        assert container instanceof ServiceContainerImpl;
+        if (container == null) {
+            throw new IllegalArgumentException("container is null");
+        }
+        if (!(container instanceof ServiceContainerImpl)) {
+            throw new IllegalArgumentException("invalid container");
+        }
         ((ServiceContainerImpl)container).shutdown((Transaction) transaction);
     }
 

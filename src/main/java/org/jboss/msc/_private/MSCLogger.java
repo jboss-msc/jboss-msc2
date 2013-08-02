@@ -136,6 +136,9 @@ public interface MSCLogger {
     @Message(id = 104, value = "%s and %s flags are mutually exclusive")
     IllegalStateException mutuallyExclusiveFlags(final String flag1, final String flag2);
 
+    @Message(id = 105, value = "Parameter %s is invalid")
+    IllegalArgumentException methodParameterIsInvalid(final String parameterName);
+
     /*
      * Location nesting types.
      */

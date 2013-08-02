@@ -234,7 +234,6 @@ public final class TransactionController extends SimpleAttachable {
      */
     public void waitFor(final Transaction transaction, final Transaction other) throws InterruptedException, DeadlockException, SecurityException {
         validateTransaction(transaction);
-        assert other instanceof Transaction;
         transaction.waitFor(other);
     }
 
@@ -244,7 +243,7 @@ public final class TransactionController extends SimpleAttachable {
      * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
      */
     public boolean owns(final Transaction transaction) {
-        return transaction instanceof Transaction && this == transaction.getController();
+        return this == transaction.getController();
     }
 
     void validateTransaction(final Transaction transaction) throws SecurityException {

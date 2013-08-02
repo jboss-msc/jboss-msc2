@@ -36,16 +36,19 @@ class ParentServiceContext extends ServiceContextImpl {
         this.parentRegistration = parentRegistration;
     }
 
+    public void validateParentUp(final Transaction transaction) {
+        if (parentRegistration.getController() == null) {
+            throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
+        }
+        validateTransaction(transaction);
+        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceController.STATE_UP)) {
+            throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not UP");
+        }
+    }
+
     @Override
     public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        assert registry instanceof ServiceRegistryImpl;
-        assert transaction instanceof Transaction;
-        if (parentRegistration.getController() == null) {
-            throw new IllegalStateException("Cannot add services on uninstalled service context");
-        }
-        if (!Bits.allAreSet(parentRegistration.getController().getState((Transaction) transaction), ServiceController.STATE_UP)) {
-            throw new IllegalStateException("Can only add services onto an UP service context.");
-        }
+        validateParentUp(transaction);
         final ServiceBuilder<T> serviceBuilder = super.addService(valueType, registry, name, transaction);
         ((ServiceBuilderImpl<T>) serviceBuilder).setParentDependency(parentRegistration);
         return serviceBuilder;
@@ -53,14 +56,7 @@ class ParentServiceContext extends ServiceContextImpl {
 
     @Override
     public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        assert registry instanceof ServiceRegistryImpl;
-        assert transaction instanceof Transaction;
-        if (parentRegistration.getController() == null) {
-            throw new IllegalStateException("Cannot add services on uninstalled service context");
-        }
-        if (!Bits.allAreSet(parentRegistration.getController().getState((Transaction) transaction), ServiceController.STATE_UP)) {
-            throw new IllegalStateException("Can only add services onto an UP service context.");
-        }
+        validateParentUp(transaction);
         final ServiceBuilder<Void> serviceBuilder = super.addService(registry, name, transaction);
         ((ServiceBuilderImpl<Void>) serviceBuilder).setParentDependency(parentRegistration);
         return serviceBuilder;

@@ -37,31 +37,20 @@ class ServiceContextImpl extends TransactionControllerContext implements Service
     @Override
     public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
-        if (registry == null) {
-            throw new IllegalArgumentException("registry is null");
-        }
+        validateRegistry(registry);
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        if (transaction == null) {
-            throw new IllegalArgumentException("transaction is null");
-        }
-        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, (Transaction) transaction);
+        
+        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
     public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
         validateTransaction(transaction);
-        assert registry instanceof ServiceRegistryImpl;
-        if (registry == null) {
-            throw new IllegalArgumentException("registry is null");
-        }
+        validateRegistry(registry);
         if (name == null) {
             throw new IllegalArgumentException("name is null");
-        }
-        if (transaction == null) {
-            throw new IllegalArgumentException("transaction is null");
         }
         return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, (Transaction) transaction);
     }
