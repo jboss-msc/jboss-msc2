@@ -18,6 +18,8 @@
 
 package org.jboss.msc.service;
 
+import org.jboss.msc.txn.Transaction;
+
 /**
  * A service registry.
  *
@@ -44,4 +46,43 @@ public interface ServiceRegistry {
      */
     Service<?> getService(ServiceName serviceName);
 
+    /**
+     * Disables a service, causing this service to stop if it is {@code UP}.
+     *
+     * @param name        the service name
+     * @param transaction the transaction
+     */
+    void disableService(ServiceName name, Transaction transaction);
+
+    /**
+     * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
+     * <p> Services are enabled by default.
+     *
+     * @param name        the service name
+     * @param transaction the transaction
+     */
+    void enableService(ServiceName name, Transaction transaction);
+
+    /**
+     * Disables this registry and all its services, causing {@code UP} services to stop.
+     *
+     * @param transaction the transaction
+     */
+    void disable(Transaction transaction);
+
+    /**
+     * Enables this registry. As a result, its services may start, depending on their
+     * {@link org.jboss.msc.service.ServiceMode mode} rules.
+     * <p> Registries are enabled by default.
+     *
+     * @param transaction the transaction
+     */
+    void enable(Transaction transaction);
+
+    /**
+     * Removes this registry from the container.
+     *
+     * @param transaction the transaction
+     */
+    void remove(Transaction transaction);
 }

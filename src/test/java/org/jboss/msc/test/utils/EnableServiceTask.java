@@ -18,13 +18,11 @@
 
 package org.jboss.msc.test.utils;
 
-import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * A task that enables the service.
@@ -36,22 +34,20 @@ final class EnableServiceTask implements Executable<Void> {
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction txn;
-    private final ManagementContext mgmtContext;
 
-    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction txn, final TransactionController txnController) {
+    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction txn) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.txn = txn;
-        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            mgmtContext.enableService(registry, serviceName, txn);
+            registry.enableService(serviceName, txn);
         } finally {
             context.complete();
         }
     }
-    
+
 }

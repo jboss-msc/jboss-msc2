@@ -48,7 +48,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
-        assertTrue(removeService(firstSN));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
     }
@@ -65,7 +65,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
-        assertTrue(removeService(firstSN));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
     }
@@ -82,7 +82,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN, true, ACTIVE);
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
-        assertTrue(removeService(firstSN));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
     }

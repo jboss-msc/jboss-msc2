@@ -80,7 +80,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void removeRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn, txnController)).release();
+        txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -91,7 +91,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void enableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn, txnController)).release();
+        txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -102,7 +102,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void disableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn, txnController)).release();
+        txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -113,7 +113,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void shutdownContainer(final ServiceContainer serviceContainer) throws Exception {
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn, txnController)).release();
+        txnController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -253,10 +253,10 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final TestService service) throws InterruptedException {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName,txn, txnController)).release();
+        txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName,service, txn)).release();
         if (attemptToCommit(txn)) {
             assertNoCriticalProblems(txn);
             assertNull(serviceRegistry.getService(serviceName));
@@ -267,14 +267,14 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final boolean removeService(final ServiceName serviceName) throws InterruptedException {
-        return removeService(serviceRegistry, serviceName);
+    protected final boolean removeService(final ServiceName serviceName, final TestService service) throws InterruptedException {
+        return removeService(serviceRegistry, serviceName, service);
     }
 
     protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn, txnController)).release();
+        txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));
@@ -287,7 +287,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn, txnController)).release();
+        txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
         commit(txn);
         assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));

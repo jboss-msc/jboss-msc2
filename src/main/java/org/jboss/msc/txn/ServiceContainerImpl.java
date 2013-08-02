@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 
@@ -44,7 +45,11 @@ final class ServiceContainerImpl implements ServiceContainer {
         return returnValue;
     }
 
-    void shutdown(final Transaction txn) {
+    @Override
+    public void shutdown(final Transaction txn) {
+        if (txn == null) {
+            throw MSCLogger.SERVICE.methodParameterIsNull("txn");
+        }
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

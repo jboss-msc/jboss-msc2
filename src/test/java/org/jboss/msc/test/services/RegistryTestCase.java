@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
@@ -32,7 +31,6 @@ import org.jboss.msc.test.utils.CompletionListener;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.TransactionController;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,7 +40,7 @@ import org.junit.Test;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class ManagementContextTestCase extends AbstractServiceTest {
+public class RegistryTestCase extends AbstractServiceTest {
     private static final ServiceName serviceAName = ServiceName.of("a", "different", "service", "name");
     private static final ServiceName serviceBName = ServiceName.of("u", "n", "e", "x", "p", "e", "c", "ted");
     private static final ServiceName serviceCName = ServiceName.of("just", "C");
@@ -52,7 +50,6 @@ public class ManagementContextTestCase extends AbstractServiceTest {
     private static final ServiceName serviceGName = ServiceName.of("g");
     private static final ServiceName serviceHName = ServiceName.of("H");
     private static final ServiceName serviceIName = ServiceName.of("iresource", "service");
-    private ManagementContext managementContext;
     private ServiceRegistry registry1;
     private TestService serviceA;
     private TestService serviceB;
@@ -90,14 +87,6 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         assertTrue(serviceF.isUp());
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
-
-        managementContext = txnController.getManagementContext();
-        assertNotNull(managementContext);
-        // invoke a few times, all of them should be valid
-        assertNotNull(txnController.getManagementContext());
-        assertNotNull(txnController.getManagementContext());
-        assertNotNull(txnController.getManagementContext());
-        assertNotNull(txnController.getManagementContext());
     }
 
     @Test
@@ -105,7 +94,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.disableService(registry1, serviceAName, transaction);
+            registry1.disableService(serviceAName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -126,9 +115,9 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         BasicTransaction transaction = newTransaction();
         CompletionListener listener = new CompletionListener();
         try {
-            managementContext.disableService(registry1, serviceBName, transaction);
+            registry1.disableService(serviceBName, transaction);
             // idempotent
-            managementContext.disableService(registry1, serviceBName, transaction);
+            registry1.disableService(serviceBName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -147,7 +136,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         transaction = newTransaction();
         listener = new CompletionListener();
         try {
-            managementContext.disableService(registry1, serviceBName, transaction);
+            registry1.disableService(serviceBName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -168,9 +157,9 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.enableService(registry1, serviceCName, transaction);
-            managementContext.disableService(registry1, serviceCName, transaction);
-            managementContext.enableService(registry1, serviceCName, transaction);
+            registry1.enableService(serviceCName, transaction);
+            registry1.disableService(serviceCName, transaction);
+            registry1.enableService(serviceCName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -190,8 +179,8 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.disableService(registry2, serviceDName, transaction);
-            managementContext.enableService(registry2, serviceDName, transaction);
+            registry2.disableService(serviceDName, transaction);
+            registry2.enableService(serviceDName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -212,7 +201,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.enableService(registry1, serviceAName, transaction);
+            registry1.enableService(serviceAName, transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -232,7 +221,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.disableRegistry(registry1, transaction);
+            registry1.disable(transaction);
             
         } finally {
             txnController.commit(transaction, listener);
@@ -253,9 +242,9 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         BasicTransaction transaction = newTransaction();
         CompletionListener listener = new CompletionListener();
         try {
-            managementContext.disableRegistry(registry2, transaction);
+            registry2.disable(transaction);
             // idempotent
-            managementContext.disableRegistry(registry2, transaction);
+            registry2.disable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -273,7 +262,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         transaction = newTransaction();
         listener = new CompletionListener();
         try {
-            managementContext.disableRegistry(registry2, transaction);
+            registry2.disable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -293,7 +282,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         BasicTransaction transaction = newTransaction();
         CompletionListener listener = new CompletionListener();
         try {
-            managementContext.enableRegistry(registry3, transaction);
+            registry3.enable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -311,7 +300,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         transaction = newTransaction();
         listener = new CompletionListener();
         try {
-            managementContext.disableRegistry(registry3, transaction);
+            registry3.disable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -333,7 +322,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         transaction = newTransaction();
         listener = new CompletionListener();
         try {
-            managementContext.enableRegistry(registry3, transaction);
+            registry3.enable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -356,9 +345,9 @@ public class ManagementContextTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         final CompletionListener listener = new CompletionListener();
         try {
-            managementContext.enableRegistry(registry1, transaction);
-            managementContext.disableRegistry(registry1, transaction);
-            managementContext.enableRegistry(registry1, transaction);
+            registry1.enable(transaction);
+            registry1.disable(transaction);
+            registry1.enable(transaction);
         } finally {
             txnController.commit(transaction, listener);
             listener.awaitCompletion();
@@ -374,59 +363,11 @@ public class ManagementContextTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void outsiderTransaction() {
-        final TransactionController outsiderController = TransactionController.createInstance();
-        final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
-
-        IllegalArgumentException expected = null;
-        try {
-            managementContext.disableRegistry(serviceRegistry, outsiderTransaction);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            managementContext.enableRegistry(serviceRegistry, outsiderTransaction);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            managementContext.enableService(serviceRegistry, serviceAName, outsiderTransaction);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            managementContext.disableService(serviceRegistry, serviceAName, outsiderTransaction);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            managementContext.shutdownContainer(serviceContainer, outsiderTransaction);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        outsiderController.commit(outsiderTransaction, null);
-    }
-
-    @Test
     public void outsiderService() {
         final BasicTransaction transaction = newTransaction();
         ServiceNotFoundException expected = null;
         try {
-            managementContext.enableService(registry3, serviceAName, transaction);
+            registry3.enableService(serviceAName, transaction);
         } catch (ServiceNotFoundException e) {
             expected = e;
         }
@@ -434,7 +375,7 @@ public class ManagementContextTestCase extends AbstractServiceTest {
 
         expected = null;
         try {
-            managementContext.disableService(registry3, serviceAName, transaction);
+            registry3.disableService(serviceAName, transaction);
         } catch (ServiceNotFoundException e) {
             expected = e;
         }

@@ -19,6 +19,7 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
+import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,7 +101,27 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         return controller;
     }
 
-    void remove(Transaction transaction) {
+    @Override
+    public void disableService(ServiceName name, Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        getRequiredServiceController(name).disableService(transaction);
+    }
+
+    @Override
+    public void enableService(ServiceName name, Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        getRequiredServiceController(name).enableService(transaction);
+    }
+
+    @Override
+    public void remove(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         synchronized(this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -125,7 +146,11 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void disable(Transaction transaction) {
+    @Override
+    public synchronized void disable(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         checkRemoved();
         // idempotent
         if (!Bits.anyAreSet(state, ENABLED)) {
@@ -140,7 +165,11 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
     }
 
-    synchronized void enable(Transaction transaction) {
+    @Override
+    public synchronized void enable(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         checkRemoved();
         // idempotent
         if (Bits.anyAreSet(state, ENABLED)) {

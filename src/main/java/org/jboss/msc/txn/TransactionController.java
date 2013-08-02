@@ -21,8 +21,6 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.concurrent.Executor;
 
-import org.jboss.msc.service.ManagementContext;
-
 
 /**
  * A transaction controller, creates transactions and manages them.
@@ -35,7 +33,6 @@ public final class TransactionController extends SimpleAttachable {
 
     private static final RuntimePermission TXN_CONTROLLER_CREATE_PERM = new RuntimePermission("canCreateTransactionController");
 
-    private final ManagementContext managementContext = new ManagementContextImpl(this);
     private final ServiceContext serviceContext = new ServiceContextImpl(this);
 
     private TransactionController() {}
@@ -121,15 +118,6 @@ public final class TransactionController extends SimpleAttachable {
      */
     public ServiceContext getServiceContext() {
         return serviceContext;
-    }
-
-    /**
-     * Returns the management context, for managing (i.e., disabling and enabling) services and registries.
-     * 
-     * @return the management context
-     */
-    public ManagementContext getManagementContext() {
-        return managementContext;
     }
 
     /**

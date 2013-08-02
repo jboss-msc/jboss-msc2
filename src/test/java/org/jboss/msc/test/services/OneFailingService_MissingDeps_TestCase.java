@@ -82,7 +82,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     public void usecase4() throws Exception {
         final TestService firstService = addService(firstSN, true, ON_DEMAND, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
-        assertTrue(removeService(firstSN));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
     }
 
@@ -97,7 +97,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     public void usecase5() throws Exception {
         final TestService firstService = addService(firstSN, true, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
-        assertTrue(removeService(firstSN));
+        assertTrue( removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
     }
 
@@ -112,7 +112,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     public void usecase6() throws Exception {
         final TestService firstService = addService(firstSN, true, ACTIVE, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
-        assertTrue(removeService(firstSN));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
     }
 

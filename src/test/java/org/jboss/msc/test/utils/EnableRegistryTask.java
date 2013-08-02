@@ -18,12 +18,10 @@
 
 package org.jboss.msc.test.utils;
 
-import org.jboss.msc.service.ManagementContext;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
 
 /**
  * A task that enables the registry.
@@ -34,18 +32,16 @@ final class EnableRegistryTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
     private final Transaction txn;
-    private final ManagementContext mgmtContext;
 
-    EnableRegistryTask(final ServiceRegistry registry, final Transaction txn, final TransactionController txnController) {
+    EnableRegistryTask(final ServiceRegistry registry, final Transaction txn) {
         this.registry = registry;
         this.txn = txn;
-        mgmtContext = txnController.getManagementContext();
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            mgmtContext.enableRegistry(registry, txn);
+            registry.enable(txn);
         } finally {
             context.complete();
         }

@@ -57,6 +57,34 @@ public interface ServiceContext {
     ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction);
 
     /**
+     * Removes a service, causing this service to stop if it is {@code UP}.
+     *
+     * @param registry    the service registry
+     * @param name        the service name
+     * @param transaction the transaction
+     */
+    void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction);
+
+    /**
+     * Replaces {@code service} by a new service.
+     * 
+     * @param valueType   the type of the service value to be added
+     * @param service     the service to be replaced
+     * @param transaction the transaction
+     * @return the builder for the service
+     */
+    <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceController service, Transaction transaction);
+
+    /**
+     * Replaces {@code service} by a new service.
+     *
+     * @param service     the service to be replaced
+     * @param transaction the transaction
+     * @return the builder for the service
+     */
+    ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction);
+
+    /**
      * Returns the {@code transaction} reportable context.
      * 
      * @param transaction the transaction
