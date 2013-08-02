@@ -39,6 +39,7 @@ import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.TransactionRolledBackException;
 import org.junit.After;
 import org.junit.Before;
@@ -125,6 +126,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final BasicTransaction txn = newTransaction();
         // create service builder
         final ServiceContext serviceContext = txnController.getServiceContext();
+        assertServiceContext(serviceContext);
         final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
         // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
         DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
@@ -192,6 +194,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final BasicTransaction txn = newTransaction();
         // create service builder
         final ServiceContext serviceContext = txnController.getServiceContext();
+        assertServiceContext(serviceContext);
         final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
         // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
         final TestService service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);
@@ -298,7 +301,102 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final TestService getService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
         return (TestService) serviceRegistry.getService(serviceName); 
     }
+
+    protected void assertServiceContext(ServiceContext serviceContext) {
+        assertNotNull(serviceContext);
+        // try to use with wrong transactions
+        final TransactionController outsiderController = TransactionController.createInstance();
+        final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
+        final ServiceName serviceName = ServiceName.of("non", "existent");
+        try {
+            IllegalArgumentException expected = null;
+            try {
+                serviceContext.addService(serviceRegistry, serviceName, outsiderTransaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+
+            expected = null;
+            try {
+                serviceContext.addService(TestService.class, serviceRegistry, serviceName, outsiderTransaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+            
+            expected = null;
+            try {
+                serviceContext.getReportableContext(outsiderTransaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+
+        } finally {
+            outsiderController.rollback(outsiderTransaction, null);
+        }
+
+        IllegalArgumentException expected = null;
+        try {
+            serviceContext.addService(serviceRegistry, serviceName, null);
+        } catch (IllegalArgumentException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
+
+        expected = null;
+        try {
+            serviceContext.addService(TestService.class, serviceRegistry, serviceName, null);
+        } catch (IllegalArgumentException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
+
+        expected = null;
+        try {
+            serviceContext.getReportableContext(null);
+        } catch (IllegalArgumentException e) {
+            expected = e;
+        }
+
+        final BasicTransaction transaction = newTransaction();
+        try {
+            expected = null;
+            try {
+                serviceContext.addService(null, serviceName, transaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
     
+            expected = null;
+            try {
+                serviceContext.addService(TestService.class, null, serviceName, transaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+    
+            expected = null;
+            try {
+                serviceContext.addService(serviceRegistry, null, transaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+    
+            expected = null;
+            try {
+                serviceContext.addService(TestService.class, serviceRegistry, null, transaction);
+            } catch (IllegalArgumentException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+        } finally {
+            txnController.rollback(transaction, null);
+        }
+    }
+
     private void assertNoCriticalProblems(final Transaction txn) {
         List<Problem> problems = txnController.getProblemReport(txn).getProblems();
         for (final Problem problem : problems) {
