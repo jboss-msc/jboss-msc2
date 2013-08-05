@@ -37,6 +37,7 @@ import javax.transaction.xa.Xid;
  */
 public final class TransactionXAResourceManager {
 
+    private static final AttachmentKey<TransactionXAResourceManager> KEY = AttachmentKey.create();
     private static final ConcurrentMap<UUID, TransactionXAResourceManager> RM_MAP = new ConcurrentHashMap<>();
     private final ConcurrentMap<XidKey, XATransaction> incompleteTransactions = new ConcurrentHashMap<>();
     private final TransactionController transactionController;
@@ -50,12 +51,22 @@ public final class TransactionXAResourceManager {
         if (transactionController == null) {
             throw TXN.methodParameterIsNull("transactionController");
         }
-        final TransactionXAResourceManager retVal = new TransactionXAResourceManager(transactionController);
-        RM_MAP.put(retVal.uuid, retVal);
+        TransactionXAResourceManager retVal = transactionController.getAttachmentIfPresent(KEY);
+        if (retVal == null) {
+            retVal = new TransactionXAResourceManager(transactionController);
+            TransactionXAResourceManager appearing = transactionController.putAttachmentIfAbsent(KEY, retVal);
+            if (appearing != null) {
+                retVal = appearing;
+            } else {
+                RM_MAP.put(retVal.uuid, retVal);
+            }
+        }
+        
         return retVal;
     }
     
     public void destroy() {
+        transactionController.removeAttachment(KEY, this);
         RM_MAP.remove(uuid, this);
     }
     
