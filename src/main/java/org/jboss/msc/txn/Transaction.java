@@ -75,9 +75,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private static final int T_PREPARED_to_ROLLBACK     = 6;
     private static final int T_ROLLBACK_to_ROLLED_BACK  = 7;
     private static final int T_COMMITTING_to_COMMITTED  = 8;
-    protected final TransactionController controller;
-    protected final Executor taskExecutor;
-    protected final Problem.Severity maxSeverity;
+    final TransactionController controller;
+    final Executor taskExecutor;
+    final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
@@ -120,13 +120,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private Listener<? super Transaction> terminateListener;
     private volatile boolean isRollbackRequested;
 
-    protected Transaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+    Transaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
         this.controller = controller;
         this.taskExecutor = taskExecutor;
         this.maxSeverity = maxSeverity;
     }
 
-    void forceStateRolledBack() {
+    final void forceStateRolledBack() {
         synchronized (this) {
             state = STATE_ROLLED_BACK;
         }
@@ -150,14 +150,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return sid == sid1 || sid == sid2 || sid == sid3;
     }
 
-    public boolean isTerminated() {
+    public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
             return stateIsIn(state, STATE_COMMITTED, STATE_ROLLED_BACK);
         }
     }
 
-    public long getDuration(TimeUnit unit) {
+    public final long getDuration(TimeUnit unit) {
         assert ! holdsLock(this);
         synchronized (this) {
             if (stateIsIn(state, STATE_COMMITTED, STATE_ROLLED_BACK)) {
@@ -168,15 +168,15 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    public TransactionController getController() {
+    final TransactionController getController() {
         return controller;
     }
 
-    public Executor getExecutor() {
+    final Executor getExecutor() {
         return taskExecutor;
     }
 
-    public ProblemReport getProblemReport() {
+    public final ProblemReport getProblemReport() {
         return problemReport;
     }
 
@@ -347,7 +347,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    void prepare(final Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException {
+    final void prepare(final Listener<? super Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -375,7 +375,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void commit(final Listener<? super Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
+    final void commit(final Listener<? super Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -401,7 +401,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void rollback(final Listener<? super Transaction> completionListener) throws InvalidTransactionStateException {
+    final void rollback(final Listener<? super Transaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -428,11 +428,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    boolean isRollbackRequested() {
+    public final boolean isRollbackRequested() {
         return isRollbackRequested;
     }
 
-    public boolean canCommit() throws InvalidTransactionStateException {
+    final boolean canCommit() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         synchronized (this) {
             if (! stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
@@ -446,7 +446,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return problemReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
-    public void waitFor(final Transaction other) throws InterruptedException, DeadlockException {
+    final void waitFor(final Transaction other) throws InterruptedException, DeadlockException {
         Transactions.waitFor(this,  other);
     }
 
@@ -461,7 +461,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    protected void destroy() {
+    final void destroy() {
         try {
             if (!isTerminated()) {
                 rollback(null);
@@ -557,15 +557,15 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    public TaskFactory getTaskFactory() {
+    final TaskFactory getTaskFactory() {
         return taskFactory;
     }
 
-    public <T> TaskBuilder<T> newTask(final Executable<T> task) throws IllegalStateException {
+    final <T> TaskBuilder<T> newTask(final Executable<T> task) throws IllegalStateException {
         return taskFactory.newTask(task);
     }
 
-    public TaskBuilder<Void> newTask() throws IllegalStateException {
+    final TaskBuilder<Void> newTask() throws IllegalStateException {
         return taskFactory.newTask();
     }
 
