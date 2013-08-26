@@ -35,13 +35,6 @@ interface TaskChild {
     void dependencyExecutionComplete(boolean userThread);
 
     /**
-     * Indicate to this child that a dependency's validation has completed.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void dependencyValidationComplete(boolean userThread);
-
-    /**
      * Indicate to this child that a dependency's commit has completed. Once all dependencies have
      * completed commit, this child may proceed with commit.
      *

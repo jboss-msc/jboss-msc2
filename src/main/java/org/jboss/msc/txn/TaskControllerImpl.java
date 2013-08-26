@@ -138,7 +138,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private int unfinishedDependencies;
     private int unfinishedChildren;
     private int unvalidatedChildren;
-    private int unvalidatedDependencies;
     private int uncommittedDependencies;
     private int unterminatedChildren;
     private int unterminatedDependents;
@@ -219,7 +218,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_SEND_CHILD_DONE           = 1 << 13; // to parents
     private static final int FLAG_SEND_DEPENDENCY_DONE      = 1 << 14; // to dependents
     private static final int FLAG_SEND_VALIDATE_REQ         = 1 << 15; // to children
-    private static final int FLAG_SEND_VALIDATE_DONE        = 1 << 16; // to dependents
     private static final int FLAG_SEND_CHILD_VALIDATE_DONE  = 1 << 17; // to parents
     private static final int FLAG_SEND_COMMIT_DONE          = 1 << 18; // to dependents
     private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 19; // to parents
@@ -302,13 +300,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 } else if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_to_TERMINATE_WAIT;
                 } else {
+                    System.out.println(this + " is at state execute yet");
                     return T_NONE;
                 }
             }
             case STATE_EXECUTE_DONE: {
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_EXECUTE_DONE_to_ROLLBACK_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_VALIDATE_REQ) && unfinishedChildren == 0 && unvalidatedDependencies == 0) {
+                } else if (Bits.allAreSet(state, FLAG_VALIDATE_REQ) && unfinishedChildren == 0 ) {
                     return T_EXECUTE_DONE_to_VALIDATE;
                 } else {
                     return T_NONE;
@@ -429,7 +428,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     return newState(STATE_VALIDATE, state | FLAG_DO_VALIDATE);
                 }
                 case T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE: {
-                    state = newState(STATE_VALIDATE_DONE, state | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_VALIDATE_DONE);
+                    state = newState(STATE_VALIDATE_DONE, state | FLAG_SEND_CHILD_VALIDATE_DONE);
                     continue;
                 }
                 case T_VALIDATE_DONE_to_COMMIT_WAIT: {
@@ -539,11 +538,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskChild child : children) {
                 child.childInitiateCommit(userThread);
-            }
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_DONE)) {
-            for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.dependencyValidationComplete(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
@@ -978,19 +972,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void dependencyValidationComplete(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            unvalidatedDependencies--;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
     public void dependencyCommitComplete(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
@@ -1086,7 +1067,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            unvalidatedDependencies = uncommittedDependencies = unfinishedDependencies = dependencies.length;
+            uncommittedDependencies = unfinishedDependencies = dependencies.length;
         }
         try {
             parent.childAdded(this, true);

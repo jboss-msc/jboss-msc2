@@ -1,0 +1,113 @@
+/*
+ * JBoss, Home of Professional Open Source.
+ * Copyright 2013 Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.jboss.msc.test.tasks;
+
+import static org.junit.Assert.assertNotNull;
+
+import java.util.concurrent.CountDownLatch;
+
+import org.jboss.msc.test.utils.AbstractTransactionTest;
+import org.jboss.msc.test.utils.TestCommittable;
+import org.jboss.msc.test.utils.TestExecutable;
+import org.jboss.msc.test.utils.TestRevertible;
+import org.jboss.msc.test.utils.TestValidatable;
+import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.TaskController;
+import org.junit.Test;
+
+/**
+ * Check how MSC2 handles complex task dependency chains, that could lead to cyclic behavior and result in hangs.
+ * 
+ * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ */
+public final class ComplexTaskDependencyChainsTestCase extends AbstractTransactionTest {
+
+    private static TaskController<Void> task5Controller;
+    private static TaskController<Void> task7Controller;
+
+    /**
+     * Scenario:
+     * <UL>
+     * <LI>add 9 tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8 to a transaction</LI>
+     * <LI>the dependencies are: 8 -> 7 -> 6 -> 5 -> 4 -> 3 -> 2, 4 -> 2</LI>
+     * <LI>tasks 6 and 7 are children of task 3</LI>
+     * <LI>commit the transaction</LI>
+     * </UL>
+     */
+    @Test
+    public void usecase1() throws Exception {
+        final BasicTransaction transaction = newTransaction();
+        // installing task0
+        final TestExecutable<Void> e0 = new TestExecutable<Void>("0");
+        final TaskController<Void> task0Controller = newTask(transaction, e0, null, null, null);
+        assertNotNull(task0Controller);
+        // installing task1
+        final TestValidatable v1 = new TestValidatable("1");
+        final TestRevertible r1 = new TestRevertible("1");
+        final TestCommittable c1 = new TestCommittable("1");
+        final TaskController<Void> task1Controller = newTask(transaction, null, v1, r1, c1);
+        assertNotNull(task1Controller);
+        // installing task2
+        final TestExecutable<Void> e2 = new TestExecutable<Void>("2");
+        final TaskController<Void> task2Controller = newTask(transaction, e2, null, null, null);
+        assertNotNull(task2Controller);
+        // installing task3
+        final CountDownLatch task5Created = new CountDownLatch(1);
+        final CountDownLatch task7Created = new CountDownLatch(1);
+        final TestExecutable<Void> parent3e = new TestExecutable<Void>("3") {
+            @Override
+            public void executeInternal(final ExecuteContext<Void> ctx) {
+                try {
+                    task5Created.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                // installing task6
+                final TestExecutable<Void> e6 = new TestExecutable<Void>("6");
+                final TaskController<Void> task6Controller = newTask(ctx, e6, null, null, null, task5Controller);
+                assertNotNull(task6Controller);
+                // installing task7
+                final TestExecutable<Void> e7 = new TestExecutable<Void>("7");
+                task7Controller = newTask(ctx, e7, null, null, null, task6Controller);
+                assertNotNull(task7Controller);
+                task7Created.countDown();
+            }
+        };
+        final TaskController<Void> task3Controller = newTask(transaction, parent3e, null, null, null, task2Controller);
+        assertNotNull(task3Controller);
+        // installing task4
+        final TestExecutable<Void> e4 = new TestExecutable<Void>("4");
+        final TaskController<Void> task4Controller = newTask(transaction, e4, null, null, null, task2Controller, task3Controller);
+        assertNotNull(task4Controller);
+        // installing task5
+        final TestExecutable<Void> e5 = new TestExecutable<Void>("5");
+        task5Controller = newTask(transaction, e5, null, null, null, task4Controller);
+        assertNotNull(task5Controller);
+        task5Created.countDown();
+        // installing task 8
+        task7Created.await();
+        final TestExecutable<Void> e8 = new TestExecutable<Void>("8");
+        final TaskController<Void> task8Controller = newTask(transaction, e8, null, null, null, task7Controller);
+        assertNotNull(task8Controller);
+
+        commit(transaction);
+    }
+
+}
