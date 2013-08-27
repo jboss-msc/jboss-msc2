@@ -140,7 +140,7 @@ final class Registration extends TransactionalObject {
         lockWrite(transaction, taskFactory);
         synchronized (this) {
             controller = this.controller;
-            if (upDemandedByCount-- > 0) {
+            if (--upDemandedByCount > 0) {
                 return;
             }
         }
