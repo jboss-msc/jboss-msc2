@@ -60,6 +60,7 @@ abstract class TransactionalObject {
                 if (currentLock == transaction) {
                     return;
                 }
+                assert !currentLock.isTerminated();
                 try {
                     transaction.waitFor(currentLock);
                 } catch (DeadlockException e) {
