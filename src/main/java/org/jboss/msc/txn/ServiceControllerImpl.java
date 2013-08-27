@@ -460,10 +460,6 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
     @Override
     Object takeSnapshot() {
-        // if service is new, no need to retrieve snapshot
-        if ((state & STATE_MASK) == STATE_NEW) {
-            return null;
-        }
         return new Snapshot();
     }
 
@@ -524,6 +520,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             switch (transactionalState) {
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
+                        System.out.println(primaryRegistration.getServiceName() + " is starting");
                         transactionalState = STATE_STARTING;
                         completeTransitionTask = StartingServiceTasks.create(ServiceControllerImpl.this, transaction, taskFactory);
                         completeTransitionState = STATE_UP;
@@ -651,7 +648,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             assert holdsLock(ServiceControllerImpl.this);
             // TODO temporary fix to an issue that needs to be evaluated:
             // as a result of a rollback, service must not think it is up when it is down, and vice-versa
-            if (getState() == STATE_UP && getState(state) == STATE_DOWN) {
+            if (getState() == STATE_UP && (getState(state) == STATE_DOWN || getState(state) == STATE_NEW)) {
                 service.stop(new StopContext() {
 
                     @Override
@@ -666,42 +663,42 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
                     @Override
                     public void addProblem(Problem reason) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Severity severity, String message) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Severity severity, String message, Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(String message, Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(String message) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public boolean isCancelRequested() {
-                        throw new UnsupportedOperationException("not implemented");
+                        return false;
                     }
 
                     @Override
                     public void cancelled() {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new IllegalStateException("Task cannot be cancelled now");
                     }
 
                     @Override
@@ -728,42 +725,42 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
                     @Override
                     public void addProblem(Problem reason) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Severity severity, String message) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Severity severity, String message, Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(String message, Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(String message) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public void addProblem(Throwable cause) {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new UnsupportedOperationException("Cannot add a problem to transaction during rollback");
                     }
 
                     @Override
                     public boolean isCancelRequested() {
-                        throw new UnsupportedOperationException("not implemented");
+                        return false;
                     }
 
                     @Override
                     public void cancelled() {
-                        throw new UnsupportedOperationException("not implemented");
+                        throw new IllegalStateException("Task cannot be cancelled now");
                     }
 
                     @Override
