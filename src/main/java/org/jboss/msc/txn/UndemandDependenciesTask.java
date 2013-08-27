@@ -17,8 +17,6 @@
  */
 package org.jboss.msc.txn;
 
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Task for undemanding dependencies.
@@ -38,9 +36,8 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @param taskFactory  the task factory
      * @return the task controller
      */
-    @SuppressWarnings("unchecked")
     static TaskController<Void> create(ServiceControllerImpl<?> service, Transaction transaction, TaskFactory taskFactory) {
-        return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
+        return create(service, null, transaction, taskFactory);
     }
 
     /**
@@ -54,13 +51,13 @@ class UndemandDependenciesTask implements Executable<Void> {
      * @param taskFactory      the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceControllerImpl<?> service, Collection<TaskController<?>> taskDependencies, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
         TaskBuilder<Void> taskBuilder = taskFactory.newTask(new UndemandDependenciesTask(transaction, service));
-        if (!taskDependencies.isEmpty()) {
-            taskBuilder.addDependencies(taskDependencies);
+        if (taskDependency != null) {
+            taskBuilder.addDependencies(taskDependency);
         }
         return taskBuilder.release();
     }
