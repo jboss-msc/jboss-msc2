@@ -20,19 +20,20 @@ package org.jboss.msc.txn;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class SynchronousListener<T> implements Listener<T> {
-    private volatile T result;
+final class SynchronousPrepareListener<T extends Transaction> implements PrepareListener<T> {
+    private volatile PrepareResult<T> result;
 
-    public void handleEvent(final T subject) {
+    public void handleEvent(final PrepareResult<T> subject) {
         synchronized (this) {
             result = subject;
             notifyAll();
         }
     }
 
-    public T await() throws InterruptedException {
-        T result = this.result;
+    public PrepareResult<T> await() throws InterruptedException {
+        PrepareResult<T> result = this.result;
         if (result != null) {
             return result;
         }
@@ -44,8 +45,8 @@ final class SynchronousListener<T> implements Listener<T> {
         }
     }
 
-    public T awaitUninterruptibly() {
-        T result = this.result;
+    public PrepareResult<T> awaitUninterruptibly() {
+        PrepareResult<T> result = this.result;
         if (result != null) {
             return result;
         }

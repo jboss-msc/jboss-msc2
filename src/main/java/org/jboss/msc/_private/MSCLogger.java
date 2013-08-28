@@ -30,7 +30,6 @@ import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.Validatable;
 
@@ -70,7 +69,7 @@ public interface MSCLogger {
 
     @LogMessage(level = ERROR)
     @Message(id = 2, value = "Invocation of listener \"%s\" failed")
-    void listenerFailed(@Cause Throwable cause, Listener<?> listener);
+    void listenerFailed(@Cause Throwable cause, Object listener);
 
     // id = 3: exception after start completed (N/A)
 

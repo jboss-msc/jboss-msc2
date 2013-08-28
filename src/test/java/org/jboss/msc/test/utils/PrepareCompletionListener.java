@@ -21,8 +21,9 @@ package org.jboss.msc.test.utils;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.jboss.msc.txn.Listener;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.PrepareListener;
+import org.jboss.msc.txn.PrepareResult;
 
 /**
  * Transaction event listener. It provides utility methods {@link #awaitCompletion()} to wait for transaction phase to be
@@ -30,12 +31,12 @@ import org.jboss.msc.txn.Transaction;
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class CompletionListener implements Listener<Transaction> {
+public final class PrepareCompletionListener implements PrepareListener<BasicTransaction> {
 
     private final CountDownLatch latch = new CountDownLatch(1);
 
     @Override
-    public void handleEvent(final Transaction subject) {
+    public void handleEvent(final PrepareResult<BasicTransaction> subject) {
         latch.countDown();
     }
 

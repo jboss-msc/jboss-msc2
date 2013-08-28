@@ -21,7 +21,6 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.concurrent.Executor;
 
-
 /**
  * A transaction controller, creates transactions and manages them.
  
@@ -77,7 +76,7 @@ public final class TransactionController extends SimpleAttachable {
 
 
 
-    <T extends Transaction> T registerTransaction(final T transaction) {
+    BasicTransaction registerTransaction(final BasicTransaction transaction) {
         try {
             Transactions.register(transaction);
         } catch (final IllegalStateException e) {
@@ -94,7 +93,7 @@ public final class TransactionController extends SimpleAttachable {
      * @return the transaction executor
      * @throws SecurityException if transaction was not created by this controller
      */
-    public Executor getExecutor(final Transaction transaction) throws SecurityException {
+    public Executor getExecutor(final BasicTransaction transaction) throws SecurityException {
         validateTransaction(transaction);
         return transaction.getExecutor();
     }
@@ -106,7 +105,7 @@ public final class TransactionController extends SimpleAttachable {
      * @return the transaction report
      * @throws SecurityException if transaction was not created by this controller
      */
-    public ProblemReport getProblemReport(final Transaction transaction) throws SecurityException {
+    public ProblemReport getProblemReport(final BasicTransaction transaction) throws SecurityException {
         validateTransaction(transaction);
         return transaction.getProblemReport();
     }
@@ -131,7 +130,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalStateException if the transaction is not open
      * @throws SecurityException if transaction was not created by this controller
      */
-    public <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
+    public <T> TaskBuilder<T> newTask(final BasicTransaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
         return transaction.newTask(task);
     }
@@ -144,14 +143,14 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalStateException if the transaction is not open
      * @throws SecurityException if transaction was not created by this controller
      */
-    public TaskBuilder<Void> newTask(final Transaction transaction) throws IllegalStateException, SecurityException {
+    public TaskBuilder<Void> newTask(final BasicTransaction transaction) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
         return transaction.newTask();
     }
 
     /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
-     * Once this method returns, either {@link #commit(BasicTransaction, Listener)} or {@link #rollback(BasicTransaction, Listener)} must be called.
+     * Once this method returns, either {@link #commit(BasicTransaction, CommitListener)} or {@link #rollback(BasicTransaction, RollbackListener)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
      *
      *
@@ -161,14 +160,13 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
      * @throws SecurityException if transaction was not created by this controller
      */
-    @SuppressWarnings("unchecked")
-    public void prepare(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    public void prepare(final BasicTransaction transaction, final PrepareListener<BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        transaction.prepare((Listener<? super Transaction>) completionListener);
+        transaction.prepare(completionListener);
     }
 
     /**
-     * Commit the work done by {@link #prepare(BasicTransaction, Listener)} and terminate {@code transaction}.
+     * Commit the work done by {@link #prepare(BasicTransaction, PrepareListener)} and terminate {@code transaction}.
      *
      * @param transaction        the transaction to be committed
      * @param completionListener the listener to call when the rollback is complete
@@ -176,10 +174,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    @SuppressWarnings("unchecked")
-    public void commit(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException, SecurityException {
+    public void commit(final BasicTransaction transaction, final CommitListener<BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException, SecurityException {
         validateTransaction(transaction);
-        transaction.commit((Listener<? super Transaction>) completionListener);
+        transaction.commit(completionListener);
     }
 
     /**
@@ -191,10 +188,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
-    @SuppressWarnings("unchecked")
-    public void rollback(final BasicTransaction transaction, final Listener<? super BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    public void rollback(final BasicTransaction transaction, final RollbackListener<BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        transaction.rollback((Listener<? super Transaction>) completionListener);
+        transaction.rollback(completionListener);
     }
 
     /**
@@ -205,7 +201,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction is not prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    public boolean canCommit(final Transaction transaction) throws InvalidTransactionStateException, SecurityException {
+    public boolean canCommit(final BasicTransaction transaction) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         return transaction.canCommit();
     }
@@ -220,8 +216,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void waitFor(final Transaction transaction, final Transaction other) throws InterruptedException, DeadlockException, SecurityException {
+    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws InterruptedException, DeadlockException, SecurityException {
         validateTransaction(transaction);
+        validateTransaction(other);
         transaction.waitFor(other);
     }
 
@@ -234,7 +231,7 @@ public final class TransactionController extends SimpleAttachable {
         return this == transaction.getController();
     }
 
-    void validateTransaction(final Transaction transaction) throws SecurityException {
+    void validateTransaction(final BasicTransaction transaction) throws SecurityException {
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }

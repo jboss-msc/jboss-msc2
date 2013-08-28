@@ -19,7 +19,8 @@
 package org.jboss.msc.test.utils;
 
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.Listener;
+import org.jboss.msc.txn.PrepareListener;
+import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TransactionController;
 
 /**
@@ -28,18 +29,18 @@ import org.jboss.msc.txn.TransactionController;
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class RevertingListener implements Listener<BasicTransaction> {
+public final class RevertingListener implements PrepareListener<BasicTransaction> {
 
     private final TransactionController transactionController;
-    private final CompletionListener listener = new CompletionListener();
+    private final RollbackCompletionListener listener = new RollbackCompletionListener();
 
     public RevertingListener(TransactionController transactionController) {
         this.transactionController = transactionController;
     }
 
     @Override
-    public void handleEvent(final BasicTransaction subject) {
-        transactionController.rollback(subject, listener);
+    public void handleEvent(final PrepareResult<BasicTransaction> subject) {
+        transactionController.rollback(subject.getTransaction(), listener);
     }
 
     public void awaitRollback() throws InterruptedException {

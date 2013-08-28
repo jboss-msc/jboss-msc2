@@ -30,12 +30,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.CommitListener;
 import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Listener;
+import org.jboss.msc.txn.PrepareListener;
 import org.jboss.msc.txn.Revertible;
+import org.jboss.msc.txn.RollbackListener;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.TransactionRolledBackException;
@@ -87,7 +89,7 @@ public abstract class AbstractTransactionTest {
         return ctx.newTask(e).addDependencies(dependencies).setValidatable(v).setRevertible(r).setCommittable(c).release();
     }
 
-    protected static void prepare(BasicTransaction transaction, Listener<? super BasicTransaction> listener) {
+    protected static void prepare(BasicTransaction transaction, PrepareListener<BasicTransaction> listener) {
         txnController.prepare(transaction, listener);
     }
 
@@ -95,11 +97,11 @@ public abstract class AbstractTransactionTest {
         return txnController.canCommit(transaction);
     }
 
-    protected static void commit(BasicTransaction transaction, Listener<? super BasicTransaction> listener) {
+    protected static void commit(BasicTransaction transaction, CommitListener<BasicTransaction> listener) {
         txnController.commit(transaction, listener);
     }
     
-    protected static void rollback(BasicTransaction transaction, Listener<? super BasicTransaction> listener) {
+    protected static void rollback(BasicTransaction transaction, RollbackListener<BasicTransaction> listener) {
         txnController.rollback(transaction, listener);
     }
 
@@ -209,7 +211,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void prepare(final BasicTransaction transaction, boolean committable) throws InterruptedException {
         assertNotNull(transaction);
-        final CompletionListener prepareListener = new CompletionListener();
+        final PrepareCompletionListener prepareListener = new PrepareCompletionListener();
         txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletion();
         assertPrepared(transaction, committable);
@@ -217,7 +219,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void commit(final BasicTransaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final CompletionListener commitListener = new CompletionListener();
+        final CommitCompletionListener commitListener = new CommitCompletionListener();
         txnController.commit(transaction, commitListener);
         commitListener.awaitCompletion();
         assertCommitted(transaction);
@@ -225,7 +227,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void rollback(final BasicTransaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final CompletionListener rollbackListener = new CompletionListener();
+        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
         txnController.rollback(transaction, rollbackListener);
         rollbackListener.awaitCompletion();
         assertReverted(transaction);

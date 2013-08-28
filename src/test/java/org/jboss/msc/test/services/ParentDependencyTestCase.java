@@ -35,7 +35,7 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.test.utils.CompletionListener;
+import org.jboss.msc.test.utils.CommitCompletionListener;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.Problem.Severity;
@@ -913,7 +913,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertNotNull(reportableContext);
 
         reportableContext.addProblem(Severity.ERROR, "test error");
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         txnController.commit(transaction, listener);
     }
 }

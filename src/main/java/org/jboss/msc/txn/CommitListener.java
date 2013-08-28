@@ -18,21 +18,16 @@
 
 package org.jboss.msc.txn;
 
-import java.util.EventListener;
-
 /**
- * A listener for a value.  Listeners are fired in response to an event for which they were registered.
+ * Transaction's commit phase listener.
  *
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-interface Listener<T extends Transaction, R extends Result<T>> extends EventListener {
-
+public interface CommitListener<T extends Transaction> extends Listener<T, CommitResult<T>> {
     /**
-     * Handle result.
+     * Handle commit result.
      *
      * @param result the transaction result
      */
-    void handleEvent(R result);
-    
+    void handleEvent(CommitResult<T> result);
 }

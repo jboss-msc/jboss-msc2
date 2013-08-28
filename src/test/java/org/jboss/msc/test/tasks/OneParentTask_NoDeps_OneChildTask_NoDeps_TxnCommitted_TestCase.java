@@ -22,15 +22,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.CompletionListener;
+import org.jboss.msc.test.utils.CommitCompletionListener;
 import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
+import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
@@ -135,7 +135,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnCommitted_TestCas
         assertNotCalled(c1);
         assertCallOrder(e0, e1, v0, v1);
         // TODO work in progress, make more tests like this and tidy up code
-        final CompletionListener completionListener = new CompletionListener();
+        final CommitCompletionListener completionListener = new CommitCompletionListener();
         commit(transaction, completionListener);
         completionListener.awaitCompletion();
         assertReverted(transaction);

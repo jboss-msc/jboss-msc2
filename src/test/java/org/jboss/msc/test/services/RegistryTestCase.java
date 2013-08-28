@@ -27,7 +27,7 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.test.utils.CompletionListener;
+import org.jboss.msc.test.utils.CommitCompletionListener;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
@@ -92,7 +92,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceA() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.disableService(serviceAName, transaction);
         } finally {
@@ -113,7 +113,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceB() throws InterruptedException {
         BasicTransaction transaction = newTransaction();
-        CompletionListener listener = new CompletionListener();
+        CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.disableService(serviceBName, transaction);
             // idempotent
@@ -134,7 +134,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         // idempotent
         transaction = newTransaction();
-        listener = new CompletionListener();
+        listener = new CommitCompletionListener();
         try {
             registry1.disableService(serviceBName, transaction);
         } finally {
@@ -155,7 +155,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceC() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.enableService(serviceCName, transaction);
             registry1.disableService(serviceCName, transaction);
@@ -177,7 +177,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceD() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry2.disableService(serviceDName, transaction);
             registry2.enableService(serviceDName, transaction);
@@ -199,7 +199,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     public void enableServiceA() throws InterruptedException {
         disableServiceA();
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.enableService(serviceAName, transaction);
         } finally {
@@ -219,7 +219,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableRegistry1() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.disable(transaction);
             
@@ -240,7 +240,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableRegistry2() throws InterruptedException {
         BasicTransaction transaction = newTransaction();
-        CompletionListener listener = new CompletionListener();
+        CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry2.disable(transaction);
             // idempotent
@@ -260,7 +260,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         // idempotent
         transaction = newTransaction();
-        listener = new CompletionListener();
+        listener = new CommitCompletionListener();
         try {
             registry2.disable(transaction);
         } finally {
@@ -280,7 +280,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableRegistry3() throws InterruptedException {
         BasicTransaction transaction = newTransaction();
-        CompletionListener listener = new CompletionListener();
+        CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry3.enable(transaction);
         } finally {
@@ -298,7 +298,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         transaction = newTransaction();
-        listener = new CompletionListener();
+        listener = new CommitCompletionListener();
         try {
             registry3.disable(transaction);
         } finally {
@@ -320,7 +320,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertFalse(serviceI.isUp()); // as registry 3 is disabled, serviceI won't start
 
         transaction = newTransaction();
-        listener = new CompletionListener();
+        listener = new CommitCompletionListener();
         try {
             registry3.enable(transaction);
         } finally {
@@ -343,7 +343,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableRegistry1() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CompletionListener listener = new CompletionListener();
+        final CommitCompletionListener listener = new CommitCompletionListener();
         try {
             registry1.enable(transaction);
             registry1.disable(transaction);

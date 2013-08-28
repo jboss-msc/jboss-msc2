@@ -39,7 +39,6 @@ import org.jboss.msc.txn.Problem;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ServiceController;
-import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.TransactionRolledBackException;
 import org.junit.After;
@@ -400,7 +399,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    private void assertNoCriticalProblems(final Transaction txn) {
+    private void assertNoCriticalProblems(final BasicTransaction txn) {
         List<Problem> problems = txnController.getProblemReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {

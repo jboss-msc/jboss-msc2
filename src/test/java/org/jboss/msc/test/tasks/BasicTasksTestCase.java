@@ -27,11 +27,11 @@ import java.util.Random;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TrackingTask;
+import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**

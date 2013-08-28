@@ -28,7 +28,6 @@ import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**

@@ -33,6 +33,7 @@ import javax.transaction.xa.Xid;
  * The MSC XA resource implementation.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class TransactionXAResource extends TransactionManagementScheme<XATransaction> implements XAResource {
 
@@ -153,7 +154,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         if (flags == TMFAIL) {
             // also roll back the txn and erase our association with it
             resourceManager.unregisterTransaction(xid, transaction);
-            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
             transaction.rollback(listener);
             listener.awaitUninterruptibly();
             // todo check rollback result..?
@@ -171,7 +172,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
             transaction.prepare(listener);
             listener.awaitUninterruptibly();
             if (transaction.canCommit()) {
@@ -201,7 +202,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             // transaction is gone
             return;
         }
-        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
         transaction.rollback(listener);
         try {
             listener.await();
@@ -221,7 +222,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
             transaction.commit(listener);
             listener.awaitUninterruptibly();
             // todo - verify this detection method
@@ -248,7 +249,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
             transaction.rollback(listener);
             listener.awaitUninterruptibly();
             // todo - verify this detection method

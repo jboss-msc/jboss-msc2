@@ -25,6 +25,7 @@ import com.arjuna.ats.arjuna.coordinator.TwoPhaseOutcome;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class ArjunaRecordImplementation extends AbstractRecord {
 
@@ -72,7 +73,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
     }
 
     public int topLevelAbort() {
-        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
         transaction.rollback(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes
@@ -80,7 +81,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
     }
 
     public int topLevelCommit() {
-        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
         transaction.commit(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes
@@ -88,7 +89,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
     }
 
     public int topLevelPrepare() {
-        final SynchronousListener<Transaction> listener = new SynchronousListener<>();
+        final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
         transaction.prepare(listener);
         listener.awaitUninterruptibly();
         // todo - map outcomes

@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 import static org.junit.Assert.assertNotNull;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.CompletionListener;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.DeadlockException;
 import org.jboss.msc.txn.Executable;
@@ -40,7 +39,6 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     public void outsiderTransaction() throws InterruptedException, DeadlockException {
         final TransactionController outsiderController = TransactionController.createInstance();
         final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
-        final CompletionListener listener = new CompletionListener();
         SecurityException expected = null;
         try {
             txnController.canCommit(outsiderTransaction);
@@ -51,7 +49,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            txnController.commit(outsiderTransaction, listener);
+            commit(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -59,7 +57,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            txnController.commit(outsiderTransaction, listener);
+            commit(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -67,7 +65,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            txnController.getExecutor(outsiderTransaction);
+            commit(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -92,7 +90,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            txnController.prepare(outsiderTransaction, listener);
+            prepare(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -100,7 +98,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            txnController.rollback(outsiderTransaction, listener);
+            rollback(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }

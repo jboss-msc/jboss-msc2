@@ -18,21 +18,16 @@
 
 package org.jboss.msc.txn;
 
-import java.util.EventListener;
-
 /**
- * A listener for a value.  Listeners are fired in response to an event for which they were registered.
+ * Transaction's rollback phase listener.
  *
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-interface Listener<T extends Transaction, R extends Result<T>> extends EventListener {
-
+public interface RollbackListener<T extends Transaction> extends Listener<T, RollbackResult<T>> {
     /**
-     * Handle result.
+     * Handle rollback result.
      *
      * @param result the transaction result
      */
-    void handleEvent(R result);
-    
+    void handleEvent(RollbackResult<T> result);
 }

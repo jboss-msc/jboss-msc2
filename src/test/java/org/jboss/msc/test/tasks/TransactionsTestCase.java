@@ -28,9 +28,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.txn.DeadlockException;
-import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.CommitListener;
+import org.jboss.msc.txn.CommitResult;
+import org.jboss.msc.txn.DeadlockException;
+import org.jboss.msc.txn.PrepareListener;
+import org.jboss.msc.txn.PrepareResult;
+import org.jboss.msc.txn.RollbackListener;
+import org.jboss.msc.txn.RollbackResult;
 import org.junit.Test;
 
 /**
@@ -372,9 +377,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                     out.append(" started").append(id);
                 }
                 if (prepare) {
-                    prepare(dependent, new Listener<BasicTransaction>() {
+                    prepare(dependent, new PrepareListener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final BasicTransaction subject) {
+                        public void handleEvent(final PrepareResult<BasicTransaction> subject) {
                             synchronized (out) {
                                 out.append(" prepared").append(id);
                             }
@@ -385,9 +390,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                     });
                 }
                 if (!rollback) {
-                    commit(dependent, new Listener<BasicTransaction>() {
+                    commit(dependent, new CommitListener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final BasicTransaction subject) {
+                        public void handleEvent(final CommitResult<BasicTransaction> subject) {
                             synchronized (out) {
                                 out.append(" committed").append(id);
                             }
@@ -397,9 +402,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                         }
                     });
                 } else {
-                    rollback(dependent, new Listener<BasicTransaction>() {
+                    rollback(dependent, new RollbackListener<BasicTransaction>() {
                         @Override
-                        public void handleEvent(final BasicTransaction subject) {
+                        public void handleEvent(final RollbackResult<BasicTransaction> subject) {
                             synchronized (out) {
                                 out.append(" reverted").append(id);
                             }

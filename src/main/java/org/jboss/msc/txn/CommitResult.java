@@ -18,21 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import java.util.EventListener;
-
 /**
- * A listener for a value.  Listeners are fired in response to an event for which they were registered.
+ * Transaction's commit phase result.
  *
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-interface Listener<T extends Transaction, R extends Result<T>> extends EventListener {
-
-    /**
-     * Handle result.
-     *
-     * @param result the transaction result
-     */
-    void handleEvent(R result);
+public interface CommitResult<T extends Transaction> extends Result<T> {
+    
+    // TODO: introduce txn state retrieval methods
     
 }
