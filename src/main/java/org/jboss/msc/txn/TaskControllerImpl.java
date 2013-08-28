@@ -300,7 +300,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 } else if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_to_TERMINATE_WAIT;
                 } else {
-                    System.out.println(this + " is at state execute yet");
                     return T_NONE;
                 }
             }

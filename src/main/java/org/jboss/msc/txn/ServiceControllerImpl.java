@@ -520,7 +520,6 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             switch (transactionalState) {
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
-                        System.out.println(primaryRegistration.getServiceName() + " is starting");
                         transactionalState = STATE_STARTING;
                         completeTransitionTask = StartingServiceTasks.create(ServiceControllerImpl.this, transaction, taskFactory);
                         completeTransitionState = STATE_UP;
