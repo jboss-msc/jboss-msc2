@@ -40,10 +40,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         MSCLogger.ROOT.greeting(Version.getVersionString());
     }
 
-    private static final Listener<Object> NOTHING_LISTENER = new Listener<Object>() {
-        public void handleEvent(final Object subject) {
-        }
-    };
     private static final int FLAG_ROLLBACK_REQ = 1 << 3; // set if rollback of the current txn was requested
     private static final int FLAG_PREPARE_REQ  = 1 << 4; // set if prepare of the current txn was requested
     private static final int FLAG_COMMIT_REQ   = 1 << 5; // set if commit of the current txn was requested
@@ -364,11 +360,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            if (completionListener == null) {
-                validationListener = NOTHING_LISTENER;
-            } else {
-                validationListener = completionListener;
-            }
+            validationListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -390,11 +382,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            if (completionListener == null) {
-                terminateListener = NOTHING_LISTENER;
-            } else {
-                terminateListener = completionListener;
-            }
+            terminateListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -417,11 +405,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            if (completionListener == null) {
-                terminateListener = NOTHING_LISTENER;
-            } else {
-                terminateListener = completionListener;
-            }
+            terminateListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
