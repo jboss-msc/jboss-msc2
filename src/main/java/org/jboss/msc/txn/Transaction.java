@@ -60,6 +60,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private static final int STATE_ROLLED_BACK      = 0x5; // "dead" state
     private static final int STATE_COMMITTED        = 0x6; // "success" state
     private static final int STATE_MASK = 0x07;
+    private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER | FLAG_DO_ROLLBACK_LISTENER;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_ROLLBACK_REQ | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
 
     private static final int T_NONE = 0;
@@ -314,24 +315,18 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             Transactions.unregister(this);
         }
         if (userThread) {
-            if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
-                safeExecute(new AsyncTask(FLAG_DO_COMMIT_LISTENER));
-            }
-            if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
-                safeExecute(new AsyncTask(FLAG_DO_PREPARE_LISTENER));
-            }
-            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
-                safeExecute(new AsyncTask(FLAG_DO_ROLLBACK_LISTENER));
+            if (Bits.anyAreSet(state, LISTENERS_MASK)) {
+                safeExecute(new AsyncTask(state & (PERSISTENT_STATE | LISTENERS_MASK)));
             }
         } else {
             if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
-                callCommitListener();
+                callCommitListener(state);
             }
             if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
-                callPrepareListener();
+                callPrepareListener(state);
             }
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
-                callTerminateListeners();
+                callTerminateListeners(state);
             }
         }
     }
@@ -502,26 +497,26 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    private void callPrepareListener() {
+    private void callPrepareListener(final int state) {
         Listener<Transaction, Result<Transaction>> listener;
         synchronized (this) {
             listener = prepareListener;
             prepareListener = null;
         }
-        safeCall(listener);
+        safeCall(state, listener);
     }
 
-    private void callCommitListener() {
+    private void callCommitListener(final int state) {
         Listener<Transaction, Result<Transaction>> listener;
         synchronized (this) {
             endTime = System.nanoTime();
             listener = commitListener;
             commitListener = null;
         }
-        safeCall(listener);
+        safeCall(state, listener);
     }
 
-    private void callTerminateListeners() {
+    private void callTerminateListeners(final int state) {
         @SuppressWarnings("rawtypes")
         Listener[] listeners = new Listener[3];
         synchronized (this) {
@@ -530,7 +525,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             listeners[1] = commitListener;
             listeners[2] = rollbackListener;
         }
-        safeCall(listeners);
+        safeCall(state, listeners);
     }
 
     private void doChildAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
@@ -553,7 +548,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void safeCall(final Listener... listeners) {
+    private void safeCall(final int state, final Listener... listeners) {
         if (listeners != null)
             for (final Listener listener : listeners) {
                 if (listener == null) continue;
@@ -564,12 +559,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                             public Transaction getTransaction() {
                                 return Transaction.this;
                             }
-
                             @Override
-                            public List<Problem> getProblems() {
-                                synchronized (Transaction.this) {
-                                    return getProblemReport().getProblems();
-                                }
+                            public boolean isPrepared() {
+                                return STATE_PREPARED == stateOf(state);
                             }
                         });
                     } else if (listener instanceof CommitListener) {
@@ -578,12 +570,20 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                             public Transaction getTransaction() {
                                 return Transaction.this;
                             }
+                            @Override
+                            public boolean isCommitted() {
+                                return STATE_COMMITTED == stateOf(state);
+                            }
                         });
                     } else if (listener instanceof RollbackListener) {
                         ((RollbackListener<Transaction>) listener).handleEvent(new RollbackResult<Transaction>() {
                             @Override
                             public Transaction getTransaction() {
                                 return Transaction.this;
+                            }
+                            @Override
+                            public boolean isRolledBack() {
+                                return STATE_ROLLED_BACK == stateOf(state);
                             }
                         });
                     } else {

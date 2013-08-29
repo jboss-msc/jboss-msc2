@@ -20,11 +20,29 @@ package org.jboss.msc.txn;
 
 /**
  * Transaction's commit phase result.
+ * <br/><br/>
+ * The result of transaction's commit request can be either
+ * committed or rolled back transaction.
+ * There are two possible transaction flows from commit point of view:
+ * <ul>
+ * <li>
+ * The transaction was prepared and commit request have been sent.
+ * The transaction will be committed as a result.
+ * </li>
+ * <li>
+ * If both commit() and rollback() have been requested during
+ * transaction's prepare phase execution, the commit will not be executed at all
+ * because rollback request has precedence in such case.
+ * The transaction will be rolled back as a result.
+ * </li>
+ * </ul>
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface CommitResult<T extends Transaction> extends Result<T> {
-    
-    // TODO: introduce txn state retrieval methods
-    
+    /**
+     * Returns <code>true</code> if transaction have been committed, <code>false</code> if it have been rolled back.
+     * @return <code>true</code> if transaction have been committed, <code>false</code> if it have been rolled back.
+     */
+    boolean isCommitted();
 }

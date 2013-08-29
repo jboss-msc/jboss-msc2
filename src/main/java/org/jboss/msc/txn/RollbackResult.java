@@ -20,11 +20,16 @@ package org.jboss.msc.txn;
 
 /**
  * Transaction's rollback phase result.
+ * <br/><br/>
+ * The result of transaction's rollback request can be only
+ * rolled back transaction.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface RollbackResult<T extends Transaction> extends Result<T> {
-    
-    // TODO: introduce txn state retrieval methods
-    
+    /**
+     * Returns <code>true</code> if transaction have been rolled back, <code>false</code> otherwise.
+     * @return <code>true</code> if transaction have been rolled back, <code>false</code> otherwise.
+     */
+    boolean isRolledBack(); // TODO: It always returns true, so do we really need this method?
 }

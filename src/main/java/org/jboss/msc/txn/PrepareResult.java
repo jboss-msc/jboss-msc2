@@ -18,17 +18,30 @@
 
 package org.jboss.msc.txn;
 
-import java.util.List;
-
 /**
  * Transaction's prepare phase result.
+ * <br/><br/>
+ * The result of transaction's prepare request can be either
+ * prepared or rolled back transaction.
+ * There are two possible transaction flows from prepare point of view:
+ * <ul>
+ * <li>
+ * Transaction is prepared and rollback have not been requested.
+ * The transaction will be prepared as a result.
+ * </li>
+ * <li>
+ * If transaction's prepare is in progress and rollback have been requested
+ * the rollback request will take over execution flow.
+ * The transaction will be rolled back as a result.
+ * </li>
+ * </ul>
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface PrepareResult<T extends Transaction> extends Result<T> {
-    
-    // TODO: introduce txn state retrieval methods
-    
-    List<Problem> getProblems();
-    
+    /**
+     * Returns <code>true</code> if transaction have been prepared, <code>false</code> if it have been rolled back.
+     * @return <code>true</code> if transaction have been prepared, <code>false</code> if it have been rolled back.
+     */
+    boolean isPrepared();
 }
