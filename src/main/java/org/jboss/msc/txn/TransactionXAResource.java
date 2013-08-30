@@ -107,7 +107,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             if (transaction != null) {
                 throw new XAException(XAException.XAER_OUTSIDE);
             }
-            transaction = new XATransaction(resourceManager.getController(), taskExecutor, maxSeverity);
+            transaction = registerTransaction(new XATransaction(resourceManager.getController(), taskExecutor, maxSeverity));
             boolean ok = false;
             try {
                 if (! transactionUpdater.compareAndSet(this, null, transaction)) {
@@ -128,6 +128,16 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         } else {
             throw new XAException(XAException.XAER_INVAL);
         }
+    }
+
+    XATransaction registerTransaction(final XATransaction transaction) {
+        try {
+            Transactions.register(transaction);
+        } catch (final IllegalStateException e) {
+            transaction.forceStateRolledBack();
+            throw e;
+        }
+        return transaction;
     }
 
     public void end(final Xid xid, final int flags) throws XAException {
