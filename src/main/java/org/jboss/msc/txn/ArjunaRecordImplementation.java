@@ -73,27 +73,42 @@ final class ArjunaRecordImplementation extends AbstractRecord {
     }
 
     public int topLevelAbort() {
-        final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
-        transaction.rollback(listener);
-        listener.awaitUninterruptibly();
-        // todo - map outcomes
-        return TwoPhaseOutcome.FINISH_OK;
+        try {
+            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
+            transaction.rollback(listener);
+            final RollbackResult<Transaction> rollbackResult = listener.awaitUninterruptibly();
+            return rollbackResult.isRolledBack() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
+        } catch (final TransactionRolledBackException e) {
+            return TwoPhaseOutcome.FINISH_ERROR;
+        } catch (final InvalidTransactionStateException e) {
+            return TwoPhaseOutcome.FINISH_ERROR;
+        }
     }
 
     public int topLevelCommit() {
-        final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
-        transaction.commit(listener);
-        listener.awaitUninterruptibly();
-        // todo - map outcomes
-        return TwoPhaseOutcome.FINISH_OK;
+        try {
+            final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
+            transaction.commit(listener);
+            final CommitResult<Transaction> commitResult = listener.awaitUninterruptibly();
+            return commitResult.isCommitted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
+        } catch (final TransactionRolledBackException e) {
+            return TwoPhaseOutcome.FINISH_ERROR;
+        } catch (final InvalidTransactionStateException e) {
+            return TwoPhaseOutcome.FINISH_ERROR;
+        }
     }
 
     public int topLevelPrepare() {
-        final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
-        transaction.prepare(listener);
-        listener.awaitUninterruptibly();
-        // todo - map outcomes
-        return TwoPhaseOutcome.FINISH_OK;
+        try {
+            final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
+            transaction.prepare(listener);
+            final PrepareResult<Transaction> prepareResult = listener.awaitUninterruptibly();
+            return prepareResult.isPrepared() ? TwoPhaseOutcome.PREPARE_OK : TwoPhaseOutcome.PREPARE_NOTOK;
+        } catch (final TransactionRolledBackException e) {
+            return TwoPhaseOutcome.PREPARE_NOTOK;
+        } catch (final InvalidTransactionStateException e) {
+            return TwoPhaseOutcome.PREPARE_NOTOK;
+        }
     }
 
     public void merge(final AbstractRecord a) {

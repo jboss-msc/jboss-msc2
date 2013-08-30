@@ -154,10 +154,22 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         if (flags == TMFAIL) {
             // also roll back the txn and erase our association with it
             resourceManager.unregisterTransaction(xid, transaction);
-            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
-            transaction.rollback(listener);
-            listener.awaitUninterruptibly();
-            // todo check rollback result..?
+            try {
+                final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
+                transaction.rollback(listener);
+                final RollbackResult<Transaction> rollbackResult = listener.awaitUninterruptibly();
+                if (!rollbackResult.isRolledBack()) {
+                    throw new XAException(XAException.XA_RBPROTO);
+                }
+            } catch (final TransactionRolledBackException e) {
+                final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
+                e2.initCause(e);
+                throw e2;
+            } catch (final InvalidTransactionStateException e) {
+                final XAException e2 = new XAException(XAException.XAER_PROTO);
+                e2.initCause(e);
+                throw e2;
+            }
         }
     }
 
@@ -174,18 +186,18 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         try {
             final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
             transaction.prepare(listener);
-            listener.awaitUninterruptibly();
-            if (transaction.canCommit()) {
+            final PrepareResult<Transaction> prepareResult = listener.awaitUninterruptibly();
+            if (prepareResult.isPrepared()) {
                 // todo - a way to establish whether changes were made?
                 return XA_OK;
             } else {
                 throw new XAException(XAException.XA_RBROLLBACK);
             }
-        } catch (TransactionRolledBackException e) {
+        } catch (final TransactionRolledBackException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
             e2.initCause(e);
             throw e2;
-        } catch (InvalidTransactionStateException e) {
+        } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
             throw e2;
@@ -202,14 +214,28 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             // transaction is gone
             return;
         }
-        final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
-        transaction.rollback(listener);
         try {
-            listener.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            // we want the TM to try again later please
-            throw new XAException(XAException.XAER_RMERR);
+            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
+            transaction.rollback(listener);
+            final RollbackResult<Transaction> rollbackResult;
+            try {
+                rollbackResult = listener.await();
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // we want the TM to try again later please
+                throw new XAException(XAException.XAER_RMERR);
+            }
+            if (!rollbackResult.isRolledBack()) {
+                throw new XAException(XAException.XA_RBPROTO);
+            }
+        } catch (final TransactionRolledBackException e) {
+            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
+            e2.initCause(e);
+            throw e2;
+        } catch (final InvalidTransactionStateException e) {
+            final XAException e2 = new XAException(XAException.XAER_PROTO);
+            e2.initCause(e);
+            throw e2;
         }
     }
 
@@ -224,16 +250,15 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         try {
             final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
             transaction.commit(listener);
-            listener.awaitUninterruptibly();
-            // todo - verify this detection method
-            if (transaction.isRollbackRequested()) {
+            final CommitResult<Transaction> commitResult = listener.awaitUninterruptibly();
+            if (!commitResult.isCommitted()) {
                 throw new XAException(XAException.XA_HEURRB);
             }
-        } catch (TransactionRolledBackException e) {
+        } catch (final TransactionRolledBackException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
             e2.initCause(e);
             throw e2;
-        } catch (InvalidTransactionStateException e) {
+        } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
             throw e2;
@@ -251,16 +276,15 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         try {
             final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
             transaction.rollback(listener);
-            listener.awaitUninterruptibly();
-            // todo - verify this detection method
-            if (! transaction.isRollbackRequested()) {
-                throw new XAException(XAException.XA_HEURCOM);
+            final RollbackResult<Transaction> rollbackResult = listener.awaitUninterruptibly();
+            if (!rollbackResult.isRolledBack()) {
+                throw new XAException(XAException.XA_RBPROTO);
             }
-        } catch (TransactionRolledBackException e) {
+        } catch (final TransactionRolledBackException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
             e2.initCause(e);
             throw e2;
-        } catch (InvalidTransactionStateException e) {
+        } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
             throw e2;

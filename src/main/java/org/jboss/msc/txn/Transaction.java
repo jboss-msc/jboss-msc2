@@ -389,7 +389,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void rollback(final RollbackListener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
+    final void rollback(final RollbackListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -414,7 +414,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    public final boolean isRollbackRequested() {
+    final boolean isRollbackRequested() {
         return isRollbackRequested;
     }
 
