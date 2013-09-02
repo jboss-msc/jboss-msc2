@@ -130,7 +130,7 @@ abstract class TransactionalObject {
 
     /**
      * Reverts this object's inner state to what its original state when it was locked. Invoked during transaction
-     * rollback.
+     * rollback or abort.
      * 
      * @param snapshot the snapshot
      */

@@ -180,7 +180,7 @@ final class Registration extends TransactionalObject {
             upDemandedByCount = Registration.this.upDemandedByCount;
         }
 
-        // revert ServiceController state to what it was when snapshot was taken; invoked on rollback
+        // revert ServiceController state to what it was when snapshot was taken; invoked on rollback or abort
         public void apply() {
             Registration.this.controller = controller;
             Registration.this.upDemandedByCount = upDemandedByCount;

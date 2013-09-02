@@ -23,6 +23,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
+import org.jboss.msc.txn.AbortListener;
+import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitListener;
 import org.jboss.msc.txn.CommitResult;
@@ -30,8 +32,8 @@ import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.PrepareListener;
 import org.jboss.msc.txn.PrepareResult;
-import org.jboss.msc.txn.RollbackListener;
-import org.jboss.msc.txn.RollbackResult;
+import org.jboss.msc.txn.Validatable;
+import org.jboss.msc.txn.ValidateContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,90 +44,100 @@ public class ListenersTestCase extends AbstractTransactionTest {
 
     private volatile boolean prepareCalled;
     private volatile boolean commitCalled;
-    private volatile boolean rollbackCalled;
+    private volatile boolean abortCalled;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        prepareCalled = commitCalled = rollbackCalled = false;
+        prepareCalled = commitCalled = abortCalled = false;
     }
 
     /**
      * Usecase 1 (ACTIVE -> PREPARING -> ROLLBACK -> ROLLED_BACK)
      *
-     * If rollback() have been called on transaction
+     * If abort() have been called on transaction
      * while prepare() was in progress it might result
      * in prepare listener not to be notified when
-     * transaction have been rolled back.
+     * transaction have been aborted.
      */
     @Test
-    public void testPrepareRollbackListeners() throws InterruptedException {
+    public void testPrepareAbortListeners() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch rollbackSignal = new CountDownLatch(1);
+        final CountDownLatch abortSignal = new CountDownLatch(1);
         final CountDownLatch executeSignal = new CountDownLatch(1);
         final Executable<Object> executable = new Executable<Object>() {
             @Override public void execute(final ExecuteContext<Object> context) {
-                rollbackSignal.countDown();
-                try { executeSignal.await(); } catch (final InterruptedException ignore) {}
+                abortSignal.countDown();
                 context.complete();
             }
         };
-        txnController.newTask(transaction, executable).release();
+        final Validatable validatable = new Validatable() {
+            @Override
+            public void validate(final ValidateContext context) {
+                try { executeSignal.await(); } catch (final InterruptedException ignored) {}
+            }
+        };
+        txnController.newTask(transaction, executable).setValidatable(validatable).release();
         txnController.prepare(transaction, new PrepareListener<BasicTransaction>() {
             @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
                 prepareCalled = true;
             }
         });
-        rollbackSignal.await();
+        abortSignal.await();
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.rollback(transaction, new RollbackListener<BasicTransaction>() {
-            @Override public void handleEvent(final RollbackResult<BasicTransaction> result) {
-                rollbackCalled = true;
+        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+            @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
+                abortCalled = true;
                 finishSignal.countDown();
             }
         });
         executeSignal.countDown();
         finishSignal.await();
         assertTrue(prepareCalled);
-        assertTrue(rollbackCalled);
+        assertTrue(abortCalled);
     }
 
     /**
      * Usecase 2 (ACTIVE -> PREPARING -> PREPARED -> ROLLBACK -> ROLLED_BACK)
      *
-     * If both commit() & rollback() (in this exact order) have been called
+     * If both commit() & abort() (in this exact order) have been called
      * on transaction while prepare() was in progress
      * it always resulted in commit listener to be lost
      * and not to be notified about transaction termination.
      */
     @Test
-    public void testPrepareCommitRollbackListeners() throws InterruptedException {
+    public void testPrepareCommitAbortListeners() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch rollbackSignal = new CountDownLatch(1);
+        final CountDownLatch abortSignal = new CountDownLatch(1);
         final CountDownLatch executeSignal = new CountDownLatch(1);
         final Executable<Object> executable = new Executable<Object>() {
             @Override public void execute(final ExecuteContext<Object> context) {
-                rollbackSignal.countDown();
-                try { executeSignal.await(); } catch (final InterruptedException ignore) {}
+                abortSignal.countDown();
                 context.complete();
             }
         };
-        txnController.newTask(transaction, executable).release();
+        final Validatable validatable = new Validatable() {
+            @Override
+            public void validate(final ValidateContext context) {
+                try { executeSignal.await(); } catch (final InterruptedException ignored) {}
+            }
+        };
+        txnController.newTask(transaction, executable).setValidatable(validatable).release();
         txnController.prepare(transaction, new PrepareListener<BasicTransaction>() {
             @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
                 prepareCalled = true;
             }
         });
-        rollbackSignal.await();
+        abortSignal.await();
         txnController.commit(transaction, new CommitListener<BasicTransaction>() {
             @Override public void handleEvent(final CommitResult<BasicTransaction> result) {
                 commitCalled = true;
             }
         });
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.rollback(transaction, new RollbackListener<BasicTransaction>() {
-            @Override public void handleEvent(final RollbackResult<BasicTransaction> result) {
-                rollbackCalled = true;
+        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+            @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
+                abortCalled = true;
                 finishSignal.countDown();
             }
         });
@@ -133,25 +145,25 @@ public class ListenersTestCase extends AbstractTransactionTest {
         finishSignal.await();
         assertTrue(prepareCalled);
         assertTrue(commitCalled);
-        assertTrue(rollbackCalled);
+        assertTrue(abortCalled);
     }
 
     /**
      * Usecase 3 (ACTIVE -> PREPARING -> PREPARED -> ROLLBACK -> ROLLED_BACK)
      *
-     * If both rollback() & commit() (in this exact order) have been called
+     * If both abort() & commit() (in this exact order) have been called
      * on transaction while prepare() was in progress
-     * it always resulted in rollback listener to be lost
+     * it always resulted in abort listener to be lost
      * and not to be notified about transaction termination.
      */
     @Test
-    public void testPrepareRollbackCommitListeners() throws InterruptedException {
+    public void testPrepareAbortCommitListeners() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch rollbackSignal = new CountDownLatch(1);
+        final CountDownLatch abortSignal = new CountDownLatch(1);
         final CountDownLatch executeSignal = new CountDownLatch(1);
         final Executable<Object> executable = new Executable<Object>() {
             @Override public void execute(final ExecuteContext<Object> context) {
-                rollbackSignal.countDown();
+                abortSignal.countDown();
                 try { executeSignal.await(); } catch (final InterruptedException ignored) {}
                 context.complete();
             }
@@ -162,11 +174,11 @@ public class ListenersTestCase extends AbstractTransactionTest {
                 prepareCalled = true;
             }
         });
-        rollbackSignal.await();
+        abortSignal.await();
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.rollback(transaction, new RollbackListener<BasicTransaction>() {
-            @Override public void handleEvent(final RollbackResult<BasicTransaction> result) {
-                rollbackCalled = true;
+        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+            @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
+                abortCalled = true;
                 finishSignal.countDown();
             }
         });
@@ -179,6 +191,6 @@ public class ListenersTestCase extends AbstractTransactionTest {
         finishSignal.await();
         assertTrue(prepareCalled);
         assertTrue(commitCalled);
-        assertTrue(rollbackCalled);
+        assertTrue(abortCalled);
     }
 }

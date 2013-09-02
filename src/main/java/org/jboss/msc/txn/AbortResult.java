@@ -19,18 +19,18 @@
 package org.jboss.msc.txn;
 
 /**
- * Transaction's rollback phase result.
+ * Transaction's abort phase result.
  * <br/><br/>
- * The result of transaction's rollback request can be only
- * rolled back transaction.
+ * The result of transaction's abort request can be only
+ * aborted transaction.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface RollbackResult<T extends Transaction> extends Result<T> {
+public interface AbortResult<T extends Transaction> extends Result<T> {
     /**
-     * Always returns <code>true</code> indicating transaction have been rolled back.
+     * Always returns <code>true</code> indicating transaction have been aborted.
      * This method will never return <code>false</code> value.
-     * @return <code>true</code> indicating transaction have been rolled back.
+     * @return <code>true</code> indicating transaction have been aborted.
      */
-    boolean isRolledBack(); // TODO: It always returns true, so do we really need this method?
+    boolean isAborted(); // TODO: It always returns true, so do we really need this method?
 }

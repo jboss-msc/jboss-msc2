@@ -37,10 +37,11 @@ import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.PrepareListener;
 import org.jboss.msc.txn.Revertible;
+import org.jboss.msc.txn.AbortListener;
 import org.jboss.msc.txn.RollbackListener;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.TransactionRolledBackException;
+import org.jboss.msc.txn.TransactionRevertedException;
 import org.jboss.msc.txn.Validatable;
 import org.junit.After;
 import org.junit.Before;
@@ -101,6 +102,10 @@ public abstract class AbstractTransactionTest {
         txnController.commit(transaction, listener);
     }
     
+    protected static void abort(BasicTransaction transaction, AbortListener<BasicTransaction> listener) {
+        txnController.abort(transaction, listener);
+    }
+
     protected static void rollback(BasicTransaction transaction, RollbackListener<BasicTransaction> listener) {
         txnController.rollback(transaction, listener);
     }
@@ -151,32 +156,67 @@ public abstract class AbstractTransactionTest {
         assertEquals(committable, txnController.canCommit(transaction));
         try {
             txnController.prepare(transaction, null);
-            fail("Cannot call prepare() more than once on transaction");
+            fail("Cannot call prepare() on prepared transaction");
         } catch (final InvalidTransactionStateException expected) {
-        } catch (final TransactionRolledBackException rolledbackException) {
-            assertFalse("Unexpected exception: " + rolledbackException, committable);
+        } catch (final TransactionRevertedException abortedException) {
+            assertFalse("Unexpected exception: " + abortedException, committable);
+        }
+        try {
+            txnController.rollback(transaction, null);
+            fail("Cannot call rollback() on prepared transaction");
+        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
     }
 
-    protected static void assertReverted(final BasicTransaction transaction) {
+    protected static void assertAborted(final BasicTransaction transaction) {
         assertNotNull(transaction);
         assertFalse(txnController.canCommit(transaction));
-        // ensure it's not possible to call prepare on rolled back transaction
+        try {
+            txnController.prepare(transaction, null);
+            fail("Cannot call prepare() on aborted transaction");
+        } catch (final TransactionRevertedException expected) {
+        }
+        try {
+            txnController.commit(transaction, null);
+            fail("Cannot call commit() on aborted transaction");
+        } catch (final TransactionRevertedException expected) {
+        }
+        try {
+            txnController.abort(transaction, null);
+            fail("Cannot call abort() on aborted transaction");
+        } catch (final TransactionRevertedException expected) {
+        }
+        try {
+            txnController.rollback(transaction, null);
+            fail("Cannot call rollback() on aborted transaction");
+        } catch (final InvalidTransactionStateException expected) {
+        }
+        assertTrue(transaction.isTerminated());
+    }
+
+    protected static void assertRolledBack(final BasicTransaction transaction) {
+        assertNotNull(transaction);
+        assertFalse(txnController.canCommit(transaction));
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on rolled back transaction");
-        } catch (final TransactionRolledBackException expected) {
+        } catch (final TransactionRevertedException expected) {
         }
         try {
             txnController.commit(transaction, null);
             fail("Cannot call commit() on rolled back transaction");
-        } catch (final TransactionRolledBackException expected) {
+        } catch (final TransactionRevertedException expected) {
         }
-        // ensure it's not possible to call rollback on rolled back transaction more than once
+        try {
+            txnController.abort(transaction, null);
+            fail("Cannot call abort() on rolled back transaction");
+        } catch (final TransactionRevertedException expected) {
+        }
         try {
             txnController.rollback(transaction, null);
             fail("Cannot call rollback() on rolled back transaction");
-        } catch (final TransactionRolledBackException expected) {
+        } catch (final TransactionRevertedException expected) {
         }
         assertTrue(transaction.isTerminated());
     }
@@ -184,19 +224,21 @@ public abstract class AbstractTransactionTest {
     protected static void assertCommitted(final BasicTransaction transaction) {
         assertNotNull(transaction);
         assertFalse(txnController.canCommit(transaction));
-        // ensure it's not possible to call prepare() on committed transaction
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
-        // ensure it's not possible to call commit on committed transaction more than once
         try {
             txnController.commit(transaction, null);
             fail("Cannot call commit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
-        // ensure it's not possible to call rollback() on committed transaction
+        try {
+            txnController.abort(transaction, null);
+            fail("Cannot call abort() on committed transaction");
+        } catch (final InvalidTransactionStateException expected) {
+        }
         try {
             txnController.rollback(transaction, null);
             fail("Cannot call rollback() on committed transaction");
@@ -230,15 +272,23 @@ public abstract class AbstractTransactionTest {
         final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
         txnController.rollback(transaction, rollbackListener);
         rollbackListener.awaitCompletion();
-        assertReverted(transaction);
+        assertRolledBack(transaction);
+    }
+
+    protected static void abort(final BasicTransaction transaction) throws InterruptedException {
+        assertNotNull(transaction);
+        final AbortCompletionListener abortListener = new AbortCompletionListener();
+        txnController.abort(transaction, abortListener);
+        abortListener.awaitCompletion();
+        assertAborted(transaction);
     }
 
     protected static void prepareAndRollbackFromListener(final BasicTransaction transaction) throws InterruptedException {
         assertNotNull(transaction);
-        final RevertingListener transactionListener = new RevertingListener(txnController);
+        final AbortingListener transactionListener = new AbortingListener(txnController);
         txnController.prepare(transaction, transactionListener);
-        transactionListener.awaitRollback();
-        assertReverted(transaction);
+        transactionListener.awaitAbort();
+        assertAborted(transaction);
     }
 
     protected static void prepareAndCommitFromListener(final BasicTransaction transaction) throws InterruptedException {

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.msc.test.utils.AbortCompletionListener;
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.PrepareCompletionListener;
 import org.jboss.msc.test.utils.RollbackCompletionListener;
@@ -49,7 +50,8 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE</LI>
      * <LI>no dependencies</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -109,13 +111,13 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         assertCallOrder(parent0e, child1e, parent0v, child1v);
         // reverting transaction - children rollback is blocked
         assertTrue(canCommit(transaction));
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
-        rollback(transaction, rollbackListener);
-        assertFalse(rollbackListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
+        final AbortCompletionListener abortListener = new AbortCompletionListener();
+        abort(transaction, abortListener);
+        assertFalse(abortListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
         // let children to finish commit
         childRollbackSignal.countDown();
-        rollbackListener.awaitCompletion();
-        assertReverted(transaction);
+        abortListener.awaitCompletion();
+        assertAborted(transaction);
         // transaction committed
         assertCalled(parent0e);
         assertCalled(child0e);
@@ -140,7 +142,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
      * <LI>child0 cancels at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>no dependencies</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -205,7 +207,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>no dependencies</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -270,7 +272,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>no dependencies</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test

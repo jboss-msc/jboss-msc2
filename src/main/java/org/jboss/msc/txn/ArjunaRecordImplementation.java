@@ -74,11 +74,11 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelAbort() {
         try {
-            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
-            transaction.rollback(listener);
-            final RollbackResult<Transaction> rollbackResult = listener.awaitUninterruptibly();
-            return rollbackResult.isRolledBack() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
-        } catch (final TransactionRolledBackException e) {
+            final SynchronousAbortListener<Transaction> listener = new SynchronousAbortListener<>();
+            transaction.abort(listener);
+            final AbortResult<Transaction> abortResult = listener.awaitUninterruptibly();
+            return abortResult.isAborted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
+        } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
@@ -91,7 +91,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
             transaction.commit(listener);
             final CommitResult<Transaction> commitResult = listener.awaitUninterruptibly();
             return commitResult.isCommitted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
-        } catch (final TransactionRolledBackException e) {
+        } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
@@ -104,7 +104,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
             transaction.prepare(listener);
             final PrepareResult<Transaction> prepareResult = listener.awaitUninterruptibly();
             return prepareResult.isPrepared() ? TwoPhaseOutcome.PREPARE_OK : TwoPhaseOutcome.PREPARE_NOTOK;
-        } catch (final TransactionRolledBackException e) {
+        } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.PREPARE_NOTOK;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.PREPARE_NOTOK;

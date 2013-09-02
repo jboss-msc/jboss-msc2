@@ -40,7 +40,7 @@ import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.TransactionRolledBackException;
+import org.jboss.msc.txn.TransactionRevertedException;
 import org.junit.After;
 import org.junit.Before;
 
@@ -141,7 +141,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // install
         final ServiceController serviceController = serviceBuilder.install();
         assertNotNull(serviceController);
-        // attempt to commit or check rolled back installation
+        // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
             return service;
@@ -155,7 +155,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     private static boolean attemptToCommit(final BasicTransaction txn) throws InterruptedException {
         try {
             commit(txn);
-        } catch (TransactionRolledBackException e) {
+        } catch (TransactionRevertedException e) {
             System.out.println(e);
             for (Problem problem: txnController.getProblemReport(txn).getProblems()) {
                 System.out.print(problem.getSeverity() + ": " + problem.getMessage());
@@ -205,7 +205,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // install
         final ServiceController serviceController = serviceBuilder.install();
         assertNotNull(serviceController);
-        // attempt to commit or check rolled back installation
+        // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
             return service;

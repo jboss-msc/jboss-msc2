@@ -35,7 +35,7 @@ import org.jboss.msc.txn.ValidateContext;
  * <UL>
  * <LI>{@link #isCommitted()} - returns <code>true</code> if transaction have been committed, <code>false</code> otherwise</LI>
  * <LI>{@link #isValidated()} - returns <code>true</code> if transaction have been validated, <code>false</code> otherwise</LI>
- * <LI>{@link #isReverted()} - returns <code>true</code> if transaction have been rolled back, <code>false</code> otherwise</LI>
+ * <LI>{@link #isReverted()} - returns <code>true</code> if transaction have been aborted, <code>false</code> otherwise</LI>
  * <LI>{@link #isExecuted()} - returns <code>true</code> if transaction have been executed, <code>false</code> otherwise</LI>
  * </UL>
  * 

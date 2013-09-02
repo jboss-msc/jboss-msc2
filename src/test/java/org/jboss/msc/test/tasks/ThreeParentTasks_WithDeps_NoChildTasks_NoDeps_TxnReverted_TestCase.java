@@ -219,7 +219,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * <LI>task1 completes at EXECUTE</LI>
      * <LI>task2 completes at EXECUTE, depends on task1</LI>
      * <LI>no children</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -260,10 +261,11 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertNotCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e1, e2, v1, v2);
+        assertCallOrder(e1, e2, v1);
+        assertCallOrder(e1, e2, v2);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
@@ -276,7 +278,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e1, e2, v1, v2, r2, r1);
+        assertCallOrder(e1, e2, v2, r2, r1);
+        assertCallOrder(e1, e2, v1, r2, r1);
     }
 
     /**
@@ -462,7 +465,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * <LI>task1 completes at EXECUTE</LI>
      * <LI>task2 completes at EXECUTE, depends on task1 and task0</LI>
      * <LI>no children</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -503,11 +507,13 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertNotCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e2, v0, v2);
-        assertCallOrder(e1, e2, v1, v2);
+        assertCallOrder(e0, e2, v0);
+        assertCallOrder(e0, e2, v2);
+        assertCallOrder(e1, e2, v1);
+        assertCallOrder(e1, e2, v2);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
@@ -520,8 +526,10 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e2, v0, v2, r2, r0);
-        assertCallOrder(e1, e2, v1, v2, r2, r1);
+        assertCallOrder(e0, e2, v0, r2, r0);
+        assertCallOrder(e0, e2, v2, r2, r0);
+        assertCallOrder(e1, e2, v1, r2, r1);
+        assertCallOrder(e1, e2, v2, r2, r1);
     }
 
     /**
@@ -704,7 +712,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * <LI>task1 completes at EXECUTE, depends on task0</LI>
      * <LI>task2 completes at EXECUTE, depends on task1</LI>
      * <LI>no children</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -745,10 +754,12 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertNotCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e1, e2, v0, v1, v2);
+        assertCallOrder(e0, e1, e2, v0);
+        assertCallOrder(e0, e1, e2, v1);
+        assertCallOrder(e0, e1, e2, v2);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
@@ -761,7 +772,9 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e1, e2, v0, v1, v2, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v0, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v1, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v2, r2, r1, r0);
     }
 
     /**
@@ -944,7 +957,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * <LI>task1 completes at EXECUTE, depends on task0</LI>
      * <LI>task2 completes at EXECUTE, depends on task1 and task0</LI>
      * <LI>no children</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -985,10 +999,12 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertNotCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e1, e2, v0, v1, v2);
+        assertCallOrder(e0, e1, e2, v0);
+        assertCallOrder(e0, e1, e2, v1);
+        assertCallOrder(e0, e1, e2, v2);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
@@ -1001,6 +1017,8 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         assertCalled(v2);
         assertCalled(r2);
         assertNotCalled(c2);
-        assertCallOrder(e0, e1, e2, v0, v1, v2, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v0, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v1, r2, r1, r0);
+        assertCallOrder(e0, e1, e2, v2, r2, r1, r0);
     }
 }

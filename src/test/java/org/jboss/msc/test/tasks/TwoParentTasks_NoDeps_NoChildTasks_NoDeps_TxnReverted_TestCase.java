@@ -45,7 +45,8 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
      * <LI>task1 completes at EXECUTE</LI>
      * <LI>no dependencies</LI>
      * <LI>no children</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -79,7 +80,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
         assertCallOrder(e1, v1);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);

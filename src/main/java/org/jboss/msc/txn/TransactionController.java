@@ -150,17 +150,17 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
-     * Once this method returns, either {@link #commit(BasicTransaction, CommitListener)} or {@link #rollback(BasicTransaction, RollbackListener)} must be called.
+     * Once this method returns, either {@link #commit(BasicTransaction, CommitListener)} or {@link #abort(BasicTransaction, AbortListener)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
      *
      *
      * @param transaction        the transaction to be prepared
      * @param completionListener the listener to call when the prepare is complete or has failed
-     * @throws TransactionRolledBackException if the transaction was previously rolled back
+     * @throws TransactionRevertedException if the transaction was previously aborted
      * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void prepare(final BasicTransaction transaction, final PrepareListener<BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    public void prepare(final BasicTransaction transaction, final PrepareListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.prepare(completionListener);
     }
@@ -169,35 +169,51 @@ public final class TransactionController extends SimpleAttachable {
      * Commit the work done by {@link #prepare(BasicTransaction, PrepareListener)} and terminate {@code transaction}.
      *
      * @param transaction        the transaction to be committed
-     * @param completionListener the listener to call when the rollback is complete
-     * @throws TransactionRolledBackException if the transaction was previously rolled back
+     * @param completionListener the listener to call when the commit is complete
+     * @throws TransactionRevertedException if the transaction was previously aborted
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void commit(final BasicTransaction transaction, final CommitListener<BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException, SecurityException {
+    public void commit(final BasicTransaction transaction, final CommitListener<BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException, SecurityException {
         validateTransaction(transaction);
         transaction.commit(completionListener);
     }
 
     /**
-     * Roll back {@code transaction}, undoing all work executed up until this time.
+     * Abort {@code transaction}, undoing all work executed up until this time.
+     * Abort can be called only after transaction's prepare request.
      *
-     * @param transaction        the transaction to be rolled back
-     * @param completionListener the listener to call when the rollback is complete
-     * @throws TransactionRolledBackException if the transaction was previously rolled back
+     * @param transaction        the transaction to be aborted
+     * @param completionListener the listener to call when the abort is complete
+     * @throws TransactionRevertedException if the transaction was previously either aborted or rolled back
      * @throws InvalidTransactionStateException if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void rollback(final BasicTransaction transaction, final RollbackListener<BasicTransaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException, SecurityException {
+    public void abort(final BasicTransaction transaction, final AbortListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+        validateTransaction(transaction);
+        transaction.abort(completionListener);
+    }
+
+    /**
+     * Rollback {@code transaction}, undoing all work executed up until this time.
+     * Rollback can be called only before transaction's prepare request.
+     *
+     * @param transaction        the transaction to be rolled back
+     * @param completionListener the listener to call when the roll back is complete
+     * @throws TransactionRevertedException if the transaction was previously either aborted or rolled back
+     * @throws InvalidTransactionStateException if commit has already been initiated
+     * @throws SecurityException if transaction was not created by this controller
+     */
+    public void rollback(final BasicTransaction transaction, final RollbackListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.rollback(completionListener);
     }
 
     /**
-     * Determine whether a prepared transaction can be committed.  If it cannot, it must be rolled back.
+     * Determine whether a prepared transaction can be committed.  If it cannot, it must be aborted.
      *
      * @param transaction the transaction
-     * @return {@code true} if the transaction can be committed, {@code false} if it must be rolled back
+     * @return {@code true} if the transaction can be committed, {@code false} if it must be aborted
      * @throws InvalidTransactionStateException if the transaction is not prepared
      * @throws SecurityException if transaction was not created by this controller
      */

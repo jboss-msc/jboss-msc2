@@ -138,7 +138,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnCommitted_TestCas
         final CommitCompletionListener completionListener = new CommitCompletionListener();
         commit(transaction, completionListener);
         completionListener.awaitCompletion();
-        assertReverted(transaction);
+        assertAborted(transaction);
         assertCallOrder(e0, e1, v0, v1, r1, r0);
     }
 

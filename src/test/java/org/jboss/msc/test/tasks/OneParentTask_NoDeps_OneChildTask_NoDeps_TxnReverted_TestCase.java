@@ -44,7 +44,8 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * <UL>
      * <LI>parent task completes at EXECUTE</LI>
      * <LI>child task completes at EXECUTE</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -79,10 +80,11 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         assertCalled(v1);
         assertNotCalled(r1);
         assertNotCalled(c1);
-        assertCallOrder(e0, e1, v0, v1);
+        assertCallOrder(e0, e1, v0);
+        assertCallOrder(e0, e1, v1);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
@@ -93,7 +95,8 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         assertNotCalled(c1);
         assertCallOrder(e0, v0, r0);
         assertCallOrder(e1, v1, r1);
-        assertCallOrder(e0, e1, v0, v1, r1, r0);
+        assertCallOrder(e0, e1, v0, r1, r0);
+        assertCallOrder(e0, e1, v1, r1, r0);
     }
 
     /**

@@ -28,6 +28,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
+import org.jboss.msc.txn.AbortListener;
+import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitListener;
 import org.jboss.msc.txn.CommitResult;
@@ -86,7 +88,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             } catch (final IllegalStateException expected) {
             }
             prepare(transactions[0]);
-            rollback(transactions[0]);
+            abort(transactions[0]);
             transactions[0] = newTransaction();
         }
         // release all transactions to free all transaction id resources
@@ -215,10 +217,18 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
         }
         if (callRollback) {
-            // Ensure rollback() was called on all transactions.
-            // The order doesn't matter (depends on threads scheduling).
-            for (int i = 0; i < deadlockSize; i++) {
-                assertTrue(testOutput.indexOf("reverted" + i) != -1);
+            if (callPrepare) {
+                // Ensure abort() was called on all transactions.
+                // The order doesn't matter (depends on threads scheduling).
+                for (int i = 0; i < deadlockSize; i++) {
+                    assertTrue(testOutput.indexOf("aborted" + i) != -1);
+                }
+            } else {
+                // Ensure rollback() was called on all transactions.
+                // The order doesn't matter (depends on threads scheduling).
+                for (int i = 0; i < deadlockSize; i++) {
+                    assertTrue(testOutput.indexOf("rolled back" + i) != -1);
+                }
             }
         } else {
             // Ensure rollback() was called on all transactions.
@@ -305,17 +315,29 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
         }
         if (callRollback) {
-            // Ensure rollback() was called on all transactions except middle one.
-            // The order doesn't matter (depends on threads scheduling).
-            for (int i = 0; i < tasks.length; i++) {
-                if (i != 1) {
-                    assertTrue(testOutput.contains("reverted" + i));
-                } else {
-                    assertFalse(testOutput.contains("reverted" + i));
+            if (callPrepare) {
+                // Ensure rollback() was called on all transactions except middle one.
+                // The order doesn't matter (depends on threads scheduling).
+                for (int i = 0; i < tasks.length; i++) {
+                    if (i != 1) {
+                        assertTrue(testOutput.contains("aborted" + i));
+                    } else {
+                        assertFalse(testOutput.contains("aborted" + i));
+                    }
+                }
+            } else {
+                // Ensure rollback() was called on all transactions except middle one.
+                // The order doesn't matter (depends on threads scheduling).
+                for (int i = 0; i < tasks.length; i++) {
+                    if (i != 1) {
+                        assertTrue(testOutput.contains("rolled back" + i));
+                    } else {
+                        assertFalse(testOutput.contains("rolled back" + i));
+                    }
                 }
             }
         } else {
-            // Ensure rollback() was called on all transactions except middle one.
+            // Ensure commit() was called on all transactions except middle one.
             // The order doesn't matter (depends on threads scheduling).
             for (int i = 0; i < tasks.length; i++) {
                 if (i != 1) {
@@ -402,17 +424,31 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                         }
                     });
                 } else {
-                    rollback(dependent, new RollbackListener<BasicTransaction>() {
-                        @Override
-                        public void handleEvent(final RollbackResult<BasicTransaction> subject) {
-                            synchronized (out) {
-                                out.append(" reverted").append(id);
+                    if (prepare) {
+                        abort(dependent, new AbortListener<BasicTransaction>() {
+                            @Override
+                            public void handleEvent(final AbortResult<BasicTransaction> subject) {
+                                synchronized (out) {
+                                    out.append(" aborted").append(id);
+                                }
+                                synchronized (TransactionTask.this) {
+                                    endSignal.countDown();
+                                }
                             }
-                            synchronized (TransactionTask.this) {
-                                endSignal.countDown();
+                        });
+                    } else {
+                        rollback(dependent, new RollbackListener<BasicTransaction>() {
+                            @Override
+                            public void handleEvent(final RollbackResult<BasicTransaction> subject) {
+                                synchronized (out) {
+                                    out.append(" rolled back").append(id);
+                                }
+                                synchronized (TransactionTask.this) {
+                                    endSignal.countDown();
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
             } catch (final Throwable t) {
                 synchronized (this) {

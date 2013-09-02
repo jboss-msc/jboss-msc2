@@ -71,7 +71,8 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Test
         assertCalled(v1);
         assertNotCalled(r1);
         assertNotCalled(c1);
-        assertCallOrder(e0, e1, v0, v1);
+        assertCallOrder(e0, e1, v0);
+        assertCallOrder(e0, e1, v1);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
@@ -83,7 +84,8 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Test
         assertCalled(v1);
         assertNotCalled(r1);
         assertCalled(c1);
-        assertCallOrder(e0, e1, v0, v1, c0, c1);
+        assertCallOrder(e0, e1, v0, c0, c1);
+        assertCallOrder(e0, e1, v1, c0, c1);
     }
 
 }

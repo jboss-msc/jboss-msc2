@@ -46,7 +46,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -128,7 +128,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>child2 completes at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -213,7 +213,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -292,7 +292,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE</LI>
      * <LI>child2 completes at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -357,33 +358,35 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
         assertNotCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v);
-        // committing transaction
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v);
+        // reverting transaction
         assertTrue(canCommit(transaction));
-        commit(transaction);
+        abort(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
         assertCalled(parent0v);
-        assertNotCalled(parent0r);
-        assertCalled(parent0c);
+        assertCalled(parent0r);
+        assertNotCalled(parent0c);
         // assert child0 calls
         assertCalled(child0e);
         assertCalled(child0v);
-        assertNotCalled(child0r);
-        assertCalled(child0c);
+        assertCalled(child0r);
+        assertNotCalled(child0c);
         // assert child1 calls
         assertCalled(child1e);
         assertCalled(child1v);
-        assertNotCalled(child1r);
-        assertCalled(child1c);
+        assertCalled(child1r);
+        assertNotCalled(child1c);
         // assert child2 calls
         assertCalled(child2e);
         assertCalled(child2v);
-        assertNotCalled(child2r);
-        assertCalled(child2c);
+        assertCalled(child2r);
+        assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, parent0v, child0v, parent0c, child0c);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, parent0v, child0v, child0r, parent0r);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2r, child1r, parent0r);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v, child2r, child1r, parent0r);
     }
 
     /**
@@ -393,7 +396,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -476,7 +479,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE</LI>
      * <LI>child2 completes at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -562,7 +565,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -642,7 +645,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE</LI>
      * <LI>child2 completes at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -708,33 +712,35 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
         assertNotCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v);
-        // committing transaction
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v);
+        // reverting transaction
         assertTrue(canCommit(transaction));
-        commit(transaction);
+        abort(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
         assertCalled(parent0v);
-        assertNotCalled(parent0r);
-        assertCalled(parent0c);
+        assertCalled(parent0r);
+        assertNotCalled(parent0c);
         // assert child0 calls
         assertCalled(child0e);
         assertCalled(child0v);
-        assertNotCalled(child0r);
-        assertCalled(child0c);
+        assertCalled(child0r);
+        assertNotCalled(child0c);
         // assert child1 calls
         assertCalled(child1e);
         assertCalled(child1v);
-        assertNotCalled(child1r);
-        assertCalled(child1c);
+        assertCalled(child1r);
+        assertNotCalled(child1c);
         // assert child2 calls
         assertCalled(child2e);
         assertCalled(child2v);
-        assertNotCalled(child2r);
-        assertCalled(child2c);
+        assertCalled(child2r);
+        assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, parent0v, child0v, parent0c, child0c);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, parent0v, child0v, child0r, parent0r);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2r, child1r, parent0r);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v, child2r, child1r, parent0r);
     }
 
     /**
@@ -744,7 +750,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -825,7 +831,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
      * <LI>child2 completes at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -909,7 +915,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -987,7 +993,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
      * <LI>child2 completes at EXECUTE, depends on child1</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -1051,33 +1058,36 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
         assertNotCalled(child2r);
         assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v);
-        // committing transaction
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v);
+        // reverting transaction
         assertTrue(canCommit(transaction));
-        commit(transaction);
+        abort(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
         assertCalled(parent0v);
-        assertNotCalled(parent0r);
-        assertCalled(parent0c);
+        assertCalled(parent0r);
+        assertNotCalled(parent0c);
         // assert child0 calls
         assertCalled(child0e);
         assertCalled(child0v);
-        assertNotCalled(child0r);
-        assertCalled(child0c);
+        assertCalled(child0r);
+        assertNotCalled(child0c);
         // assert child1 calls
         assertCalled(child1e);
         assertCalled(child1v);
-        assertNotCalled(child1r);
-        assertCalled(child1c);
+        assertCalled(child1r);
+        assertNotCalled(child1c);
         // assert child2 calls
         assertCalled(child2e);
         assertCalled(child2v);
-        assertNotCalled(child2r);
-        assertCalled(child2c);
+        assertCalled(child2r);
+        assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v, parent0c, child1c, child1c,
-                child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child2r, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v, child2r, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v, child2r, child1r, child0r, parent0r);
     }
 
     /**
@@ -1087,7 +1097,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -1169,7 +1179,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
      * <LI>child2 completes at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -1254,7 +1264,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
      * <LI>child2 cancels at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -1333,7 +1343,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
      * <LI>child2 completes at EXECUTE, depends on child1 and child0</LI>
-     * <LI>transaction committed</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -1398,33 +1409,36 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnReverted_Tes
         assertNotCalled(child2r);
         assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v);
-        // committing transaction
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v);
+        // reverting transaction
         assertTrue(canCommit(transaction));
-        commit(transaction);
+        abort(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
         assertCalled(parent0v);
-        assertNotCalled(parent0r);
-        assertCalled(parent0c);
+        assertCalled(parent0r);
+        assertNotCalled(parent0c);
         // assert child0 calls
         assertCalled(child0e);
         assertCalled(child0v);
-        assertNotCalled(child0r);
-        assertCalled(child0c);
+        assertCalled(child0r);
+        assertNotCalled(child0c);
         // assert child1 calls
         assertCalled(child1e);
         assertCalled(child1v);
-        assertNotCalled(child1r);
-        assertCalled(child1c);
+        assertCalled(child1r);
+        assertNotCalled(child1c);
         // assert child2 calls
         assertCalled(child2e);
         assertCalled(child2v);
-        assertNotCalled(child2r);
-        assertCalled(child2c);
+        assertCalled(child2r);
+        assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v, parent0c, child1c, child1c,
-                child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child2r, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v, child2r, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v, child2r, child1r, child0r, parent0r);
     }
 
 }

@@ -108,7 +108,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
@@ -134,7 +135,8 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v, parent0c, child0c);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v, parent0c, child1c, child2c);
     }
 
     /**
@@ -210,7 +212,11 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v);
+        assertCallOrder(parent0e, child1e, parent0v, child1v);
+        assertCallOrder(parent0e, child0e, child2e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child2e, parent0v, child2v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
@@ -236,7 +242,11 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertCalled(child2c);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, parent0v, child0v, parent0c, child0c);
-        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, child2v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child1e, parent0v, child1v, parent0c, child1c);
+        assertCallOrder(parent0e, child0e, child2e, parent0v, child0v, parent0c, child0c, child2c);
+        assertCallOrder(parent0e, child0e, child2e, parent0v, child2v, parent0c, child0c, child2c);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child1v, parent0c, child1c, child2c);
+        assertCallOrder(parent0e, child1e, child2e, parent0v, child2v, parent0c, child1c, child2c);
     }
 
     /**
@@ -310,7 +320,9 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2r);
         assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
@@ -335,8 +347,9 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2r);
         assertCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v, parent0c, child1c, child1c,
-                child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, parent0c, child1c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v, parent0c, child1c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v, parent0c, child1c, child1c, child2c);
     }
 
     /**
@@ -411,7 +424,9 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2r);
         assertNotCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
@@ -436,8 +451,9 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         assertNotCalled(child2r);
         assertCalled(child2c);
         // assert tasks ordering
-        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, child1v, child2v, parent0c, child1c, child1c,
-                child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child0v, parent0c, child1c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child1v, parent0c, child1c, child1c, child2c);
+        assertCallOrder(parent0e, child0e, child1e, child2e, parent0v, child2v, parent0c, child1c, child1c, child2c);
     }
 
 }

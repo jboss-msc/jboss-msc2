@@ -24,26 +24,26 @@ import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TransactionController;
 
 /**
- * Listener that rolls back the transaction. It provides utility method {@link #awaitRollback()} to wait until transaction have
- * been rolled back.
+ * Listener that aborts the transaction. It provides utility method {@link #awaitAbort()} to wait until transaction have
+ * been aborted.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class RevertingListener implements PrepareListener<BasicTransaction> {
+public final class AbortingListener implements PrepareListener<BasicTransaction> {
 
     private final TransactionController transactionController;
-    private final RollbackCompletionListener listener = new RollbackCompletionListener();
+    private final AbortCompletionListener listener = new AbortCompletionListener();
 
-    public RevertingListener(TransactionController transactionController) {
+    public AbortingListener(TransactionController transactionController) {
         this.transactionController = transactionController;
     }
 
     @Override
     public void handleEvent(final PrepareResult<BasicTransaction> subject) {
-        transactionController.rollback(subject.getTransaction(), listener);
+        transactionController.abort(subject.getTransaction(), listener);
     }
 
-    public void awaitRollback() throws InterruptedException {
+    public void awaitAbort() throws InterruptedException {
         listener.awaitCompletion();
     }
 

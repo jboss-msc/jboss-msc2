@@ -115,8 +115,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private int unterminatedChildren;
     private Listener<Transaction, Result<Transaction>> prepareListener;
     private Listener<Transaction, Result<Transaction>> commitListener;
+    private Listener<Transaction, Result<Transaction>> abortListener;
     private Listener<Transaction, Result<Transaction>> rollbackListener;
     private volatile boolean isRollbackRequested;
+    private volatile boolean isPrepareRequested;
 
     Transaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
         this.controller = controller;
@@ -339,7 +341,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    final void prepare(final PrepareListener<? extends Transaction> completionListener) throws TransactionRolledBackException, InvalidTransactionStateException {
+    final void prepare(final PrepareListener<? extends Transaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -349,10 +351,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                     throw new InvalidTransactionStateException("Prepare already called");
                 }
                 state |= FLAG_PREPARE_REQ;
+                isPrepareRequested = true;
             } else if (stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
                 throw new InvalidTransactionStateException("Transaction was prepared");
             } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRolledBackException("Transaction was rolled back");
+                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
@@ -365,7 +368,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void commit(final CommitListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
+    final void commit(final CommitListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -376,7 +379,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 }
                 state |= FLAG_COMMIT_REQ;
             } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRolledBackException("Transaction was rolled back");
+                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
@@ -389,19 +392,48 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void rollback(final RollbackListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRolledBackException {
+    final void abort(final AbortListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
+            if ((isPrepareRequested && (stateOf(state) == STATE_ACTIVE)) || stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                    throw new InvalidTransactionStateException("Abort already called");
+                }
+                state |= FLAG_ROLLBACK_REQ;
+                isRollbackRequested = true;
+            } else if (!isPrepareRequested && stateOf(state) == STATE_ACTIVE) {
+                throw new InvalidTransactionStateException("Transaction was not prepared");
+            } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
+                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
+            } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
+                throw new InvalidTransactionStateException("Transaction was committed");
+            }
+            @SuppressWarnings("unchecked")
+            Listener<Transaction, Result<Transaction>> hardCastedListener = (Listener<Transaction, Result<Transaction>>)(Object)completionListener;
+            abortListener = hardCastedListener;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
+        }
+        executeTasks(state);
+    }
+
+    final void rollback(final RollbackListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+        assert ! holdsLock(this);
+        int state;
+        synchronized (this) {
+            state = this.state | FLAG_USER_THREAD;
+            if (!isPrepareRequested && stateOf(state) == STATE_ACTIVE) {
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     throw new InvalidTransactionStateException("Rollback already called");
                 }
                 state |= FLAG_ROLLBACK_REQ;
                 isRollbackRequested = true;
+            } else if (isPrepareRequested || stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
+                throw new InvalidTransactionStateException("Transaction was prepared");
             } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRolledBackException("Transaction was rolled back");
+                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
@@ -450,7 +482,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final void destroy() {
         try {
             if (!isTerminated()) {
-                rollback(null);
+                if (isPrepareRequested) {
+                    abort(null);
+                } else {
+                    rollback(null);
+                }
             }
         } catch (Throwable ignored) {
         }
@@ -518,12 +554,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     private void callTerminateListeners(final int state) {
         @SuppressWarnings("rawtypes")
-        Listener[] listeners = new Listener[3];
+        Listener[] listeners = new Listener[4];
         synchronized (this) {
             endTime = System.nanoTime();
             listeners[0] = prepareListener;
             listeners[1] = commitListener;
-            listeners[2] = rollbackListener;
+            listeners[2] = abortListener;
+            listeners[3] = rollbackListener;
         }
         safeCall(state, listeners);
     }
@@ -573,6 +610,17 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                             @Override
                             public boolean isCommitted() {
                                 return STATE_COMMITTED == stateOf(state);
+                            }
+                        });
+                    } else if (listener instanceof AbortListener) {
+                        ((AbortListener<Transaction>) listener).handleEvent(new AbortResult<Transaction>() {
+                            @Override
+                            public Transaction getTransaction() {
+                                return Transaction.this;
+                            }
+                            @Override
+                            public boolean isAborted() {
+                                return STATE_ROLLED_BACK == stateOf(state);
                             }
                         });
                     } else if (listener instanceof RollbackListener) {

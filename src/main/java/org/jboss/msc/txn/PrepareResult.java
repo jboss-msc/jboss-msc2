@@ -22,17 +22,17 @@ package org.jboss.msc.txn;
  * Transaction's prepare phase result.
  * <br/><br/>
  * The result of transaction's prepare request can be either
- * prepared or rolled back transaction.
+ * prepared or aborted transaction.
  * There are two possible transaction flows from prepare point of view:
  * <ul>
  * <li>
- * Transaction is prepared and rollback have not been requested.
+ * Transaction is prepared and abort have not been requested.
  * The transaction will be prepared as a result.
  * </li>
  * <li>
- * If transaction's prepare is in progress and rollback have been requested
- * the rollback request will take over execution flow.
- * The transaction will be rolled back as a result.
+ * If transaction's prepare is in progress and abort have been requested
+ * the abort request will take over execution flow.
+ * The transaction will be aborted as a result.
  * </li>
  * </ul>
  *
@@ -40,8 +40,8 @@ package org.jboss.msc.txn;
  */
 public interface PrepareResult<T extends Transaction> extends Result<T> {
     /**
-     * Returns <code>true</code> if transaction have been prepared, <code>false</code> if it have been rolled back.
-     * @return <code>true</code> if transaction have been prepared, <code>false</code> if it have been rolled back.
+     * Returns <code>true</code> if transaction have been prepared, <code>false</code> if it have been aborted.
+     * @return <code>true</code> if transaction have been prepared, <code>false</code> if it have been aborted.
      */
     boolean isPrepared();
 }

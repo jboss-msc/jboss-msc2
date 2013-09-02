@@ -22,7 +22,7 @@ package org.jboss.msc.txn;
  * Transaction's commit phase result.
  * <br/><br/>
  * The result of transaction's commit request can be either
- * committed or rolled back transaction.
+ * committed or aborted transaction.
  * There are two possible transaction flows from commit point of view:
  * <ul>
  * <li>
@@ -30,10 +30,10 @@ package org.jboss.msc.txn;
  * The transaction will be committed as a result.
  * </li>
  * <li>
- * If both commit() and rollback() have been requested during
+ * If both commit() and abort() have been requested during
  * transaction's prepare phase execution, the commit will not be executed at all
- * because rollback request has precedence in such case.
- * The transaction will be rolled back as a result.
+ * because abort request has precedence in such case.
+ * The transaction will be aborted as a result.
  * </li>
  * </ul>
  *
@@ -41,8 +41,8 @@ package org.jboss.msc.txn;
  */
 public interface CommitResult<T extends Transaction> extends Result<T> {
     /**
-     * Returns <code>true</code> if transaction have been committed, <code>false</code> if it have been rolled back.
-     * @return <code>true</code> if transaction have been committed, <code>false</code> if it have been rolled back.
+     * Returns <code>true</code> if transaction have been committed, <code>false</code> if it have been aborted.
+     * @return <code>true</code> if transaction have been committed, <code>false</code> if it have been aborted.
      */
     boolean isCommitted();
 }

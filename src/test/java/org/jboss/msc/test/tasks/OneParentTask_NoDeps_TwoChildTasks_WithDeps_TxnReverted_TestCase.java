@@ -45,7 +45,8 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task completes at EXECUTE
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
@@ -92,10 +93,11 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
         assertNotCalled(parent0c);
         assertNotCalled(child0c);
         assertNotCalled(child1c);
-        assertCallOrder(parent0e, child0e, child1e, parent0v, child0v, child1v);
+        assertCallOrder(parent0e, child0e, child1e, parent0v, child0v);
+        assertCallOrder(parent0e, child0e, child1e, parent0v, child1v);
         // reverting transaction
         assertTrue(canCommit(transaction));
-        rollback(transaction);
+        abort(transaction);
         assertCalled(parent0e);
         assertCalled(child0e);
         assertCalled(child1e);
@@ -108,7 +110,8 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
         assertNotCalled(parent0c);
         assertNotCalled(child0c);
         assertNotCalled(child1c);
-        assertCallOrder(parent0e, child0e, child1e, parent0v, child0v, child1v, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, parent0v, child0v, child1r, child0r, parent0r);
+        assertCallOrder(parent0e, child0e, child1e, parent0v, child1v, child1r, child0r, parent0r);
     }
 
     /**
@@ -117,7 +120,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task completes at EXECUTE
      * <LI>child0 cancels at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -183,7 +186,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task completes at EXECUTE
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -246,7 +249,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task completes at EXECUTE
      * <LI>child0 cancels at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -315,7 +318,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task cancels at EXECUTE
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -389,7 +392,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task cancels at EXECUTE
      * <LI>child0 cancels at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -463,7 +466,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task cancels at EXECUTE
      * <LI>child0 cancels at EXECUTE</LI>
      * <LI>child1 cancels at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test
@@ -534,7 +537,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnReverted_TestC
      * <LI>parent task cancels at EXECUTE
      * <LI>child0 completes at EXECUTE</LI>
      * <LI>child1 completes at EXECUTE, depends on child0</LI>
-     * <LI>transaction reverted</LI>
+     * <LI>transaction rolled back</LI>
      * </UL>
      */
     @Test

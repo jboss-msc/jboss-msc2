@@ -60,10 +60,10 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void emptyTransactionPrepareRollback() throws Exception {
+    public void emptyTransactionPrepareAbort() throws Exception {
         final BasicTransaction transaction = newTransaction();
         prepare(transaction);
-        rollback(transaction);
+        abort(transaction);
     }
 
     @Test
@@ -141,7 +141,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void testSimplePrepareRollback() throws InterruptedException {
+    public void testSimplePrepareAbort() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
@@ -149,8 +149,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final TaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
-        // roll back transaction
-        rollback(transaction);
+        // abort transaction
+        abort(transaction);
         // asserts
         assertFalse(task.isCommitted());
         assertTrue(task.isExecuted());
@@ -259,8 +259,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             fail("cannot add new tasks to prepared transaction");
         } catch (InvalidTransactionStateException expected) {
         }
-        // rollback transaction
-        rollback(transaction);
+        // abort transaction
+        abort(transaction);
         // asserts
         assertFalse(task1.isCommitted());
         assertTrue(task1.isExecuted());
@@ -312,11 +312,11 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
-        // install task 2 - should fail because transaction have been rolled back
+        // install task 2 - should fail because transaction have been aborted
         final TrackingTask task2 = new TrackingTask();
         try {
             txnController.newTask(transaction, task2).release();
-            fail("cannot add new tasks to rolled back transaction");
+            fail("cannot add new tasks to aborted transaction");
         } catch (InvalidTransactionStateException expected) {
         }
         // asserts
