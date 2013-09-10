@@ -80,6 +80,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void removeRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -91,6 +92,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void enableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -102,6 +104,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void disableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -113,6 +116,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void shutdownContainer(final ServiceContainer serviceContainer) throws Exception {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
     }
@@ -154,7 +158,13 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     private static boolean attemptToCommit(final BasicTransaction txn) throws InterruptedException {
         try {
-            commit(txn);
+            prepare(txn);
+            if (txnController.canCommit(txn)) {
+                commit(txn);
+            } else {
+                abort(txn);
+                return false;
+            }
         } catch (TransactionRevertedException e) {
             System.out.println(e);
             for (Problem problem: txnController.getProblemReport(txn).getProblems()) {
@@ -274,6 +284,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));
@@ -287,6 +298,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
+        prepare(txn);
         commit(txn);
         assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));

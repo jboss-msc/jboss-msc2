@@ -25,7 +25,6 @@ import java.util.concurrent.CountDownLatch;
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.CommitResult;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Listener;
@@ -41,13 +40,12 @@ import org.junit.Test;
 public class ListenersTestCase extends AbstractTransactionTest {
 
     private volatile boolean prepareCalled;
-    private volatile boolean commitCalled;
     private volatile boolean abortCalled;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        prepareCalled = commitCalled = abortCalled = false;
+        prepareCalled = abortCalled = false;
     }
 
     /**
@@ -95,100 +93,4 @@ public class ListenersTestCase extends AbstractTransactionTest {
         assertTrue(abortCalled);
     }
 
-    /**
-     * Usecase 2 (ACTIVE -> PREPARING -> PREPARED -> ROLLBACK -> ROLLED_BACK)
-     *
-     * If both commit() & abort() (in this exact order) have been called
-     * on transaction while prepare() was in progress
-     * it always resulted in commit listener to be lost
-     * and not to be notified about transaction termination.
-     */
-    @Test
-    public void testPrepareCommitAbortListeners() throws InterruptedException {
-        final BasicTransaction transaction = newTransaction();
-        final CountDownLatch abortSignal = new CountDownLatch(1);
-        final CountDownLatch executeSignal = new CountDownLatch(1);
-        final Executable<Object> executable = new Executable<Object>() {
-            @Override public void execute(final ExecuteContext<Object> context) {
-                abortSignal.countDown();
-                context.complete();
-            }
-        };
-        final Validatable validatable = new Validatable() {
-            @Override
-            public void validate(final ValidateContext context) {
-                try { executeSignal.await(); } catch (final InterruptedException ignored) {}
-            }
-        };
-        txnController.newTask(transaction, executable).setValidatable(validatable).release();
-        txnController.prepare(transaction, new Listener<PrepareResult<BasicTransaction>>() {
-            @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
-                prepareCalled = true;
-            }
-        });
-        abortSignal.await();
-        txnController.commit(transaction, new Listener<CommitResult<BasicTransaction>>() {
-            @Override public void handleEvent(final CommitResult<BasicTransaction> result) {
-                commitCalled = true;
-            }
-        });
-        final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
-            @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
-                abortCalled = true;
-                finishSignal.countDown();
-            }
-        });
-        executeSignal.countDown();
-        finishSignal.await();
-        assertTrue(prepareCalled);
-        assertTrue(commitCalled);
-        assertTrue(abortCalled);
-    }
-
-    /**
-     * Usecase 3 (ACTIVE -> PREPARING -> PREPARED -> ROLLBACK -> ROLLED_BACK)
-     *
-     * If both abort() & commit() (in this exact order) have been called
-     * on transaction while prepare() was in progress
-     * it always resulted in abort listener to be lost
-     * and not to be notified about transaction termination.
-     */
-    @Test
-    public void testPrepareAbortCommitListeners() throws InterruptedException {
-        final BasicTransaction transaction = newTransaction();
-        final CountDownLatch abortSignal = new CountDownLatch(1);
-        final CountDownLatch executeSignal = new CountDownLatch(1);
-        final Executable<Object> executable = new Executable<Object>() {
-            @Override public void execute(final ExecuteContext<Object> context) {
-                abortSignal.countDown();
-                try { executeSignal.await(); } catch (final InterruptedException ignored) {}
-                context.complete();
-            }
-        };
-        txnController.newTask(transaction, executable).release();
-        txnController.prepare(transaction, new Listener<PrepareResult<BasicTransaction>>() {
-            @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
-                prepareCalled = true;
-            }
-        });
-        abortSignal.await();
-        final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
-            @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
-                abortCalled = true;
-                finishSignal.countDown();
-            }
-        });
-        txnController.commit(transaction, new Listener<CommitResult<BasicTransaction>>() {
-            @Override public void handleEvent(final CommitResult<BasicTransaction> result) {
-                commitCalled = true;
-            }
-        });
-        executeSignal.countDown();
-        finishSignal.await();
-        assertTrue(prepareCalled);
-        assertTrue(commitCalled);
-        assertTrue(abortCalled);
-    }
 }

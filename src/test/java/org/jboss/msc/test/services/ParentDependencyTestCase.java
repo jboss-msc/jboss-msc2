@@ -71,6 +71,8 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
                 serviceBuilder.setMode(serviceMode);
             // install
             serviceBuilder.install();
+            // prepare transaction
+            prepare(txn);
             // commit transaction
             commit(txn);
             // check that parent service is there, and that child service is installed and up

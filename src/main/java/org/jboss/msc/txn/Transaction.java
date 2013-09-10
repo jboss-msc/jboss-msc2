@@ -145,11 +145,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return sid == sid1 || sid == sid2;
     }
 
-    private static boolean stateIsIn(int state, int sid1, int sid2, int sid3) {
-        final int sid = stateOf(state);
-        return sid == sid1 || sid == sid2 || sid == sid3;
-    }
-
     public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
@@ -193,7 +188,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             case STATE_ACTIVE: {
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unfinishedChildren == 0) {
                     return T_ACTIVE_to_ROLLBACK;
-                } else if (Bits.anyAreSet(state, FLAG_PREPARE_REQ | FLAG_COMMIT_REQ) && unfinishedChildren == 0) {
+                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unfinishedChildren == 0) {
                     return T_ACTIVE_to_PREPARING;
                 } else {
                     return T_NONE;
@@ -212,11 +207,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_PREPARED_to_ROLLBACK;
                 } else if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    if (reportIsCommittable()) {
-                        return T_PREPARED_to_COMMITTING;
-                    } else {
-                        return T_PREPARED_to_ROLLBACK;
-                    }
+                    return T_PREPARED_to_COMMITTING;
                 } else {
                      return T_NONE;
                 }
@@ -371,11 +362,16 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
+            if (stateOf(state) == STATE_PREPARED) {
+                if (!reportIsCommittable()) {
+                    throw new InvalidTransactionStateException("Transaction not committable, it must be aborted.");
+                }
                 if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     throw new InvalidTransactionStateException("Commit already called");
                 }
                 state |= FLAG_COMMIT_REQ;
+            } else if (stateIsIn(state, STATE_ACTIVE, STATE_PREPARING)) {
+                throw new InvalidTransactionStateException("Transaction not prepared");
             } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
                 throw new TransactionRevertedException("Transaction was either aborted or rolled back");
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
@@ -445,7 +441,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final boolean canCommit() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         synchronized (this) {
-            if (! stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
+            if (stateOf(state) != STATE_PREPARED) {
                 return false;
             }
         }
@@ -609,10 +605,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                     @Override
                     public Transaction getTransaction() {
                         return Transaction.this;
-                    }
-                    @Override
-                    public boolean isCommitted() {
-                        return STATE_COMMITTED == stateOf(state);
                     }
                 });
             } catch (final Throwable ignored) {

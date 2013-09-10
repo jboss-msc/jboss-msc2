@@ -53,14 +53,6 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         }
         // stress test maximum transaction limit
         for (int i = 0; i < 10; i++) {
-            // stress test using commit approach
-            try {
-                newTransaction();
-                fail("expected active transactions limit exceeded");
-            } catch (final IllegalStateException expected) {
-            }
-            commit(transactions[0]);
-            transactions[0] = newTransaction();
             // stress test using rollback approach
             try {
                 newTransaction();
@@ -78,7 +70,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             prepare(transactions[0]);
             commit(transactions[0]);
             transactions[0] = newTransaction();
-            // stress test using prepare / rollback approach
+            // stress test using prepare / abort approach
             try {
                 newTransaction();
                 fail("expected active transactions limit exceeded");
@@ -100,12 +92,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void testDeadlockCommitVersion() throws Exception {
-        testDeadlock(false, false);
-    }
-
-    @Test
-    public void testDeadlockPrepareRollbackVersion() throws Exception {
+    public void testDeadlockPrepareAbortVersion() throws Exception {
         testDeadlock(true, true);
     }
 
@@ -120,12 +107,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void testWaitForCommitVersion() throws Exception {
-        testWaitForQueueSplittedFromSeparateThread(false, false);
-    }
-
-    @Test
-    public void testWaitForPrepareRollbackVersion() throws Exception {
+    public void testWaitForPrepareAbortVersion() throws Exception {
         testWaitForQueueSplittedFromSeparateThread(true, true);
     }
 

@@ -41,12 +41,6 @@ import org.junit.Test;
 public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
-    public void emptyTransactionCommit() throws Exception {
-        final BasicTransaction transaction = newTransaction();
-        commit(transaction);
-    }
-
-    @Test
     public void emptyTransactionRollback() throws Exception {
         final BasicTransaction transaction = newTransaction();
         rollback(transaction);
@@ -75,24 +69,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final TaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
-        // asserts
-        assertTrue(task.isCommitted());
-        assertTrue(task.isExecuted());
-        assertFalse(task.isReverted());
-        assertTrue(task.isValidated());
-        assertEquals(controller.getTransaction(), transaction);
-        controller.getResult();
-    }
-
-    @Test
-    public void testSimpleCommit() throws InterruptedException {
-        final BasicTransaction transaction = newTransaction();
-        // install task
-        final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
-        // commit transaction
-        commit(transaction);
         // asserts
         assertTrue(task.isCommitted());
         assertTrue(task.isExecuted());

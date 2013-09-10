@@ -106,7 +106,7 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
         final TestExecutable<Void> e8 = new TestExecutable<Void>("8");
         final TaskController<Void> task8Controller = newTask(transaction, e8, null, null, null, task7Controller);
         assertNotNull(task8Controller);
-
+        prepare(transaction);
         commit(transaction);
     }
 

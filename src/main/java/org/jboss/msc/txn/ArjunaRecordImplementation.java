@@ -90,7 +90,7 @@ final class ArjunaRecordImplementation extends AbstractRecord {
             final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
             final CommitResult<? extends Transaction> commitResult = listener.awaitUninterruptibly();
-            return commitResult.isCommitted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
+            return TwoPhaseOutcome.FINISH_OK;
         } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {

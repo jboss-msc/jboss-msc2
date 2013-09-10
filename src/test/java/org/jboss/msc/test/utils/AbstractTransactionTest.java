@@ -18,7 +18,6 @@
 
 package org.jboss.msc.test.utils;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -149,23 +148,15 @@ public abstract class AbstractTransactionTest {
     }
 
     protected static void assertPrepared(final BasicTransaction transaction) {
-        assertPrepared(transaction, true);
-    }
-
-    protected static void assertPrepared(final BasicTransaction transaction, final boolean committable) {
         assertNotNull(transaction);
-        assertEquals(committable, txnController.canCommit(transaction));
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on prepared transaction");
         } catch (final InvalidTransactionStateException expected) {
-        } catch (final TransactionRevertedException abortedException) {
-            assertFalse("Unexpected exception: " + abortedException, committable);
         }
         try {
             txnController.rollback(transaction, null);
             fail("Cannot call rollback() on prepared transaction");
-        } catch (final TransactionRevertedException expected) {
         } catch (final InvalidTransactionStateException expected) {
         }
     }
@@ -249,15 +240,11 @@ public abstract class AbstractTransactionTest {
     }
 
     protected static void prepare(final BasicTransaction transaction) throws InterruptedException {
-        prepare(transaction, true);
-    }
-
-    protected static void prepare(final BasicTransaction transaction, boolean committable) throws InterruptedException {
         assertNotNull(transaction);
         final CompletionListener<PrepareResult<BasicTransaction>> prepareListener = new CompletionListener<>();
         txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletion();
-        assertPrepared(transaction, committable);
+        assertPrepared(transaction);
     }
 
     protected static void commit(final BasicTransaction transaction) throws InterruptedException {

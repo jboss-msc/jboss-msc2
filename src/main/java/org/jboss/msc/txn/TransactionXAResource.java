@@ -253,10 +253,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
         try {
             final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
-            final CommitResult<? extends Transaction> commitResult = listener.awaitUninterruptibly();
-            if (!commitResult.isCommitted()) {
-                throw new XAException(XAException.XA_HEURRB);
-            }
+            listener.awaitUninterruptibly();
         } catch (final TransactionRevertedException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
             e2.initCause(e);

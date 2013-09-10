@@ -49,7 +49,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            commit(outsiderTransaction);
+            prepare(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -57,7 +57,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            commit(outsiderTransaction);
+            prepare(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -65,7 +65,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
         expected = null;
         try {
-            commit(outsiderTransaction);
+            prepare(outsiderTransaction);
         } catch (SecurityException e) {
             expected = e;
         }
@@ -112,7 +112,8 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
             expected = e;
         }
         assertNotNull(expected);
-        outsiderController.commit(outsiderTransaction, null);
+        outsiderController.prepare(outsiderTransaction, null);
+        txnController.prepare(transaction, null);
         txnController.commit(transaction, null);
     }
 }
