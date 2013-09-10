@@ -165,12 +165,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             // also roll back the txn and erase our association with it
             resourceManager.unregisterTransaction(xid, transaction);
             try {
-                final SynchronousAbortListener<Transaction> listener = new SynchronousAbortListener<>();
+                final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
                 transaction.abort(listener);
-                final AbortResult<Transaction> abortResult = listener.awaitUninterruptibly();
-                if (!abortResult.isAborted()) {
-                    throw new XAException(XAException.XA_RBPROTO);
-                }
+                listener.awaitUninterruptibly();
             } catch (final TransactionRevertedException e) {
                 final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
                 e2.initCause(e);
@@ -194,9 +191,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
+            final SynchronousListener<PrepareResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.prepare(listener);
-            final PrepareResult<Transaction> prepareResult = listener.awaitUninterruptibly();
+            final PrepareResult<? extends Transaction> prepareResult = listener.awaitUninterruptibly();
             if (prepareResult.isPrepared()) {
                 // todo - a way to establish whether changes were made?
                 return XA_OK;
@@ -225,18 +222,14 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             return;
         }
         try {
-            final SynchronousRollbackListener<Transaction> listener = new SynchronousRollbackListener<>();
+            final SynchronousListener<RollbackResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.rollback(listener);
-            final RollbackResult<Transaction> rollbackResult;
             try {
-                rollbackResult = listener.await();
+                listener.await();
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // we want the TM to try again later please
                 throw new XAException(XAException.XAER_RMERR);
-            }
-            if (!rollbackResult.isRolledBack()) {
-                throw new XAException(XAException.XA_RBPROTO);
             }
         } catch (final TransactionRevertedException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
@@ -258,9 +251,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
+            final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
-            final CommitResult<Transaction> commitResult = listener.awaitUninterruptibly();
+            final CommitResult<? extends Transaction> commitResult = listener.awaitUninterruptibly();
             if (!commitResult.isCommitted()) {
                 throw new XAException(XAException.XA_HEURRB);
             }
@@ -284,12 +277,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousAbortListener<Transaction> listener = new SynchronousAbortListener<>();
+            final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.abort(listener);
-            final AbortResult<Transaction> abortResult = listener.awaitUninterruptibly();
-            if (!abortResult.isAborted()) {
-                throw new XAException(XAException.XA_RBPROTO);
-            }
+            listener.awaitUninterruptibly();
         } catch (final TransactionRevertedException e) {
             final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
             e2.initCause(e);

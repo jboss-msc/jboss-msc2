@@ -23,14 +23,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.txn.AbortListener;
 import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.CommitListener;
 import org.jboss.msc.txn.CommitResult;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.PrepareListener;
+import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.Validatable;
 import org.jboss.msc.txn.ValidateContext;
@@ -78,14 +76,14 @@ public class ListenersTestCase extends AbstractTransactionTest {
             }
         };
         txnController.newTask(transaction, executable).setValidatable(validatable).release();
-        txnController.prepare(transaction, new PrepareListener<BasicTransaction>() {
+        txnController.prepare(transaction, new Listener<PrepareResult<BasicTransaction>>() {
             @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
                 prepareCalled = true;
             }
         });
         abortSignal.await();
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+        txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
             @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
                 abortCalled = true;
                 finishSignal.countDown();
@@ -123,19 +121,19 @@ public class ListenersTestCase extends AbstractTransactionTest {
             }
         };
         txnController.newTask(transaction, executable).setValidatable(validatable).release();
-        txnController.prepare(transaction, new PrepareListener<BasicTransaction>() {
+        txnController.prepare(transaction, new Listener<PrepareResult<BasicTransaction>>() {
             @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
                 prepareCalled = true;
             }
         });
         abortSignal.await();
-        txnController.commit(transaction, new CommitListener<BasicTransaction>() {
+        txnController.commit(transaction, new Listener<CommitResult<BasicTransaction>>() {
             @Override public void handleEvent(final CommitResult<BasicTransaction> result) {
                 commitCalled = true;
             }
         });
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+        txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
             @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
                 abortCalled = true;
                 finishSignal.countDown();
@@ -169,20 +167,20 @@ public class ListenersTestCase extends AbstractTransactionTest {
             }
         };
         txnController.newTask(transaction, executable).release();
-        txnController.prepare(transaction, new PrepareListener<BasicTransaction>() {
+        txnController.prepare(transaction, new Listener<PrepareResult<BasicTransaction>>() {
             @Override public void handleEvent(final PrepareResult<BasicTransaction> result) {
                 prepareCalled = true;
             }
         });
         abortSignal.await();
         final CountDownLatch finishSignal = new CountDownLatch(1);
-        txnController.abort(transaction, new AbortListener<BasicTransaction>() {
+        txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
             @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
                 abortCalled = true;
                 finishSignal.countDown();
             }
         });
-        txnController.commit(transaction, new CommitListener<BasicTransaction>() {
+        txnController.commit(transaction, new Listener<CommitResult<BasicTransaction>>() {
             @Override public void handleEvent(final CommitResult<BasicTransaction> result) {
                 commitCalled = true;
             }

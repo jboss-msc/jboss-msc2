@@ -21,12 +21,14 @@ package org.jboss.msc.txn;
 import java.util.EventListener;
 
 /**
- * A listener for a value.  Listeners are fired in response to an event for which they were registered.
+ * A listener for a value. Listeners are fired in response to an event for which they were registered.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * 
+ * @param <R> result
  */
-interface Listener<T extends Transaction, R extends Result<T>> extends EventListener {
+public interface Listener<R> extends EventListener {
 
     /**
      * Handle result.

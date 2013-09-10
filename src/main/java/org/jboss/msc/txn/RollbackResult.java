@@ -25,12 +25,7 @@ package org.jboss.msc.txn;
  * rolled back transaction.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * 
+ * @param <T> transaction
  */
-public interface RollbackResult<T extends Transaction> extends Result<T> {
-    /**
-     * Always returns <code>true</code> indicating transaction have been rolled back.
-     * This method will never return <code>false</code> value.
-     * @return <code>true</code> indicating transaction have been rolled back.
-     */
-    boolean isRolledBack(); // TODO: It always returns true, so do we really need this method?
-}
+public interface RollbackResult<T extends Transaction> extends Result<T> {}

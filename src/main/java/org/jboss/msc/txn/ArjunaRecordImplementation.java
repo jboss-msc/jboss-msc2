@@ -74,10 +74,10 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelAbort() {
         try {
-            final SynchronousAbortListener<Transaction> listener = new SynchronousAbortListener<>();
+            final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.abort(listener);
-            final AbortResult<Transaction> abortResult = listener.awaitUninterruptibly();
-            return abortResult.isAborted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
+            listener.awaitUninterruptibly();
+            return TwoPhaseOutcome.FINISH_OK;
         } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {
@@ -87,9 +87,9 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelCommit() {
         try {
-            final SynchronousCommitListener<Transaction> listener = new SynchronousCommitListener<>();
+            final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
-            final CommitResult<Transaction> commitResult = listener.awaitUninterruptibly();
+            final CommitResult<? extends Transaction> commitResult = listener.awaitUninterruptibly();
             return commitResult.isCommitted() ? TwoPhaseOutcome.FINISH_OK : TwoPhaseOutcome.FINISH_ERROR;
         } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
@@ -100,9 +100,9 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelPrepare() {
         try {
-            final SynchronousPrepareListener<Transaction> listener = new SynchronousPrepareListener<>();
+            final SynchronousListener<PrepareResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.prepare(listener);
-            final PrepareResult<Transaction> prepareResult = listener.awaitUninterruptibly();
+            final PrepareResult<? extends Transaction> prepareResult = listener.awaitUninterruptibly();
             return prepareResult.isPrepared() ? TwoPhaseOutcome.PREPARE_OK : TwoPhaseOutcome.PREPARE_NOTOK;
         } catch (final TransactionRevertedException e) {
             return TwoPhaseOutcome.PREPARE_NOTOK;

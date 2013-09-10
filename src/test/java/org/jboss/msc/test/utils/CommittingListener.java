@@ -19,7 +19,8 @@
 package org.jboss.msc.test.utils;
 
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.PrepareListener;
+import org.jboss.msc.txn.CommitResult;
+import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TransactionController;
 
@@ -29,10 +30,10 @@ import org.jboss.msc.txn.TransactionController;
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class CommittingListener implements PrepareListener<BasicTransaction> {
+public final class CommittingListener implements Listener<PrepareResult<BasicTransaction>> {
 
     private final TransactionController transactionController;
-    private final CommitCompletionListener listener = new CommitCompletionListener();
+    private final CompletionListener<CommitResult<BasicTransaction>> listener = new CompletionListener<>();
 
     public CommittingListener(TransactionController transactionController) {
         this.transactionController = transactionController;

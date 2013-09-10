@@ -25,16 +25,17 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.jboss.msc.test.utils.AbortCompletionListener;
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.PrepareCompletionListener;
-import org.jboss.msc.test.utils.RollbackCompletionListener;
+import org.jboss.msc.test.utils.CompletionListener;
 import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
+import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.PrepareResult;
+import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
 import org.junit.Test;
 
@@ -87,7 +88,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r, parent0c);
         assertNotNull(parentController);
         // preparing transaction - children validation is blocked
-        final PrepareCompletionListener prepareListener = new PrepareCompletionListener();
+        final CompletionListener<PrepareResult<BasicTransaction>> prepareListener = new CompletionListener<>();
         prepare(transaction, prepareListener);
         assertFalse(prepareListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
         // let children to finish validate
@@ -111,7 +112,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         assertCallOrder(parent0e, child1e, parent0v, child1v);
         // reverting transaction - children rollback is blocked
         assertTrue(canCommit(transaction));
-        final AbortCompletionListener abortListener = new AbortCompletionListener();
+        final CompletionListener<AbortResult<BasicTransaction>> abortListener = new CompletionListener<>();
         abort(transaction, abortListener);
         assertFalse(abortListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
         // let children to finish commit
@@ -177,7 +178,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r, parent0c);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();
@@ -242,7 +243,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r, parent0c);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();
@@ -307,7 +308,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnReverted_TestCas
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r, parent0c);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();

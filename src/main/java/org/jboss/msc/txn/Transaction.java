@@ -113,10 +113,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private int unfinishedChildren;
     private int unvalidatedChildren;
     private int unterminatedChildren;
-    private Listener<Transaction, Result<Transaction>> prepareListener;
-    private Listener<Transaction, Result<Transaction>> commitListener;
-    private Listener<Transaction, Result<Transaction>> abortListener;
-    private Listener<Transaction, Result<Transaction>> rollbackListener;
+    private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
+    private Listener<? super CommitResult<? extends Transaction>> commitListener;
+    private Listener<? super AbortResult<? extends Transaction>> abortListener;
+    private Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
     private volatile boolean isRollbackRequested;
     private volatile boolean isPrepareRequested;
 
@@ -341,7 +341,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    final void prepare(final PrepareListener<? extends Transaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException {
+    final void prepare(final Listener<? super PrepareResult<? extends Transaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -359,16 +359,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            @SuppressWarnings("unchecked")
-            Listener<Transaction, Result<Transaction>> hardCastedListener = (Listener<Transaction, Result<Transaction>>)(Object)completionListener;
-            prepareListener = hardCastedListener;
+            prepareListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
     }
 
-    final void commit(final CommitListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void commit(final Listener<? super CommitResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -383,16 +381,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            @SuppressWarnings("unchecked")
-            Listener<Transaction, Result<Transaction>> hardCastedListener = (Listener<Transaction, Result<Transaction>>)(Object)completionListener;
-            commitListener = hardCastedListener;
+            commitListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
     }
 
-    final void abort(final AbortListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void abort(final Listener<? super AbortResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -410,16 +406,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            @SuppressWarnings("unchecked")
-            Listener<Transaction, Result<Transaction>> hardCastedListener = (Listener<Transaction, Result<Transaction>>)(Object)completionListener;
-            abortListener = hardCastedListener;
+            abortListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
     }
 
-    final void rollback(final RollbackListener<? extends Transaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void rollback(final Listener<? super RollbackResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -437,9 +431,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
                 throw new InvalidTransactionStateException("Transaction was committed");
             }
-            @SuppressWarnings("unchecked")
-            Listener<Transaction, Result<Transaction>> hardCastedListener = (Listener<Transaction, Result<Transaction>>)(Object)completionListener;
-            rollbackListener = hardCastedListener;
+            rollbackListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -533,38 +525,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    private void callPrepareListener(final int state) {
-        Listener<Transaction, Result<Transaction>> listener;
-        synchronized (this) {
-            listener = prepareListener;
-            prepareListener = null;
-        }
-        safeCall(state, listener);
-    }
-
-    private void callCommitListener(final int state) {
-        Listener<Transaction, Result<Transaction>> listener;
-        synchronized (this) {
-            endTime = System.nanoTime();
-            listener = commitListener;
-            commitListener = null;
-        }
-        safeCall(state, listener);
-    }
-
-    private void callTerminateListeners(final int state) {
-        @SuppressWarnings("rawtypes")
-        Listener[] listeners = new Listener[4];
-        synchronized (this) {
-            endTime = System.nanoTime();
-            listeners[0] = prepareListener;
-            listeners[1] = commitListener;
-            listeners[2] = abortListener;
-            listeners[3] = rollbackListener;
-        }
-        safeCall(state, listeners);
-    }
-
     private void doChildAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
@@ -584,63 +544,105 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void safeCall(final int state, final Listener... listeners) {
-        if (listeners != null)
-            for (final Listener listener : listeners) {
-                if (listener == null) continue;
-                try {
-                    if (listener instanceof PrepareListener) {
-                        ((PrepareListener<Transaction>) listener).handleEvent(new PrepareResult<Transaction>() {
-                            @Override
-                            public Transaction getTransaction() {
-                                return Transaction.this;
-                            }
-                            @Override
-                            public boolean isPrepared() {
-                                return STATE_PREPARED == stateOf(state);
-                            }
-                        });
-                    } else if (listener instanceof CommitListener) {
-                        ((CommitListener<Transaction>) listener).handleEvent(new CommitResult<Transaction>() {
-                            @Override
-                            public Transaction getTransaction() {
-                                return Transaction.this;
-                            }
-                            @Override
-                            public boolean isCommitted() {
-                                return STATE_COMMITTED == stateOf(state);
-                            }
-                        });
-                    } else if (listener instanceof AbortListener) {
-                        ((AbortListener<Transaction>) listener).handleEvent(new AbortResult<Transaction>() {
-                            @Override
-                            public Transaction getTransaction() {
-                                return Transaction.this;
-                            }
-                            @Override
-                            public boolean isAborted() {
-                                return STATE_ROLLED_BACK == stateOf(state);
-                            }
-                        });
-                    } else if (listener instanceof RollbackListener) {
-                        ((RollbackListener<Transaction>) listener).handleEvent(new RollbackResult<Transaction>() {
-                            @Override
-                            public Transaction getTransaction() {
-                                return Transaction.this;
-                            }
-                            @Override
-                            public boolean isRolledBack() {
-                                return STATE_ROLLED_BACK == stateOf(state);
-                            }
-                        });
-                    } else {
-                        throw new IllegalStateException();
+    private void callPrepareListener(final int state) {
+        final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
+        synchronized (this) {
+            prepareListener = this.prepareListener;
+            this.prepareListener = null;
+        }
+        callListeners(state, prepareListener, null, null, null);
+    }
+
+    private void callCommitListener(final int state) {
+        final Listener<? super CommitResult<? extends Transaction>> commitListener;
+        synchronized (this) {
+            endTime = System.nanoTime();
+            commitListener = this.commitListener;
+            this.commitListener = null;
+        }
+        callListeners(state, null, commitListener, null, null);
+    }
+
+    private void callTerminateListeners(final int state) {
+        final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
+        final Listener<? super CommitResult<? extends Transaction>> commitListener;
+        final Listener<? super AbortResult<? extends Transaction>> abortListener;
+        final Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
+        synchronized (this) {
+            endTime = System.nanoTime();
+            prepareListener = this.prepareListener;
+            this.prepareListener = null;
+            commitListener = this.commitListener;
+            this.commitListener = null;
+            abortListener = this.abortListener;
+            this.abortListener = null;
+            rollbackListener = this.rollbackListener;
+            this.rollbackListener = null;
+        }
+        callListeners(state, prepareListener, commitListener, abortListener, rollbackListener);
+    }
+
+    private void callListeners(final int state, final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
+            final Listener<? super CommitResult<? extends Transaction>> commitListener,
+            final Listener<? super AbortResult<? extends Transaction>> abortListener,
+            final Listener<? super RollbackResult<? extends Transaction>> rollbackListener) {
+        if (prepareListener != null) {
+            try {
+                prepareListener.handleEvent(new PrepareResult<Transaction>() {
+                    @Override
+                    public Transaction getTransaction() {
+                        return Transaction.this;
                     }
-                } catch (Throwable ignored) {
-                    MSCLogger.ROOT.listenerFailed(ignored, listener);
-                }
+
+                    @Override
+                    public boolean isPrepared() {
+                        return STATE_PREPARED == stateOf(state);
+                    }
+                });
+            } catch (final Throwable ignored) {
+                MSCLogger.ROOT.listenerFailed(ignored, prepareListener);
             }
+        }
+        if (commitListener != null) {
+            try {
+                commitListener.handleEvent(new CommitResult<Transaction>() {
+                    @Override
+                    public Transaction getTransaction() {
+                        return Transaction.this;
+                    }
+                    @Override
+                    public boolean isCommitted() {
+                        return STATE_COMMITTED == stateOf(state);
+                    }
+                });
+            } catch (final Throwable ignored) {
+                MSCLogger.ROOT.listenerFailed(ignored, commitListener);
+            }
+        }
+        if (abortListener != null) {
+            try {
+                abortListener.handleEvent(new AbortResult<Transaction>() {
+                    @Override
+                    public Transaction getTransaction() {
+                        return Transaction.this;
+                    }
+                });
+            } catch (final Throwable ignored) {
+                MSCLogger.ROOT.listenerFailed(ignored, abortListener);
+            }
+        }
+        if (rollbackListener != null) {
+            try {
+                rollbackListener.handleEvent(new RollbackResult<Transaction>() {
+                    @Override
+                    public Transaction getTransaction() {
+                        return Transaction.this;
+                    }
+                });
+            } catch (final Throwable ignored) {
+                MSCLogger.ROOT.listenerFailed(ignored, rollbackListener);
+            }
+        }
     }
 
     final TaskFactory getTaskFactory() {

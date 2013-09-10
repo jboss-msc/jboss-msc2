@@ -38,6 +38,8 @@ package org.jboss.msc.txn;
  * </ul>
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * 
+ * @param <T> transaction
  */
 public interface CommitResult<T extends Transaction> extends Result<T> {
     /**

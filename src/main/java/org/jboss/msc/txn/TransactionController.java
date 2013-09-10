@@ -160,9 +160,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void prepare(final BasicTransaction transaction, final PrepareListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void prepare(final BasicTransaction transaction, final Listener<? super PrepareResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        transaction.prepare(completionListener);
+        transaction.prepare((Listener<? super PrepareResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -174,9 +175,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void commit(final BasicTransaction transaction, final CommitListener<BasicTransaction> completionListener) throws InvalidTransactionStateException, TransactionRevertedException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void commit(final BasicTransaction transaction, final Listener<? super CommitResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException, SecurityException {
         validateTransaction(transaction);
-        transaction.commit(completionListener);
+        transaction.commit((Listener<? super CommitResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -189,9 +191,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void abort(final BasicTransaction transaction, final AbortListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void abort(final BasicTransaction transaction, final Listener<? super AbortResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        transaction.abort(completionListener);
+        transaction.abort((Listener<? super AbortResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -204,9 +207,10 @@ public final class TransactionController extends SimpleAttachable {
      * @throws InvalidTransactionStateException if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void rollback(final BasicTransaction transaction, final RollbackListener<BasicTransaction> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    @SuppressWarnings("unchecked")
+    public void rollback(final BasicTransaction transaction, final Listener<? super RollbackResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        transaction.rollback(completionListener);
+        transaction.rollback((Listener<? super RollbackResult<? extends Transaction>>)completionListener);
     }
 
     /**

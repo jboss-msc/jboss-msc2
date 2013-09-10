@@ -24,13 +24,14 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.RollbackCompletionListener;
+import org.jboss.msc.test.utils.CompletionListener;
 import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
 import org.junit.Test;
 
@@ -131,7 +132,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, e0, v0, r0, c0);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();
@@ -178,7 +179,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, e0, v0, r0, c0);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();
@@ -227,7 +228,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, e0, v0, r0, c0);
         assertNotNull(parentController);
         // reverting transaction
-        final RollbackCompletionListener rollbackListener = new RollbackCompletionListener();
+        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletion();

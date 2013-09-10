@@ -25,12 +25,7 @@ package org.jboss.msc.txn;
  * aborted transaction.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * 
+ * @param <T> transaction
  */
-public interface AbortResult<T extends Transaction> extends Result<T> {
-    /**
-     * Always returns <code>true</code> indicating transaction have been aborted.
-     * This method will never return <code>false</code> value.
-     * @return <code>true</code> indicating transaction have been aborted.
-     */
-    boolean isAborted(); // TODO: It always returns true, so do we really need this method?
-}
+public interface AbortResult<T extends Transaction> extends Result<T> {}

@@ -22,6 +22,8 @@ package org.jboss.msc.txn;
  * Generic transaction result.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * 
+ * @param <T> transaction
  */
 interface Result<T extends Transaction> {
     
