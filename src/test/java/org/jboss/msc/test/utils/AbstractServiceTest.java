@@ -40,7 +40,6 @@ import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.TransactionRevertedException;
 import org.junit.After;
 import org.junit.Before;
 
@@ -157,30 +156,14 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     private static boolean attemptToCommit(final BasicTransaction txn) throws InterruptedException {
-        try {
-            prepare(txn);
-            if (txnController.canCommit(txn)) {
-                commit(txn);
-            } else {
-                abort(txn);
-                return false;
-            }
-        } catch (TransactionRevertedException e) {
-            System.out.println(e);
-            for (Problem problem: txnController.getProblemReport(txn).getProblems()) {
-                System.out.print(problem.getSeverity() + ": " + problem.getMessage());
-                if (problem.getLocation() != null) {
-                    System.out.println(" at " + problem.getLocation());
-                }
-                if (problem.getCause() != null) {
-                    problem.getCause().printStackTrace();
-                } else {
-                    System.out.println();
-                }
-            }
+        prepare(txn);
+        if (txnController.canCommit(txn)) {
+            commit(txn);
+            return true;
+        } else {
+            abort(txn);
             return false;
         }
-        return true;
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {

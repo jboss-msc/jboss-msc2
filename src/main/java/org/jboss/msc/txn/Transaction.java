@@ -145,6 +145,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return sid == sid1 || sid == sid2;
     }
 
+    private static boolean stateIsIn(int state, int sid1, int sid2, int sid3) {
+        final int sid = stateOf(state);
+        return sid == sid1 || sid == sid2 || sid == sid3;
+    }
+
     public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
@@ -332,24 +337,19 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    final void prepare(final Listener<? super PrepareResult<? extends Transaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException {
+    final void prepare(final Listener<? super PrepareResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (stateOf(state) == STATE_ACTIVE) {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ)) {
-                    throw new InvalidTransactionStateException("Prepare already called");
-                }
-                state |= FLAG_PREPARE_REQ;
-                isPrepareRequested = true;
-            } else if (stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
-                throw new InvalidTransactionStateException("Transaction was prepared");
-            } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
-            } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
-                throw new InvalidTransactionStateException("Transaction was committed");
+            if (isRollbackRequested || stateOf(state) != STATE_ACTIVE) {
+                throw new InvalidTransactionStateException("Transaction must be in active state to prepare");
             }
+            if (Bits.allAreSet(state, FLAG_PREPARE_REQ)) {
+                throw new InvalidTransactionStateException("Prepare already called");
+            }
+            state |= FLAG_PREPARE_REQ;
+            isPrepareRequested = true;
             prepareListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -357,26 +357,18 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void commit(final Listener<? super CommitResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void commit(final Listener<? super CommitResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (stateOf(state) == STATE_PREPARED) {
-                if (!reportIsCommittable()) {
-                    throw new InvalidTransactionStateException("Transaction not committable, it must be aborted.");
-                }
-                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    throw new InvalidTransactionStateException("Commit already called");
-                }
-                state |= FLAG_COMMIT_REQ;
-            } else if (stateIsIn(state, STATE_ACTIVE, STATE_PREPARING)) {
-                throw new InvalidTransactionStateException("Transaction not prepared");
-            } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
-            } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
-                throw new InvalidTransactionStateException("Transaction was committed");
+            if (isRollbackRequested || stateOf(state) != STATE_PREPARED || !reportIsCommittable()) {
+                throw new InvalidTransactionStateException("Transaction must be in prepared state to commit");
             }
+            if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
+                throw new InvalidTransactionStateException("Commit already called");
+            }
+            state |= FLAG_COMMIT_REQ;
             commitListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -384,24 +376,19 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void abort(final Listener<? super AbortResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void abort(final Listener<? super AbortResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if ((isPrepareRequested && (stateOf(state) == STATE_ACTIVE)) || stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                    throw new InvalidTransactionStateException("Abort already called");
-                }
-                state |= FLAG_ROLLBACK_REQ;
-                isRollbackRequested = true;
-            } else if (!isPrepareRequested && stateOf(state) == STATE_ACTIVE) {
-                throw new InvalidTransactionStateException("Transaction was not prepared");
-            } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
-            } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
-                throw new InvalidTransactionStateException("Transaction was committed");
+            if (!isPrepareRequested || !stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
+                throw new InvalidTransactionStateException("Transaction must be in prepared state to abort");
             }
+            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                throw new InvalidTransactionStateException("Abort already called");
+            }
+            state |= FLAG_ROLLBACK_REQ;
+            isRollbackRequested = true;
             abortListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -409,24 +396,19 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final void rollback(final Listener<? super RollbackResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException {
+    final void rollback(final Listener<? super RollbackResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (!isPrepareRequested && stateOf(state) == STATE_ACTIVE) {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                    throw new InvalidTransactionStateException("Rollback already called");
-                }
-                state |= FLAG_ROLLBACK_REQ;
-                isRollbackRequested = true;
-            } else if (isPrepareRequested || stateIsIn(state, STATE_PREPARING, STATE_PREPARED)) {
-                throw new InvalidTransactionStateException("Transaction was prepared");
-            } else if (stateIsIn(state, STATE_ROLLBACK, STATE_ROLLED_BACK)) {
-                throw new TransactionRevertedException("Transaction was either aborted or rolled back");
-            } else if (stateIsIn(state, STATE_COMMITTING, STATE_COMMITTED)) {
-                throw new InvalidTransactionStateException("Transaction was committed");
+            if (isPrepareRequested) {
+                throw new InvalidTransactionStateException("Transaction may not be prepared to rollback");
             }
+            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                throw new InvalidTransactionStateException("Rollback already called");
+            }
+            state |= FLAG_ROLLBACK_REQ;
+            isRollbackRequested = true;
             rollbackListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;

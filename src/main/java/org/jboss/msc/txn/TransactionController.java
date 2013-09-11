@@ -156,12 +156,11 @@ public final class TransactionController extends SimpleAttachable {
      *
      * @param transaction        the transaction to be prepared
      * @param completionListener the listener to call when the prepare is complete or has failed
-     * @throws TransactionRevertedException if the transaction was previously aborted
-     * @throws InvalidTransactionStateException if the transaction has already been prepared or committed
+     * @throws InvalidTransactionStateException if the transaction has already been rolled back, prepared or committed
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void prepare(final BasicTransaction transaction, final Listener<? super PrepareResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    public void prepare(final BasicTransaction transaction, final Listener<? super PrepareResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.prepare((Listener<? super PrepareResult<? extends Transaction>>)completionListener);
     }
@@ -171,12 +170,11 @@ public final class TransactionController extends SimpleAttachable {
      *
      * @param transaction        the transaction to be committed
      * @param completionListener the listener to call when the commit is complete
-     * @throws TransactionRevertedException if the transaction was previously aborted
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void commit(final BasicTransaction transaction, final Listener<? super CommitResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, TransactionRevertedException, SecurityException {
+    public void commit(final BasicTransaction transaction, final Listener<? super CommitResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.commit((Listener<? super CommitResult<? extends Transaction>>)completionListener);
     }
@@ -187,12 +185,11 @@ public final class TransactionController extends SimpleAttachable {
      *
      * @param transaction        the transaction to be aborted
      * @param completionListener the listener to call when the abort is complete
-     * @throws TransactionRevertedException if the transaction was previously either aborted or rolled back
-     * @throws InvalidTransactionStateException if commit has already been initiated
+     * @throws InvalidTransactionStateException if the transaction has already been aborted or if commit has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void abort(final BasicTransaction transaction, final Listener<? super AbortResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    public void abort(final BasicTransaction transaction, final Listener<? super AbortResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.abort((Listener<? super AbortResult<? extends Transaction>>)completionListener);
     }
@@ -203,12 +200,11 @@ public final class TransactionController extends SimpleAttachable {
      *
      * @param transaction        the transaction to be rolled back
      * @param completionListener the listener to call when the roll back is complete
-     * @throws TransactionRevertedException if the transaction was previously either aborted or rolled back
-     * @throws InvalidTransactionStateException if commit has already been initiated
+     * @throws InvalidTransactionStateException if prepare has already been initiated
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void rollback(final BasicTransaction transaction, final Listener<? super RollbackResult<BasicTransaction>> completionListener) throws TransactionRevertedException, InvalidTransactionStateException, SecurityException {
+    public void rollback(final BasicTransaction transaction, final Listener<? super RollbackResult<BasicTransaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         transaction.rollback((Listener<? super RollbackResult<? extends Transaction>>)completionListener);
     }

@@ -41,7 +41,6 @@ import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.TransactionRevertedException;
 import org.jboss.msc.txn.Validatable;
 import org.junit.After;
 import org.junit.Before;
@@ -167,17 +166,17 @@ public abstract class AbstractTransactionTest {
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on aborted transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.commit(transaction, null);
             fail("Cannot call commit() on aborted transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.abort(transaction, null);
             fail("Cannot call abort() on aborted transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.rollback(transaction, null);
@@ -193,22 +192,22 @@ public abstract class AbstractTransactionTest {
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on rolled back transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.commit(transaction, null);
             fail("Cannot call commit() on rolled back transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.abort(transaction, null);
             fail("Cannot call abort() on rolled back transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.rollback(transaction, null);
             fail("Cannot call rollback() on rolled back transaction");
-        } catch (final TransactionRevertedException expected) {
+        } catch (final InvalidTransactionStateException expected) {
         }
         assertTrue(transaction.isTerminated());
     }

@@ -78,8 +78,6 @@ final class ArjunaRecordImplementation extends AbstractRecord {
             transaction.abort(listener);
             listener.awaitUninterruptibly();
             return TwoPhaseOutcome.FINISH_OK;
-        } catch (final TransactionRevertedException e) {
-            return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         }
@@ -89,10 +87,8 @@ final class ArjunaRecordImplementation extends AbstractRecord {
         try {
             final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
-            final CommitResult<? extends Transaction> commitResult = listener.awaitUninterruptibly();
+            listener.awaitUninterruptibly();
             return TwoPhaseOutcome.FINISH_OK;
-        } catch (final TransactionRevertedException e) {
-            return TwoPhaseOutcome.FINISH_ERROR;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
         }
@@ -104,8 +100,6 @@ final class ArjunaRecordImplementation extends AbstractRecord {
             transaction.prepare(listener);
             final PrepareResult<? extends Transaction> prepareResult = listener.awaitUninterruptibly();
             return prepareResult.isPrepared() ? TwoPhaseOutcome.PREPARE_OK : TwoPhaseOutcome.PREPARE_NOTOK;
-        } catch (final TransactionRevertedException e) {
-            return TwoPhaseOutcome.PREPARE_NOTOK;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.PREPARE_NOTOK;
         }

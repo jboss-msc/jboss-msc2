@@ -168,10 +168,6 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
                 final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
                 transaction.abort(listener);
                 listener.awaitUninterruptibly();
-            } catch (final TransactionRevertedException e) {
-                final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
-                e2.initCause(e);
-                throw e2;
             } catch (final InvalidTransactionStateException e) {
                 final XAException e2 = new XAException(XAException.XAER_PROTO);
                 e2.initCause(e);
@@ -200,10 +196,6 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             } else {
                 throw new XAException(XAException.XA_RBROLLBACK);
             }
-        } catch (final TransactionRevertedException e) {
-            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
-            e2.initCause(e);
-            throw e2;
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
@@ -231,10 +223,6 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
                 // we want the TM to try again later please
                 throw new XAException(XAException.XAER_RMERR);
             }
-        } catch (final TransactionRevertedException e) {
-            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
-            e2.initCause(e);
-            throw e2;
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
@@ -254,10 +242,6 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.commit(listener);
             listener.awaitUninterruptibly();
-        } catch (final TransactionRevertedException e) {
-            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
-            e2.initCause(e);
-            throw e2;
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
@@ -277,10 +261,6 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
             transaction.abort(listener);
             listener.awaitUninterruptibly();
-        } catch (final TransactionRevertedException e) {
-            final XAException e2 = new XAException(XAException.XA_RBROLLBACK);
-            e2.initCause(e);
-            throw e2;
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
