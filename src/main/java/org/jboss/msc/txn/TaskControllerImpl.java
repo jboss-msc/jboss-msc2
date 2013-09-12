@@ -152,16 +152,17 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int STATE_NEW                    = 0;
     private static final int STATE_EXECUTE_WAIT           = 1;
     private static final int STATE_EXECUTE                = 2;
-    private static final int STATE_EXECUTE_DONE           = 3;
-    private static final int STATE_VALIDATE               = 4;
-    private static final int STATE_VALIDATE_CHILDREN_WAIT = 5;
-    private static final int STATE_VALIDATE_DONE          = 6;
-    private static final int STATE_COMMIT_WAIT            = 7;
-    private static final int STATE_COMMIT                 = 8;
-    private static final int STATE_ROLLBACK_WAIT          = 9;
-    private static final int STATE_ROLLBACK               = 10;
-    private static final int STATE_TERMINATE_WAIT         = 11;
-    private static final int STATE_TERMINATED             = 12;
+    private static final int STATE_EXECUTE_CHILDREN_WAIT  = 3;
+    private static final int STATE_EXECUTE_DONE           = 4;
+    private static final int STATE_VALIDATE               = 5;
+    private static final int STATE_VALIDATE_CHILDREN_WAIT = 6;
+    private static final int STATE_VALIDATE_DONE          = 7;
+    private static final int STATE_COMMIT_WAIT            = 8;
+    private static final int STATE_COMMIT                 = 9;
+    private static final int STATE_ROLLBACK_WAIT          = 10;
+    private static final int STATE_ROLLBACK               = 11;
+    private static final int STATE_TERMINATE_WAIT         = 12;
+    private static final int STATE_TERMINATED             = 13;
     private static final int STATE_LAST = STATE_TERMINATED;
 
     private static final int T_NONE = 0;
@@ -173,29 +174,31 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int T_EXECUTE_WAIT_to_EXECUTE = 4;
 
     private static final int T_EXECUTE_to_TERMINATE_WAIT = 5;
-    private static final int T_EXECUTE_to_EXECUTE_DONE = 6;
+    private static final int T_EXECUTE_to_EXECUTE_CHILDREN_WAIT = 6;
 
-    private static final int T_EXECUTE_DONE_to_ROLLBACK_WAIT = 7;
-    private static final int T_EXECUTE_DONE_to_VALIDATE = 8;
+    private static final int T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE = 7;
 
-    private static final int T_VALIDATE_to_VALIDATE_CHILDREN_WAIT = 9;
-    private static final int T_VALIDATE_to_ROLLBACK_WAIT = 10;
+    private static final int T_EXECUTE_DONE_to_ROLLBACK_WAIT = 8;
+    private static final int T_EXECUTE_DONE_to_VALIDATE = 9;
 
-    private static final int T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT = 11;
-    private static final int T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE = 12;
+    private static final int T_VALIDATE_to_VALIDATE_CHILDREN_WAIT = 10;
+    private static final int T_VALIDATE_to_ROLLBACK_WAIT = 11;
 
-    private static final int T_VALIDATE_DONE_to_ROLLBACK_WAIT = 13;
-    private static final int T_VALIDATE_DONE_to_COMMIT_WAIT = 14;
+    private static final int T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT = 12;
+    private static final int T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE = 13;
 
-    private static final int T_COMMIT_WAIT_to_COMMIT = 15;
+    private static final int T_VALIDATE_DONE_to_ROLLBACK_WAIT = 14;
+    private static final int T_VALIDATE_DONE_to_COMMIT_WAIT = 15;
 
-    private static final int T_COMMIT_to_TERMINATE_WAIT = 16;
+    private static final int T_COMMIT_WAIT_to_COMMIT = 16;
 
-    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 17;
+    private static final int T_COMMIT_to_TERMINATE_WAIT = 17;
 
-    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 18;
+    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 18;
 
-    private static final int T_TERMINATE_WAIT_to_TERMINATED = 19;
+    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 19;
+
+    private static final int T_TERMINATE_WAIT_to_TERMINATED = 20;
 
     /**
      * A cancel request, due to rollback or dependency failure.
@@ -296,9 +299,16 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
             case STATE_EXECUTE: {
                 if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
-                    return T_EXECUTE_to_EXECUTE_DONE;
+                    return T_EXECUTE_to_EXECUTE_CHILDREN_WAIT;
                 } else if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_to_TERMINATE_WAIT;
+                } else {
+                    return T_NONE;
+                }
+            }
+            case STATE_EXECUTE_CHILDREN_WAIT: {
+                if (unfinishedChildren == 0) {
+                    return T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE;
                 } else {
                     return T_NONE;
                 }
@@ -306,7 +316,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             case STATE_EXECUTE_DONE: {
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_EXECUTE_DONE_to_ROLLBACK_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_VALIDATE_REQ) && unfinishedChildren == 0 ) {
+                } else if (Bits.allAreSet(state, FLAG_VALIDATE_REQ)) {
                     return T_EXECUTE_DONE_to_VALIDATE;
                 } else {
                     return T_NONE;
@@ -405,13 +415,17 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     // not possible to go any farther
                     return newState(STATE_EXECUTE, state | FLAG_DO_EXECUTE);
                 }
-                case T_EXECUTE_to_EXECUTE_DONE: {
+                case T_EXECUTE_to_EXECUTE_CHILDREN_WAIT: {
                     if (! dependents.isEmpty()) {
                         cachedDependents = dependents.toArray(new TaskControllerImpl[dependents.size()]);
-                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_DEPENDENCY_DONE);
+                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state | FLAG_SEND_DEPENDENCY_DONE);
                     } else {
-                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_DONE);
+                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state);
                     }
+                    continue;
+                }
+                case T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE: {
+                    state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_DONE);
                     continue;
                 }
                 case T_VALIDATE_to_VALIDATE_CHILDREN_WAIT: {
