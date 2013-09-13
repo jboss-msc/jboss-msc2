@@ -40,8 +40,11 @@ final class ShutdownContainerTask implements Executable<Void> {
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
-        container.shutdown(transaction);
-        context.complete();
+        try {
+            container.shutdown(transaction);
+        } finally {
+            context.complete();
+        }
     }
 
 }
