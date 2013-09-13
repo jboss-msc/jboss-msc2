@@ -52,47 +52,44 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
                 transactions[i] = newTransaction();
             }
-        } catch (RuntimeException re) {
-            for (BasicTransaction transaction: transactions) {
-                if (transaction != null) {
-                    attemptToCommit(transaction);
+            // stress test maximum transaction limit
+            for (int i = 0; i < 10; i++) {
+                // stress test using rollback approach
+                try {
+                    newTransaction();
+                    fail("expected active transactions limit exceeded");
+                } catch (final IllegalStateException expected) {
                 }
+                rollback(transactions[0]);
+                transactions[0] = newTransaction();
+                // stress test using prepare / commit approach
+                try {
+                    newTransaction();
+                    fail("expected active transactions limit exceeded");
+                } catch (final IllegalStateException expected) {
+                }
+                prepare(transactions[0]);
+                commit(transactions[0]);
+                transactions[0] = newTransaction();
+                // stress test using prepare / abort approach
+                try {
+                    newTransaction();
+                    fail("expected active transactions limit exceeded");
+                } catch (final IllegalStateException expected) {
+                }
+                prepare(transactions[0]);
+                abort(transactions[0]);
+                transactions[0] = newTransaction();
             }
-            throw re;
+        } catch (final IllegalStateException e) {
+            throw new RuntimeException("Some test preceding this test didn't properly terminate some transaction.", e);
+        } finally {
+            // release all transactions to free all transaction id resources
+            for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
+                rollback(transactions[i]);
+            }
         }
-        // stress test maximum transaction limit
-        for (int i = 0; i < 10; i++) {
-            // stress test using rollback approach
-            try {
-                newTransaction();
-                fail("expected active transactions limit exceeded");
-            } catch (final IllegalStateException expected) {
-            }
-            rollback(transactions[0]);
-            transactions[0] = newTransaction();
-            // stress test using prepare / commit approach
-            try {
-                newTransaction();
-                fail("expected active transactions limit exceeded");
-            } catch (final IllegalStateException expected) {
-            }
-            prepare(transactions[0]);
-            commit(transactions[0]);
-            transactions[0] = newTransaction();
-            // stress test using prepare / abort approach
-            try {
-                newTransaction();
-                fail("expected active transactions limit exceeded");
-            } catch (final IllegalStateException expected) {
-            }
-            prepare(transactions[0]);
-            abort(transactions[0]);
-            transactions[0] = newTransaction();
-        }
-        // release all transactions to free all transaction id resources
-        for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
-            rollback(transactions[i]);
-        }
+        
     }
 
     @Test
