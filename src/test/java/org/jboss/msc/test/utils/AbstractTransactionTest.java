@@ -109,6 +109,17 @@ public abstract class AbstractTransactionTest {
         txnController.rollback(transaction, listener);
     }
 
+    protected static boolean attemptToCommit(final BasicTransaction txn) throws InterruptedException {
+        prepare(txn);
+        if (txnController.canCommit(txn)) {
+            commit(txn);
+            return true;
+        } else {
+            abort(txn);
+            return false;
+        }
+    }
+
     protected BasicTransaction newTransaction() {
         assertNotNull(defaultExecutor);
         return txnController.create(defaultExecutor);

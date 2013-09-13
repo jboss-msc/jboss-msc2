@@ -48,8 +48,17 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     public void testMaximumActiveTransactions() throws Exception {
         // create transactions to fill in the transaction id limit
         final BasicTransaction[] transactions = new BasicTransaction[MAX_ACTIVE_TRANSACTIONS];
-        for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
-            transactions[i] = newTransaction();
+        try {
+            for (int i = 0; i < MAX_ACTIVE_TRANSACTIONS; i++) {
+                transactions[i] = newTransaction();
+            }
+        } catch (RuntimeException re) {
+            for (BasicTransaction transaction: transactions) {
+                if (transaction != null) {
+                    attemptToCommit(transaction);
+                }
+            }
+            throw re;
         }
         // stress test maximum transaction limit
         for (int i = 0; i < 10; i++) {

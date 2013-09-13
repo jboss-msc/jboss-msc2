@@ -155,17 +155,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    private static boolean attemptToCommit(final BasicTransaction txn) throws InterruptedException {
-        prepare(txn);
-        if (txnController.canCommit(txn)) {
-            commit(txn);
-            return true;
-        } else {
-            abort(txn);
-            return false;
-        }
-    }
-
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
         // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
         DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
@@ -248,7 +237,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final TestService service) throws InterruptedException {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName,service, txn)).release();
+        txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
         if (attemptToCommit(txn)) {
             assertNoCriticalProblems(txn);
             assertNull(serviceRegistry.getService(serviceName));
