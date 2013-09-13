@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.msc.service.Dependency;
@@ -40,10 +41,13 @@ import org.jboss.msc.txn.ServiceContext;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public final class TestService implements Service<Void> {
+    private CountDownLatch startLatch = new CountDownLatch(1);
+    private CountDownLatch stopLatch = new CountDownLatch(1);
+
     private final ServiceName serviceName;
     private final ServiceContext serviceContext;
     private final Dependency<?>[] dependencies;
-    private final boolean failToStart; 
+    private final boolean failToStart;
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
 
@@ -69,6 +73,7 @@ public final class TestService implements Service<Void> {
             up.set(true);
             context.complete();
         }
+        startLatch.countDown();
     }
 
     @Override
@@ -77,6 +82,15 @@ public final class TestService implements Service<Void> {
         up.set(false);
         failed.set(false);
         context.complete();
+        stopLatch.countDown();
+    }
+
+    public void waitStart() throws InterruptedException {
+        startLatch.await();
+    }
+
+    public void waitStop() throws InterruptedException {
+        stopLatch.await();
     }
 
     public boolean isFailed() {
@@ -120,7 +134,7 @@ public final class TestService implements Service<Void> {
         }
 
         public Dependency<T> add(ServiceBuilder<?> serviceBuilder) {
-            // make sure we support all signatures so that test can invoke any of them, thus garanteeing coverage
+            // make sure we support all signatures so that test can invoke any of them, thus guaranteeing coverage
             if (registry == null) {
                 if (flags == null) {
                     return serviceBuilder.addDependency(name);
