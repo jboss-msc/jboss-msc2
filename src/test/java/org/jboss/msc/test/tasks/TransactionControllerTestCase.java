@@ -113,6 +113,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         }
         assertNotNull(expected);
         outsiderController.prepare(outsiderTransaction, null);
+        outsiderController.commit(outsiderTransaction, null);
         txnController.prepare(transaction, null);
         txnController.commit(transaction, null);
     }
