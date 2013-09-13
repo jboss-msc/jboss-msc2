@@ -23,6 +23,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -55,6 +57,8 @@ public abstract class AbstractTransactionTest {
     protected static final TransactionController txnController = TransactionController.createInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
+    private List<BasicTransaction> createdTransactions = new ArrayList<BasicTransaction>();
+
     @Before
     public void setUp() throws Exception {
         defaultExecutor = newExecutor(8, true);
@@ -62,6 +66,13 @@ public abstract class AbstractTransactionTest {
 
     @After
     public void tearDown() throws Exception {
+        try {
+            for (BasicTransaction transaction: createdTransactions) {
+                assertTrue("Unterminated transaction", transaction.isTerminated());
+            }
+        } finally {
+            createdTransactions.clear();
+        }
         defaultExecutor.shutdown();
         try {
             defaultExecutor.awaitTermination(60, TimeUnit.SECONDS);
@@ -122,7 +133,9 @@ public abstract class AbstractTransactionTest {
 
     protected BasicTransaction newTransaction() {
         assertNotNull(defaultExecutor);
-        return txnController.create(defaultExecutor);
+        final BasicTransaction transaction = txnController.create(defaultExecutor);
+        createdTransactions.add(transaction);
+        return transaction;
     }
 
     protected BasicTransaction newTransaction(final Executor executor) {
