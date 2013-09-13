@@ -58,6 +58,8 @@ class UndemandDependenciesTask implements Executable<Void> {
         TaskBuilder<Void> taskBuilder = taskFactory.newTask(new UndemandDependenciesTask(transaction, service));
         if (taskDependency != null) {
             taskBuilder.addDependencies(taskDependency);
+        } else {
+            taskBuilder.addDependency(service.getUnlockTask());
         }
         return taskBuilder.release();
     }

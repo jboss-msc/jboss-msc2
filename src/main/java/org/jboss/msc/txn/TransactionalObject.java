@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 abstract class TransactionalObject {
 
     private static AttachmentKey<Map<TransactionalObject, Object>> TRANSACTIONAL_OBJECTS = AttachmentKey.create();
+    private static AttachmentKey<TaskController<Void>> UNLOCK_TASK = AttachmentKey.create();
 
     // inner lock
     private Transaction lock;
@@ -90,7 +91,7 @@ abstract class TransactionalObject {
             } else {
                 transactionalObjects = new HashMap<TransactionalObject, Object>();
                 transaction.putAttachment(TRANSACTIONAL_OBJECTS, transactionalObjects);
-                taskFactory.newTask().setTraits(new UnlockWriteTask(transactionalObjects)).release();
+                transaction.putAttachment(UNLOCK_TASK, taskFactory.newTask().setTraits(new UnlockWriteTask(transactionalObjects)).release());
             }
         }
         transactionalObjects.put(this, snapshot);
@@ -113,6 +114,19 @@ abstract class TransactionalObject {
      */
     synchronized final boolean isWriteLocked(Transaction transaction) {
         return lock == transaction;
+    }
+
+    /**
+     * For proper unlocking and revert of this object's state, every task that affects all locked objects at current
+     * transaction must depend on the unlock task.
+     * 
+     * As there is only one unlock task per transaction, it is safe to obtain the unlock task from only one affected
+     * TransactionalObject, even if the task edits other TransactionalObjects.
+     * 
+     * @return the unlock task
+     */
+    TaskController<Void> getUnlockTask() {
+        return lock.getAttachment(UNLOCK_TASK);
     }
 
     private final void unlockWrite() {

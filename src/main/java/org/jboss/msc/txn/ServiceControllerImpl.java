@@ -604,6 +604,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             if (completeTransitionTask != null) {
                 removeTaskBuilder.addDependency(completeTransitionTask);
             }
+            removeTaskBuilder.addDependency(getUnlockTask());
             completeTransitionTask = removeTaskBuilder.release();
             completeTransitionState = STATE_REMOVED;
             transitionCount ++;
