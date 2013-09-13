@@ -27,7 +27,6 @@ import static org.junit.Assert.fail;
 import java.util.List;
 
 import org.jboss.msc.service.DependencyFlag;
-import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContainerFactory;
 import org.jboss.msc.service.ServiceMode;
@@ -57,12 +56,17 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected volatile ServiceContainer serviceContainer;
     protected volatile ServiceRegistry serviceRegistry;
 
+    static {
+        TestServiceBuilder.setDefaultTransactionController(AbstractTransactionTest.txnController);
+    }
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
         serviceContainer = ServiceContainerFactory.getInstance().newServiceContainer();
         serviceRegistry = serviceContainer.newRegistry();
+        TestServiceBuilder.setDefaultServiceRegistry(serviceRegistry);
     }
 
     @Override
@@ -128,22 +132,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
-        final ServiceContext serviceContext = txnController.getServiceContext();
-        assertServiceContext(serviceContext);
-        final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
-        // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
-        DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
-        for (int i = 0; i < dependencies.length; i++) {
-            dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i]);
-        }
-        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
-        final TestService service = new TestService(serviceName, serviceBuilder, failToStart, dependencyInfos);
-        serviceBuilder.setService(service);
-        // set mode
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
         // install
         final ServiceController serviceController = serviceBuilder.install();
         assertNotNull(serviceController);
+        final TestService service = serviceBuilder.getService();
         // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
@@ -176,17 +169,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
-        final ServiceContext serviceContext = txnController.getServiceContext();
-        assertServiceContext(serviceContext);
-        final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
-        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
-        final TestService service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);
-        serviceBuilder.setService(service);
-        // set mode
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
         // install
         final ServiceController serviceController = serviceBuilder.install();
         assertNotNull(serviceController);
+        final TestService service = serviceBuilder.getService();
         // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName));
