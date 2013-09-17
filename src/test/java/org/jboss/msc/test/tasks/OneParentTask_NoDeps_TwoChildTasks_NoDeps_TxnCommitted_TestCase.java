@@ -18,21 +18,22 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.CompletionListener;
 import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
+import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TaskController;
@@ -88,7 +89,10 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
         // preparing transaction - children validation is blocked
         final CompletionListener<PrepareResult<BasicTransaction>> prepareListener = new CompletionListener<>();
         prepare(transaction, prepareListener);
-        assertFalse(prepareListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
+        try {
+            prepareListener.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            fail("Timeout expected");
+        } catch (TimeoutException ignored) {}
         // let children to finish validate
         childValidateSignal.countDown();
         prepareListener.awaitCompletion();
@@ -112,7 +116,10 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
         assertTrue(canCommit(transaction));
         final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
         commit(transaction, commitListener);
-        assertFalse(commitListener.awaitCompletion(100, TimeUnit.MILLISECONDS));
+        try {
+            commitListener.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            fail("Timeout expected");
+        } catch (TimeoutException ignored) {}
         // let children to finish commit
         childCommitSignal.countDown();
         commitListener.awaitCompletion();

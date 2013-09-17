@@ -74,9 +74,9 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelAbort() {
         try {
-            final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<AbortResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.abort(listener);
-            listener.awaitUninterruptibly();
+            listener.awaitCompletionUninterruptibly();
             return TwoPhaseOutcome.FINISH_OK;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
@@ -85,9 +85,9 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelCommit() {
         try {
-            final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<CommitResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.commit(listener);
-            listener.awaitUninterruptibly();
+            listener.awaitCompletionUninterruptibly();
             return TwoPhaseOutcome.FINISH_OK;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.FINISH_ERROR;
@@ -96,9 +96,9 @@ final class ArjunaRecordImplementation extends AbstractRecord {
 
     public int topLevelPrepare() {
         try {
-            final SynchronousListener<PrepareResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<PrepareResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.prepare(listener);
-            final PrepareResult<? extends Transaction> prepareResult = listener.awaitUninterruptibly();
+            final PrepareResult<? extends Transaction> prepareResult = listener.awaitCompletionUninterruptibly();
             return prepareResult.isPrepared() ? TwoPhaseOutcome.PREPARE_OK : TwoPhaseOutcome.PREPARE_NOTOK;
         } catch (final InvalidTransactionStateException e) {
             return TwoPhaseOutcome.PREPARE_NOTOK;

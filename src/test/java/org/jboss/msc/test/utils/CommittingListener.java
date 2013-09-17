@@ -20,6 +20,7 @@ package org.jboss.msc.test.utils;
 
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
+import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TransactionController;

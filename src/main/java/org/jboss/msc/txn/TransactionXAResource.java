@@ -165,9 +165,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             // also roll back the txn and erase our association with it
             resourceManager.unregisterTransaction(xid, transaction);
             try {
-                final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
+                final CompletionListener<AbortResult<? extends Transaction>> listener = new CompletionListener<>();
                 transaction.abort(listener);
-                listener.awaitUninterruptibly();
+                listener.awaitCompletionUninterruptibly();
             } catch (final InvalidTransactionStateException e) {
                 final XAException e2 = new XAException(XAException.XAER_PROTO);
                 e2.initCause(e);
@@ -187,9 +187,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<PrepareResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<PrepareResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.prepare(listener);
-            final PrepareResult<? extends Transaction> prepareResult = listener.awaitUninterruptibly();
+            final PrepareResult<? extends Transaction> prepareResult = listener.awaitCompletionUninterruptibly();
             if (prepareResult.isPrepared()) {
                 // todo - a way to establish whether changes were made?
                 return XA_OK;
@@ -214,10 +214,10 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             return;
         }
         try {
-            final SynchronousListener<RollbackResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<RollbackResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.rollback(listener);
             try {
-                listener.await();
+                listener.awaitCompletion();
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // we want the TM to try again later please
@@ -239,9 +239,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<CommitResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<CommitResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.commit(listener);
-            listener.awaitUninterruptibly();
+            listener.awaitCompletionUninterruptibly();
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);
@@ -258,9 +258,9 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
             throw new XAException(XAException.XAER_NOTA);
         }
         try {
-            final SynchronousListener<AbortResult<? extends Transaction>> listener = new SynchronousListener<>();
+            final CompletionListener<AbortResult<? extends Transaction>> listener = new CompletionListener<>();
             transaction.abort(listener);
-            listener.awaitUninterruptibly();
+            listener.awaitCompletionUninterruptibly();
         } catch (final InvalidTransactionStateException e) {
             final XAException e2 = new XAException(XAException.XAER_PROTO);
             e2.initCause(e);

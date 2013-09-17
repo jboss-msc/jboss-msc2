@@ -34,6 +34,7 @@ import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
 import org.jboss.msc.txn.Committable;
+import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
