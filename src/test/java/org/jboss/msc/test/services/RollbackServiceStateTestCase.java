@@ -202,7 +202,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertTrue(firstService.isUp());
         // disable service and rollback
         final BasicTransaction txn = newTransaction();
-        serviceRegistry.disableService(firstSN, txn);
+        serviceRegistry.getRequiredService(firstSN).disable(txn);
         firstService.waitStop();
         assertFalse(firstService.isUp());
         rollback(txn);
@@ -223,9 +223,10 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertTrue(firstService.isUp());
         // disable and enable service, then rollback
         final BasicTransaction txn = newTransaction();
-        serviceRegistry.disableService(firstSN, txn);
+        final ServiceController controller = serviceRegistry.getRequiredService(firstSN);
+        controller.disable(txn);
         firstService.waitStop();
-        serviceRegistry.enableService(firstSN, txn);
+        controller.enable(txn);
         rollback(txn);
         // service should be up
         assertTrue(firstService.isUp());
@@ -245,12 +246,13 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertTrue(firstService.isUp());
         // disable service
         final BasicTransaction txn1 = newTransaction();
-        serviceRegistry.disableService(firstSN, txn1);
+        final ServiceController controller = serviceRegistry.getRequiredService(firstSN);
+        controller.disable(txn1);
         prepare(txn1);
         commit(txn1);
         // enable service and rollback
         final BasicTransaction txn2 = newTransaction();
-        serviceRegistry.enableService(firstSN, txn2);
+        controller.enable(txn2);
         rollback(txn2);
         // check service is down
         assertFalse(firstService.isUp());

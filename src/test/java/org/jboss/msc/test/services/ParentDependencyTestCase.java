@@ -76,9 +76,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
             // commit transaction
             commit(txn);
             // check that parent service is there, and that child service is installed and up
-            final TestService parentService = (TestService) serviceRegistry.getService(parentDependency);
+            final TestService parentService = (TestService) serviceRegistry.getService(parentDependency).getService();
             if (service.isUp() || (parentService != null && parentService.isUp())) {
-                assertSame(service, serviceRegistry.getRequiredService(serviceName));
+                assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
             } else {
                 assertNull(serviceRegistry.getService(serviceName));
             }

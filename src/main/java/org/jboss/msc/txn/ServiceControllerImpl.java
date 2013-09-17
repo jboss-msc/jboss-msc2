@@ -19,6 +19,7 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
+import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -201,7 +202,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     /**
      * Gets the service.
      */
-    Service<T> getService() {
+    public Service<T> getService() {
         return service;
     }
 
@@ -242,7 +243,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     /**
      * Management operation for disabling a service. As a result, this service will stop if it is {@code UP}.
      */
-    void disableService(Transaction transaction) {
+    public void disable(final Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (!isServiceEnabled()) return;
@@ -257,7 +261,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * ServiceMode mode} rules.
      * <p> Services are enabled by default.
      */
-    void enableService(Transaction transaction) {
+    public void enable(final Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         lockWrite(transaction, transaction.getTaskFactory());
         synchronized(this) {
             if (isServiceEnabled()) return;

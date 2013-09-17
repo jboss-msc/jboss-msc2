@@ -139,7 +139,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final TestService service = serviceBuilder.getService();
         // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
-            assertSame(service, serviceRegistry.getRequiredService(serviceName));
+            assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
             return service;
         } else {
             assertNull(serviceRegistry.getService(serviceName));
@@ -176,7 +176,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final TestService service = serviceBuilder.getService();
         // attempt to commit or check aborted installation
         if (attemptToCommit(txn)) {
-            assertSame(service, serviceRegistry.getRequiredService(serviceName));
+            assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
             return service;
         } else {
             assertNull(serviceRegistry.getService(serviceName));
@@ -272,7 +272,8 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
     
     protected final TestService getService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
-        return (TestService) serviceRegistry.getService(serviceName); 
+        final ServiceController controller = serviceRegistry.getService(serviceName);
+        return (TestService) (controller != null ? controller.getService() : null); 
     }
 
     protected void assertServiceContext(ServiceContext serviceContext) {

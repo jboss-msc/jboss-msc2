@@ -18,7 +18,7 @@
 
 package org.jboss.msc.txn;
 
-
+import org.jboss.msc.service.Service;
 
 /**
  * A controller for a single service instance.
@@ -26,6 +26,21 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 public interface ServiceController {
+
+    /**
+     * Disables a service, causing this service to stop if it is {@code UP}.
+     *
+     * @param transaction the transaction
+     */
+    void disable(Transaction transaction);
+
+    /**
+     * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
+     * <p> Services are enabled by default.
+     *
+     * @param transaction the transaction
+     */
+    void enable(Transaction transaction);
 
     /**
      * Removes this service.<p>
@@ -48,4 +63,11 @@ public interface ServiceController {
      * @param transaction the transaction
      */
     public void retry(Transaction transaction);
+    
+    /**
+     * Gets associated service.
+     * @return service
+     */
+    public Service<?> getService();
+
 }

@@ -44,7 +44,7 @@ final class DisableServiceTask implements Executable<Void> {
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            registry.disableService(serviceName, txn);
+            registry.getRequiredService(serviceName).disable(txn);
         } finally {
             context.complete();
         }

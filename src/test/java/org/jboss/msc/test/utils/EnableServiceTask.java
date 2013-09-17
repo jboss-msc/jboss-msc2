@@ -44,7 +44,7 @@ final class EnableServiceTask implements Executable<Void> {
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            registry.enableService(serviceName, txn);
+            registry.getRequiredService(serviceName).enable(txn);
         } finally {
             context.complete();
         }

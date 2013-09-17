@@ -30,6 +30,7 @@ import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.ServiceController;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,7 +92,8 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceA() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        registry1.disableService(serviceAName, transaction);
+        final ServiceController controller = registry1.getRequiredService(serviceAName);
+        controller.disable(transaction);
         prepare(transaction);
         commit(transaction);
         assertFalse(serviceA.isUp());
@@ -108,8 +110,9 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceB() throws InterruptedException {
         BasicTransaction transaction = newTransaction();
-        registry1.disableService(serviceBName, transaction);
-        registry1.disableService(serviceBName, transaction);
+        final ServiceController controller = registry1.getRequiredService(serviceBName);
+        controller.disable(transaction);
+        controller.disable(transaction);
         prepare(transaction);
         commit(transaction);
         assertFalse(serviceB.isUp());
@@ -124,7 +127,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         // idempotent
         transaction = newTransaction();
-        registry1.disableService(serviceBName, transaction);
+        controller.disable(transaction);
         prepare(transaction);
         commit(transaction);
         assertFalse(serviceB.isUp());
@@ -141,9 +144,10 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceC() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        registry1.enableService(serviceCName, transaction);
-        registry1.disableService(serviceCName, transaction);
-        registry1.enableService(serviceCName, transaction);
+        final ServiceController controller = registry1.getRequiredService(serviceCName);
+        controller.enable(transaction);
+        controller.disable(transaction);
+        controller.enable(transaction);
         prepare(transaction);
         commit(transaction);
         assertTrue(serviceA.isUp());
@@ -159,8 +163,9 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceD() throws InterruptedException {
         final BasicTransaction transaction = newTransaction();
-        registry2.disableService(serviceDName, transaction);
-        registry2.enableService(serviceDName, transaction);
+        final ServiceController controller = registry2.getRequiredService(serviceDName);
+        controller.disable(transaction);
+        controller.enable(transaction);
         prepare(transaction);
         commit(transaction);
         assertTrue(serviceA.isUp());
@@ -177,7 +182,8 @@ public class RegistryTestCase extends AbstractServiceTest {
     public void enableServiceA() throws InterruptedException {
         disableServiceA();
         final BasicTransaction transaction = newTransaction();
-        registry1.enableService(serviceAName, transaction);
+        final ServiceController controller = registry1.getRequiredService(serviceAName);
+        controller.enable(transaction);
         prepare(transaction);
         commit(transaction);
         assertTrue(serviceA.isUp());
@@ -312,7 +318,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         final BasicTransaction transaction = newTransaction();
         ServiceNotFoundException expected = null;
         try {
-            registry3.enableService(serviceAName, transaction);
+            registry3.getRequiredService(serviceAName);
         } catch (ServiceNotFoundException e) {
             expected = e;
         }
@@ -320,7 +326,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         expected = null;
         try {
-            registry3.disableService(serviceAName, transaction);
+            registry3.getRequiredService(serviceAName);
         } catch (ServiceNotFoundException e) {
             expected = e;
         }

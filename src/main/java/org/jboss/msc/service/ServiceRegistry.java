@@ -18,6 +18,7 @@
 
 package org.jboss.msc.service;
 
+import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.Transaction;
 
 /**
@@ -30,38 +31,21 @@ import org.jboss.msc.txn.Transaction;
 public interface ServiceRegistry {
 
     /**
-     * Gets a service, throwing an exception if it is not found.
+     * Gets a service controller, throwing an exception if it is not found.
      *
      * @param serviceName the service name
-     * @return the service corresponding to {@code serviceName}
+     * @return the service controller corresponding to {@code serviceName}
      * @throws ServiceNotFoundException if the service is not present in the registry
      */
-    Service<?> getRequiredService(ServiceName serviceName) throws ServiceNotFoundException;
+    ServiceController getRequiredService(ServiceName serviceName) throws ServiceNotFoundException;
 
     /**
-     * Gets a service, returning {@code null} if it is not found.
+     * Gets a service controller, returning {@code null} if it is not found.
      *
      * @param serviceName the service name
-     * @return the service corresponding to {@code serviceName}, or {@code null} if it is not found
+     * @return the service controller corresponding to {@code serviceName}, or {@code null} if it is not found
      */
-    Service<?> getService(ServiceName serviceName);
-
-    /**
-     * Disables a service, causing this service to stop if it is {@code UP}.
-     *
-     * @param name        the service name
-     * @param transaction the transaction
-     */
-    void disableService(ServiceName name, Transaction transaction);
-
-    /**
-     * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
-     * <p> Services are enabled by default.
-     *
-     * @param name        the service name
-     * @param transaction the transaction
-     */
-    void enableService(ServiceName name, Transaction transaction);
+    ServiceController getService(ServiceName serviceName);
 
     /**
      * Disables this registry and all its services, causing {@code UP} services to stop.
@@ -85,4 +69,5 @@ public interface ServiceRegistry {
      * @param transaction the transaction
      */
     void remove(Transaction transaction);
+
 }

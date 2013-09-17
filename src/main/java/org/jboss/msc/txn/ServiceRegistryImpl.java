@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
@@ -57,8 +56,11 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
      * @return the service corresponding to {@code serviceName}
      * @throws ServiceNotFoundException if the service is not present in the registry
      */
-    public Service<?> getRequiredService(ServiceName serviceName) throws ServiceNotFoundException {
-        return getRequiredServiceController(serviceName).getService();
+    public ServiceController getRequiredService(final ServiceName serviceName) throws ServiceNotFoundException {
+        if (serviceName == null) {
+            throw TXN.methodParameterIsNull("serviceName");
+        }
+        return getRequiredServiceController(serviceName);
     }
 
     /**
@@ -67,12 +69,15 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
      * @param serviceName the service name
      * @return the service corresponding to {@code serviceName}, or {@code null} if it is not found
      */
-    public Service<?> getService(ServiceName serviceName) {
+    public ServiceController getService(final ServiceName serviceName) {
+        if (serviceName == null) {
+            throw TXN.methodParameterIsNull("serviceName");
+        }
         final Registration registration = registry.get(serviceName);
         if (registration == null) {
             return null;
         }
-        return registration.getController() == null? null: registration.getController().getService();
+        return registration.getController();
     }
 
     Registration getOrCreateRegistration(Transaction transaction, ServiceName name) {
@@ -99,22 +104,6 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
             throw new ServiceNotFoundException("Service " + serviceName + " not found");
         }
         return controller;
-    }
-
-    @Override
-    public void disableService(ServiceName name, Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        getRequiredServiceController(name).disableService(transaction);
-    }
-
-    @Override
-    public void enableService(ServiceName name, Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        getRequiredServiceController(name).enableService(transaction);
     }
 
     @Override
