@@ -150,7 +150,7 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
-     * Once this method returns, either {@link #commit(BasicTransaction, CommitListener)} or {@link #abort(BasicTransaction, AbortListener)} must be called.
+     * Once this method returns, either {@link #commit(BasicTransaction, Listener)} or {@link #abort(BasicTransaction, Listener)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
      *
      *
@@ -166,7 +166,7 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Commit the work done by {@link #prepare(BasicTransaction, PrepareListener)} and terminate {@code transaction}.
+     * Commit the work done by {@link #prepare(BasicTransaction, Listener)} and terminate {@code transaction}.
      *
      * @param transaction        the transaction to be committed
      * @param completionListener the listener to call when the commit is complete
