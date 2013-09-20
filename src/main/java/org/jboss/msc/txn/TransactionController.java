@@ -74,8 +74,6 @@ public final class TransactionController extends SimpleAttachable {
         return registerTransaction(new BasicTransaction(this, executor, maxSeverity));
     }
 
-
-
     BasicTransaction registerTransaction(final BasicTransaction transaction) {
         try {
             Transactions.register(transaction);
@@ -117,6 +115,14 @@ public final class TransactionController extends SimpleAttachable {
      */
     public ServiceContext getServiceContext() {
         return serviceContext;
+    }
+    
+    /**
+     * Creates a new transaction aware lock. Only one transaction at a time can own the lock.
+     * @return new transaction aware lock
+     */
+    public TransactionalLock newTransactionalLock() {
+        return new TransactionalLock();
     }
 
     /**

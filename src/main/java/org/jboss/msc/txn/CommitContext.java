@@ -22,6 +22,7 @@ package org.jboss.msc.txn;
  * The context for a commit operation.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface CommitContext extends SimpleWorkContext, TransactionalContext {
+public interface CommitContext extends LockingContext, SimpleWorkContext {
 }

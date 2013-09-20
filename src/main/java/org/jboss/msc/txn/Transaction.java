@@ -21,7 +21,10 @@ package org.jboss.msc.txn;
 import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -76,6 +79,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
+    private final Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
     private final TaskParent topParent = new TaskParent() {
@@ -124,6 +128,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         this.controller = controller;
         this.taskExecutor = taskExecutor;
         this.maxSeverity = maxSeverity;
+    }
+
+    final void addLock(final TransactionalLock lock) {
+        synchronized (this) {
+            locks.add(lock);
+        }
     }
 
     final void forceStateRolledBack() {
@@ -311,6 +321,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
             Transactions.unregister(this);
+            synchronized (this) {
+                for (final TransactionalLock lock : locks) {
+                    lock.unlock(this);
+                }
+            }
         }
         if (userThread) {
             if (Bits.anyAreSet(state, LISTENERS_MASK)) {

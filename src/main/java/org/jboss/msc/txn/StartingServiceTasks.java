@@ -150,6 +150,16 @@ final class StartingServiceTasks {
         public void execute(final ExecuteContext<T> context) {
             service.start(new StartContext<T>() {
                 @Override
+                public void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException {
+                    context.lock(lock);
+                }
+
+                @Override
+                public boolean tryLock(TransactionalLock lock) throws NullPointerException {
+                    return context.tryLock(lock);
+                }
+
+                @Override
                 public void complete(T result) {
                     context.complete(result);
                 }

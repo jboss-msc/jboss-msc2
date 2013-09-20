@@ -445,12 +445,12 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @param taskFactory        the task factory
      */
     void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
-        assert isWriteLocked();
+        assert isWriteLocked(transaction);
         transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
     }
 
     private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
-        assert isWriteLocked();
+        assert isWriteLocked(transaction);
         return transactionalInfo.transition(transaction, taskFactory);
     }
 
@@ -657,6 +657,16 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             // as a result of a rollback, service must not think it is up when it is down, and vice-versa
             if (getState() == STATE_UP && (getState(state) == STATE_DOWN || getState(state) == STATE_NEW)) {
                 service.stop(new StopContext() {
+                    @Override
+                    public void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException {
+                        // ignore
+                    }
+
+                    @Override
+                    public boolean tryLock(TransactionalLock lock) throws NullPointerException {
+                        // ignore
+                        return false;
+                    }
 
                     @Override
                     public void complete(Void result) {
@@ -719,6 +729,16 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                     }});
             } else if ((getState() == STATE_DOWN || getState() == STATE_REMOVED) && getState(state) == STATE_UP) {
                 service.start(new StartContext<T>() {
+                    @Override
+                    public void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException {
+                        // ignore
+                    }
+
+                    @Override
+                    public boolean tryLock(TransactionalLock lock) throws NullPointerException {
+                        // ignore
+                        return false;
+                    }
 
                     @Override
                     public void complete(Object result) {

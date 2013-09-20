@@ -37,8 +37,7 @@ abstract class TransactionalObject {
     private static AttachmentKey<Map<TransactionalObject, Object>> TRANSACTIONAL_OBJECTS = AttachmentKey.create();
     private static AttachmentKey<TaskController<Void>> UNLOCK_TASK = AttachmentKey.create();
 
-    // inner lock
-    private Transaction lock;
+    private TransactionalLock lock = new TransactionalLock();
 
     /**
      * Write locks this object under {@code transaction}. If another transaction holds the lock, this method will block
@@ -49,41 +48,28 @@ abstract class TransactionalObject {
      * @param transaction the transaction that is attempting to modify current's object state
      * @param taskFactory the  task factory
      */
-    final void lockWrite(Transaction transaction, TaskFactory taskFactory) {
+    final void lockWrite(final Transaction transaction, final TaskFactory taskFactory) {
         assert !Thread.holdsLock(this);
+        try {
+            if (lock.lock(transaction)) {
+                return; // reentrant locking
+            }
+        } catch (DeadlockException e) {
+            // TODO review this: isn't there a better way of adding this problem, specifically why do we need
+            // a task controller, and how will that look like in the log?
+            final Problem problem = new Problem(null, e);
+            transaction.getProblemReport().addProblem(problem);
+            // TODO: we should return and stop processing completely
+        } catch (InterruptedException e) {
+            // ignored
+        }
         final Object snapshot;
-        while (true) {
-            Transaction currentLock;
-            synchronized (this) {
-                currentLock = lock;
-            }
-            if (currentLock != null) {
-                if (currentLock == transaction) {
-                    return;
-                }
-                assert !currentLock.isTerminated();
-                try {
-                    transaction.waitFor(currentLock);
-                } catch (DeadlockException e) {
-                    // TODO review this: isn't there a better way of adding this problem, specifically why do we need
-                    // a task controller, and how will that look like in the log?
-                    final Problem problem = new Problem(null, e);
-                    transaction.getProblemReport().addProblem(problem);
-                } catch (InterruptedException e) {
-                }
-            } else {
-                synchronized (this) {
-                    if (lock == null) {
-                        lock = transaction;
-                        snapshot = takeSnapshot();
-                        // notice that write locked must be garanteed to have been invoked if/when
-                        // another thread checks that current lock is not null
-                        writeLocked(transaction);
-                        break;
-                    }
-                }
-            }
-        } 
+        synchronized (this) {
+            snapshot = takeSnapshot();
+            // notice that write locked must be garanteed to have been invoked if/when
+            // another thread checks that current lock is not null
+            writeLocked(transaction);
+        }
         final Map<TransactionalObject, Object> transactionalObjects;
         synchronized (TRANSACTIONAL_OBJECTS) {
             if (transaction.hasAttachment(TRANSACTIONAL_OBJECTS)) {
@@ -98,22 +84,13 @@ abstract class TransactionalObject {
     }
 
     /**
-     * Indicates if this object is locked.
-     * 
-     * @return {@code true} only if this object is locked under an active transaction
-     */
-    synchronized final boolean isWriteLocked() {
-        return lock != null;
-    }
-
-    /**
      * Indicates if this object is locked by {@code transaction}.
      * 
      * @param transaction an active transaction
      * @return {@code true} only if this object is locked by {@code transaction}.
      */
     synchronized final boolean isWriteLocked(Transaction transaction) {
-        return lock == transaction;
+        return lock.isOwnedBy(transaction);
     }
 
     /**
@@ -126,12 +103,11 @@ abstract class TransactionalObject {
      * @return the unlock task
      */
     TaskController<Void> getUnlockTask() {
-        return lock.getAttachment(UNLOCK_TASK);
+        return lock.getOwner().getAttachment(UNLOCK_TASK);
     }
 
     private final void unlockWrite() {
         assert Thread.holdsLock(this);
-        lock = null;
         writeUnlocked();
     }
 

@@ -19,6 +19,7 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
+import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.ArrayList;
 
@@ -719,6 +720,22 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (validatable != null) try {
             setClassLoader();
             validatable.validate(new ValidateContext() {
+                @Override
+                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    lock.lock(getTransaction());
+                }
+
+                @Override
+                public boolean tryLock(final TransactionalLock lock) {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    return lock.tryLock(getTransaction());
+                }
+
                 public void addProblem(final Problem reason) {
                     problemReport.addProblem(reason);
                 }
@@ -790,6 +807,22 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (rev != null) try {
             setClassLoader();
             rev.rollback(new RollbackContext() {
+                @Override
+                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    lock.lock(getTransaction());
+                }
+
+                @Override
+                public boolean tryLock(final TransactionalLock lock) {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    return lock.tryLock(getTransaction());
+                }
+
                 public void complete() {
                     rollbackComplete();
                 }
@@ -807,6 +840,22 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (exec != null) try {
             setClassLoader();
             final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
+                @Override
+                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    lock.lock(getTransaction());
+                }
+
+                @Override
+                public boolean tryLock(final TransactionalLock lock) {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    return lock.tryLock(getTransaction());
+                }
+
                 @Override
                 public void complete(final T result) {
                     execComplete(result);
@@ -881,6 +930,22 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (committable != null) try {
             setClassLoader();
             committable.commit(new CommitContext() {
+                @Override
+                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    lock.lock(getTransaction());
+                }
+
+                @Override
+                public boolean tryLock(final TransactionalLock lock) {
+                    if (lock == null) {
+                        throw TXN.methodParameterIsNull("lock");
+                    }
+                    return lock.tryLock(getTransaction());
+                }
+
                 public void complete() {
                     commitComplete();
                 }
