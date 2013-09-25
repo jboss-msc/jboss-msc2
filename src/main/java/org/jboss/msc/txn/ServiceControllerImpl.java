@@ -147,7 +147,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @param transaction the active transaction
      */
     void install(ServiceRegistryImpl registry, Transaction transaction) {
-        assert isWriteLocked(transaction);
+        assert lock.isOwnedBy(transaction);
         // if registry is removed, get an exception right away
         registry.newServiceInstalled(this, transaction);
         if (!primaryRegistration.setController(transaction, this)) {
@@ -230,8 +230,8 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @param transaction the transaction
      */
     synchronized int getState(Transaction transaction) {
-        if (super.isWriteLocked(transaction)) {
-            return this.transactionalInfo.getState();
+        if (lock.isOwnedBy(transaction)) {
+            return transactionalInfo.getState();
         }
         return getState(state);
     }
@@ -445,12 +445,12 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @param taskFactory        the task factory
      */
     void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
-        assert isWriteLocked(transaction);
+        assert lock.isOwnedBy(transaction);
         transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
     }
 
     private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
-        assert isWriteLocked(transaction);
+        assert lock.isOwnedBy(transaction);
         return transactionalInfo.transition(transaction, taskFactory);
     }
 
@@ -611,7 +611,6 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             if (completeTransitionTask != null) {
                 removeTaskBuilder.addDependency(completeTransitionTask);
             }
-            removeTaskBuilder.addDependency(getUnlockTask());
             completeTransitionTask = removeTaskBuilder.release();
             completeTransitionState = STATE_REMOVED;
             transitionCount ++;

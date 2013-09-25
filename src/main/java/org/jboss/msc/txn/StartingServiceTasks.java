@@ -65,15 +65,11 @@ final class StartingServiceTasks {
             final TaskBuilder<Void> notifyDependentStartBuilder = taskFactory.newTask(new NotifyDependentStartTask(transaction, serviceController));
             if (taskDependency != null) {
                 notifyDependentStartBuilder.addDependency(taskDependency);
-            } else {
-                notifyDependentStartBuilder.addDependency(serviceController.getUnlockTask());
             }
             final TaskController<Void> notifyDependentStart = notifyDependentStartBuilder.release();
             startBuilder.addDependency(notifyDependentStart);
         } else if (taskDependency != null) {
             startBuilder.addDependency(taskDependency);
-        } else {
-            startBuilder.addDependency(serviceController.getUnlockTask());
         }
 
         // start service

@@ -149,6 +149,23 @@ final class Registration extends TransactionalObject {
         }
     }
 
+    void writeLocked(final Transaction transaction) {
+        transaction.newTask().setValidatable(new Validatable() {
+            @Override
+            public void validate(final ValidateContext context) {
+                try {
+                    synchronized (Registration.this) {
+                        for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
+                            incomingDependency.validate(controller, context);
+                        }
+                    }
+                } finally {
+                    context.complete();
+                }
+            }
+        }).release();
+    }
+
     @Override
     Object takeSnapshot() {
         return new Snapshot();
@@ -157,13 +174,6 @@ final class Registration extends TransactionalObject {
     @Override
     void revert(final Object snapshot) {
         ((Snapshot)snapshot).apply();
-    }
-
-    @Override
-    protected synchronized void validate(ReportableContext context) {
-        for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            incomingDependency.validate(controller, context);
-        }
     }
 
     private final class Snapshot {

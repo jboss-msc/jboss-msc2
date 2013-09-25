@@ -114,6 +114,10 @@ public interface MSCLogger {
     @Message(id = 18, value="Dependency cycle found: %s")
     String dependencyCycle(ServiceName[] cycle);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 19, value = "Lock cleanup failed")
+    void lockCleanupFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     /*

@@ -20,12 +20,17 @@ package org.jboss.msc.txn;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
+import org.jboss.msc._private.MSCLogger;
+
 /**
  * Transaction aware lock.
  * 
  * <p>Only one transaction at a time can own this lock.
  * If the lock is not available then the current transaction becomes
  * inactive and lies dormant until transactional lock is freed.
+ * <p>
+ * It is possible to associate cleanup task via {@link #setCleaner(Cleaner)}
+ * with this lock that will be executed before the lock is freed.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
@@ -33,9 +38,9 @@ public final class TransactionalLock {
 
     private static final AtomicReferenceFieldUpdater<TransactionalLock, Transaction> ownerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Transaction.class, "owner");
     private volatile Transaction owner;
+    private volatile Cleaner cleaner;
     
-    TransactionalLock() {
-    }
+    TransactionalLock() {}
     
     boolean lock(final Transaction newOwner) throws InterruptedException, DeadlockException {
         Transaction previousOwner;
@@ -67,18 +72,27 @@ public final class TransactionalLock {
         return true;
     }
     
-    void unlock(final Transaction currentOwner) {
-        if (!ownerUpdater.compareAndSet(this, currentOwner, null)) {
-            // should never happen
+    void setCleaner(final Cleaner cleaner) {
+        this.cleaner = cleaner;
+    }
+    
+    void unlock(final Transaction currentOwner, final boolean reverted) {
+        if (cleaner != null) {
+            try {
+                cleaner.clean(reverted);
+            } catch (final Throwable t) {
+                MSCLogger.FAIL.lockCleanupFailed(t);
+            }
         }
+        ownerUpdater.compareAndSet(this, currentOwner, null);
     }
     
     boolean isOwnedBy(final Transaction txn) {
         return owner == txn;
     }
     
-    Transaction getOwner() {
-        return owner;
+    static interface Cleaner {
+        void clean(boolean reverted);
     }
 
 }

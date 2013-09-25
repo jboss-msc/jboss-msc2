@@ -323,7 +323,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             Transactions.unregister(this);
             synchronized (this) {
                 for (final TransactionalLock lock : locks) {
-                    lock.unlock(this);
+                    lock.unlock(this, isRollbackRequested);
                 }
             }
         }
