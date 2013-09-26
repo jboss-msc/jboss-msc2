@@ -31,6 +31,7 @@ package org.jboss.msc.txn;
 abstract class TransactionalObject {
 
     protected final TransactionalLock lock = new TransactionalLock();
+    private boolean lockWriteCompleted;
 
     /**
      * Write locks this object under {@code transaction}. If another transaction holds the lock, this method will block
@@ -45,26 +46,30 @@ abstract class TransactionalObject {
         assert !Thread.holdsLock(this);
         try {
             if (lock.lock(transaction)) {
+                synchronized (this) {
+                    while (!lockWriteCompleted) wait();
+                }
                 return; // reentrant locking
             }
-        } catch (DeadlockException e) {
+        } catch (InterruptedException|DeadlockException e) {
             // TODO review this: isn't there a better way of adding this problem, specifically why do we need
             // a task controller, and how will that look like in the log?
             final Problem problem = new Problem(null, e);
             transaction.getProblemReport().addProblem(problem);
             // TODO: we should return and stop processing completely
-        } catch (InterruptedException e) {
-            // ignored
         }
         final Object snapshot;
         synchronized (this) {
             snapshot = takeSnapshot();
             writeLocked(transaction);
+            lockWriteCompleted = true;
+            notifyAll();
         }
         lock.setCleaner(new TransactionalLock.Cleaner() {
             @Override
             public void clean(boolean reverted) {
                 synchronized (TransactionalObject.this) {
+                    lockWriteCompleted = false;
                     writeUnlocked();
                     if (reverted) {
                         revert(snapshot);

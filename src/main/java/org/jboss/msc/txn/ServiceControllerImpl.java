@@ -455,12 +455,12 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     @Override
-    protected synchronized void writeLocked(Transaction transaction) {
+    void writeLocked(Transaction transaction) {
         transactionalInfo = new TransactionalInfo();
     }
 
     @Override
-    protected synchronized void writeUnlocked() {
+    void writeUnlocked() {
         state = (byte) (transactionalInfo.getState() & STATE_MASK | state & ~STATE_MASK);
         transactionalInfo = null;
     }

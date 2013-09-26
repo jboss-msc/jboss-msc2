@@ -82,6 +82,8 @@ public final class TransactionalLock {
                 cleaner.clean(reverted);
             } catch (final Throwable t) {
                 MSCLogger.FAIL.lockCleanupFailed(t);
+            } finally {
+                cleaner = null;
             }
         }
         ownerUpdater.compareAndSet(this, currentOwner, null);
