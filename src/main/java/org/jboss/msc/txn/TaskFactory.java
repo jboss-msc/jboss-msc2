@@ -41,5 +41,5 @@ interface TaskFactory {
      * @return the builder for the task
      * @throws IllegalStateException if this context is not accepting new tasks
      */
-    TaskBuilder<Void> newTask() throws IllegalStateException;
+    <T> TaskBuilder<T> newTask() throws IllegalStateException;
 }

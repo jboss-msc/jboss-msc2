@@ -50,7 +50,8 @@ final class StoppingServiceTasks {
         final Service<T> serviceValue = service.getService();
 
         // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask(serviceValue));
+        final StopServiceTask stopServiceTask = new StopServiceTask(serviceValue);
+        final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask(stopServiceTask).setTraits(stopServiceTask);
         stopTaskBuilder.addDependencies(taskDependencies);
         final TaskController<Void> stop = stopTaskBuilder.release();
 
@@ -120,21 +121,8 @@ final class StoppingServiceTasks {
         return setServiceDownBuilder.release();
     }
 
-    /**
-     * Task that stops service.
-     * 
-     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
-     */
-    static class StopServiceTask implements Executable<Void> {
-
-        private final Service<?> service;
-
-        StopServiceTask(final Service<?> service) {
-            this.service = service;
-        }
-
-        public void execute(final ExecuteContext<Void> context) {
-            service.stop(new StopContext(){
+    public static StopContext getStopContext(final ExecuteContext<Void> context) {
+        return new StopContext(){
                 @Override
                 public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
                     context.lockAsynchronously(lock, listener);
@@ -204,7 +192,40 @@ final class StoppingServiceTasks {
                 public TaskBuilder<Void> newTask() throws IllegalStateException {
                     return context.newTask();
                 }
-            });
+            };
+    }
+
+    /**
+     * Task that stops service.
+     * 
+     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+     */
+    static class StopServiceTask implements Executable<Void>, Validatable, Committable, Revertible {
+
+        private final Service<?> service;
+
+        StopServiceTask(final Service<?> service) {
+            this.service = service;
+        }
+
+        public void execute( ExecuteContext<Void> context) {
+            service.executeStop(getStopContext(context));
+        }
+
+        @Override
+        public void validate(ValidateContext context) {
+            service.validateStop(context);
+        }
+
+        @Override
+        public void commit(CommitContext context) {
+            service.commitStop(context);
+        }
+
+        @Override
+        public void rollback(RollbackContext context) {
+            service.rollbackStop(context);
         }
     }
 

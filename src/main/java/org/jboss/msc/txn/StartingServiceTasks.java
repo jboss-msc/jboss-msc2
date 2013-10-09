@@ -58,7 +58,8 @@ final class StartingServiceTasks {
         final Service<T> serviceValue = serviceController.getService();
 
         // start service task builder
-        final TaskBuilder<T> startBuilder = taskFactory.newTask(new StartServiceTask<T>(serviceValue, transaction)).setTraits(serviceValue);
+        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceValue, transaction);
+        final TaskBuilder<T> startBuilder = taskFactory.<T>newTask(startServiceTask).setTraits(startServiceTask);
 
         if (hasDependencies(serviceController)) {
             // notify dependent is starting to dependencies
@@ -209,9 +210,9 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartServiceTask<T> implements Executable<T> {
+    static class StartServiceTask<T> implements Executable<T>, Validatable, Committable, Revertible {
 
-        private final Service<T> service;
+        protected final Service<T> service;
         private final Transaction transaction;
 
         StartServiceTask(final Service<T> service, final Transaction transaction) {
@@ -224,86 +225,24 @@ final class StartingServiceTasks {
          *
          * @param context
          */
+        @Override
         public void execute(final ExecuteContext<T> context) {
-            service.start(new StartContext<T>() {
-                @Override
-                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
-                    context.lockAsynchronously(lock, listener);
-                }
+            service.executeStart(getStartContext(context, service, transaction));
+        }
+        
+        @Override
+        public void validate(ValidateContext context) {
+            service.validateStart(context);
+        }
 
-                @Override
-                public boolean tryLock(TransactionalLock lock) {
-                    return context.tryLock(lock);
-                }
+        @Override
+        public void commit(CommitContext context) {
+            service.commitStart(context);
+        }
 
-                @Override
-                public void complete(T result) {
-                    context.complete(result);
-                }
-
-                @Override
-                public void complete() {
-                    context.complete();
-                }
-
-                @Override
-                public void addProblem(Problem reason) {
-                    context.addProblem(reason);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message) {
-                    context.addProblem(severity, message);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message, Throwable cause) {
-                    context.addProblem(severity, message, cause);
-                    
-                }
-
-                @Override
-                public void addProblem(String message, Throwable cause) {
-                    context.addProblem(message, cause);
-                }
-
-                @Override
-                public void addProblem(String message) {
-                    context.addProblem(message);
-                }
-
-                @Override
-                public void addProblem(Throwable cause) {
-                    context.addProblem(cause);
-                }
-
-                @Override
-                public boolean isCancelRequested() {
-                    return context.isCancelRequested();
-                }
-
-                @Override
-                public void cancelled() {
-                    context.cancelled();
-                }
-
-                @Override
-                public <K> TaskBuilder<K> newTask(Executable<K> task) throws IllegalStateException {
-                    return context.newTask(task);
-                }
-
-                @Override
-                public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return context.newTask();
-                }
-
-                @Override
-                public void fail() {
-                    transaction.getAttachment(StartingServiceTasks.FAILED_SERVICES).add(service);
-                    complete();
-                }
-
-            });
+        @Override
+        public void rollback(RollbackContext context) {
+            service.rollbackStart(context);
         }
     }
 
