@@ -60,7 +60,7 @@ abstract class TransactionalObject {
         final Object snapshot;
         synchronized (this) {
             snapshot = takeSnapshot();
-            writeLocked(transaction);
+            writeLocked();
             lockWriteCompleted = true;
             notifyAll();
         }
@@ -92,10 +92,8 @@ abstract class TransactionalObject {
 
     /**
      * Notifies that this object is now write locked. Invoked only once per transaction lock.
-     * @param transaction the transaction under which this object is locked
-     * @param context     the service context
      */
-    void writeLocked(Transaction transaction) {}
+    void writeLocked() {}
 
     /**
      * Notifies that this object is now write unlocked.

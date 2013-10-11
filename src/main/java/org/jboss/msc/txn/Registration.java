@@ -36,6 +36,8 @@ import org.jboss.msc.service.ServiceName;
  */
 final class Registration extends TransactionalObject {
 
+    private static final AttachmentKey<Boolean> VALIDATE_TASK = AttachmentKey.create();
+
     /** The registration name */
     private final ServiceName serviceName;
     /**
@@ -82,6 +84,7 @@ final class Registration extends TransactionalObject {
 
     void clearController(final Transaction transaction) {
         lockWrite(transaction);
+        installDependenciesValidateTask(transaction);
         synchronized (this) {
             this.controller = null;
         }
@@ -89,6 +92,7 @@ final class Registration extends TransactionalObject {
 
     void addIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
         lockWrite(transaction);
+        installDependenciesValidateTask(transaction);
         final boolean dependencyUp;
         synchronized (this) {
             incomingDependencies.add(dependency);
@@ -147,7 +151,8 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void writeLocked(final Transaction transaction) {
+    void installDependenciesValidateTask(final Transaction transaction) {
+        if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
         transaction.newTask().setValidatable(new Validatable() {
             @Override
             public void validate(final ValidateContext context) {

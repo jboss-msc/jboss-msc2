@@ -454,7 +454,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     @Override
-    void writeLocked(Transaction transaction) {
+    void writeLocked() {
         transactionalInfo = new TransactionalInfo();
     }
 
