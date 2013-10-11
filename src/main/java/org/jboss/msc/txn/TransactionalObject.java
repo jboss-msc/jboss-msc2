@@ -40,9 +40,8 @@ abstract class TransactionalObject {
      * <p> This operation is idempotent. Unlocking occurs automatically when the transaction is finished.
      *  
      * @param transaction the transaction that is attempting to modify current's object state
-     * @param taskFactory the  task factory
      */
-    final void lockWrite(final Transaction transaction, final TaskFactory taskFactory) {
+    final void lockWrite(final Transaction transaction) {
         assert !Thread.holdsLock(this);
         try {
             if (lock.lock(transaction)) {

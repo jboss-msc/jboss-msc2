@@ -132,10 +132,9 @@ class DependencyImpl<T> implements Dependency<T> {
      * Clears the dependency dependent, invoked during {@link dependentController} removal.
      * 
      * @param transaction   the active transaction
-     * @param taskFactory   the task factory
      */
-    void clearDependent(Transaction transaction, TaskFactory taskFactory) {
-        dependencyRegistration.removeIncomingDependency(transaction, taskFactory, this);
+    void clearDependent(Transaction transaction) {
+        dependencyRegistration.removeIncomingDependency(transaction, this);
     }
 
     /**

@@ -65,7 +65,7 @@ final class Registration extends TransactionalObject {
     }
 
     boolean setController(final Transaction transaction, final ServiceControllerImpl<?> serviceController) {
-        lockWrite(transaction, transaction.getTaskFactory());
+        lockWrite(transaction);
         final boolean upDemanded;
         synchronized (this) {
             if (this.controller != null) {
@@ -80,15 +80,15 @@ final class Registration extends TransactionalObject {
         return true;
     }
 
-    void clearController(final Transaction transaction, final TaskFactory taskFactory) {
-        lockWrite(transaction, taskFactory);
+    void clearController(final Transaction transaction) {
+        lockWrite(transaction);
         synchronized (this) {
             this.controller = null;
         }
     }
 
     void addIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
-        lockWrite(transaction, transaction.getTaskFactory());
+        lockWrite(transaction);
         final boolean dependencyUp;
         synchronized (this) {
             incomingDependencies.add(dependency);
@@ -99,8 +99,8 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void removeIncomingDependency(final Transaction transaction, final TaskFactory taskFactory, final DependencyImpl<?> dependency) {
-        lockWrite(transaction, taskFactory);
+    void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
+        lockWrite(transaction);
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
@@ -122,7 +122,7 @@ final class Registration extends TransactionalObject {
 
     void addDemand(Transaction transaction, TaskFactory taskFactory) {
         assert ! Thread.holdsLock(this);
-        lockWrite(transaction, taskFactory);
+        lockWrite(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
@@ -137,7 +137,7 @@ final class Registration extends TransactionalObject {
 
     void removeDemand(Transaction transaction, TaskFactory taskFactory) {
         assert ! Thread.holdsLock(this);
-        lockWrite(transaction, taskFactory);
+        lockWrite(transaction);
         synchronized (this) {
             controller = this.controller;
             if (--upDemandedByCount > 0) {
