@@ -31,7 +31,7 @@ package org.jboss.msc.txn;
 abstract class TransactionalObject {
 
     protected final TransactionalLock lock = new TransactionalLock();
-    private boolean lockWriteCompleted;
+    private boolean snapshotCreated;
 
     /**
      * Write locks this object under {@code transaction}. If another transaction holds the lock, this method will block
@@ -44,12 +44,8 @@ abstract class TransactionalObject {
     final void lockWrite(final Transaction transaction) {
         assert !Thread.holdsLock(this);
         try {
-            if (lock.lock(transaction)) {
-                synchronized (this) {
-                    while (!lockWriteCompleted) wait();
-                }
-                return; // reentrant locking
-            }
+            lock.lock(transaction);
+            configureLockCleaner();
         } catch (InterruptedException|DeadlockException e) {
             // TODO review this: isn't there a better way of adding this problem, specifically why do we need
             // a task controller, and how will that look like in the log?
@@ -57,22 +53,25 @@ abstract class TransactionalObject {
             transaction.getProblemReport().addProblem(problem);
             // TODO: we should return and stop processing completely
         }
+    }
+    
+    private void configureLockCleaner() {
         final Object snapshot;
         synchronized (this) {
+            if (snapshotCreated) return;
+            snapshotCreated = true;
             snapshot = takeSnapshot();
             writeLocked();
-            lockWriteCompleted = true;
-            notifyAll();
         }
         lock.setCleaner(new TransactionalLock.Cleaner() {
             @Override
-            public void clean(boolean reverted) {
+            public void clean(final boolean reverted) {
                 synchronized (TransactionalObject.this) {
-                    lockWriteCompleted = false;
                     writeUnlocked();
                     if (reverted) {
                         revert(snapshot);
                     }
+                    snapshotCreated = false;
                 }
             }
         });

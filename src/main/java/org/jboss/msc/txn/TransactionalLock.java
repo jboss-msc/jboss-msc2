@@ -38,23 +38,23 @@ public final class TransactionalLock {
 
     private static final AtomicReferenceFieldUpdater<TransactionalLock, Transaction> ownerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Transaction.class, "owner");
     private volatile Transaction owner;
+    private static final AtomicReferenceFieldUpdater<TransactionalLock, Cleaner> cleanerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Cleaner.class, "cleaner");
     private volatile Cleaner cleaner;
     
     TransactionalLock() {}
     
-    boolean lock(final Transaction newOwner) throws InterruptedException, DeadlockException {
+    void lock(final Transaction newOwner) throws InterruptedException, DeadlockException {
         Transaction previousOwner;
         do {
             previousOwner = owner;
             if (previousOwner == newOwner) {
-                return true; // reentrant access
+                return; // reentrant access
             }
             if (previousOwner != null) {
                 Transactions.waitFor(newOwner, previousOwner);
             }
         } while (!ownerUpdater.compareAndSet(this, null, newOwner));
         newOwner.addLock(this);
-        return false;
     }
     
     boolean tryLock(final Transaction newOwner) {
@@ -73,20 +73,22 @@ public final class TransactionalLock {
     }
     
     void setCleaner(final Cleaner cleaner) {
-        this.cleaner = cleaner;
+        while (cleaner != null) if (cleanerUpdater.compareAndSet(this, null, cleaner)) return;
     }
     
+    @SuppressWarnings("finally")
     void unlock(final Transaction currentOwner, final boolean reverted) {
+        if (!ownerUpdater.compareAndSet(this, currentOwner, null)) return;
+        final Cleaner cleaner = this.cleaner;
         if (cleaner != null) {
             try {
                 cleaner.clean(reverted);
             } catch (final Throwable t) {
                 MSCLogger.FAIL.lockCleanupFailed(t);
             } finally {
-                cleaner = null;
+                while (true) if (cleanerUpdater.compareAndSet(this, cleaner, null)) return;
             }
         }
-        ownerUpdater.compareAndSet(this, currentOwner, null);
     }
     
     boolean isOwnedBy(final Transaction txn) {
