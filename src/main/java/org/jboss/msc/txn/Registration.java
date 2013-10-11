@@ -121,7 +121,6 @@ final class Registration extends TransactionalObject {
     }
 
     void addDemand(Transaction transaction, TaskFactory taskFactory) {
-        assert ! Thread.holdsLock(this);
         lockWrite(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
@@ -136,7 +135,6 @@ final class Registration extends TransactionalObject {
     }
 
     void removeDemand(Transaction transaction, TaskFactory taskFactory) {
-        assert ! Thread.holdsLock(this);
         lockWrite(transaction);
         synchronized (this) {
             controller = this.controller;
