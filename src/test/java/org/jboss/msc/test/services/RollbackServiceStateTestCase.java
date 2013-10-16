@@ -40,7 +40,6 @@ import org.junit.Test;
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-@Ignore
 public class RollbackServiceStateTestCase extends AbstractServiceTest {
 
     private static final ServiceName firstSN = ServiceName.of("first");

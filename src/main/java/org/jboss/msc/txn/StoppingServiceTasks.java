@@ -201,7 +201,7 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopServiceTask implements Executable<Void>, Validatable, Committable, Revertible {
+    static class StopServiceTask implements Executable<Void>, Validatable {
 
         private final Service<?> service;
 
@@ -216,16 +216,6 @@ final class StoppingServiceTasks {
         @Override
         public void validate(ValidateContext context) {
             service.validateStop(context);
-        }
-
-        @Override
-        public void commit(CommitContext context) {
-            service.commitStop(context);
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            service.rollbackStop(context);
         }
     }
 

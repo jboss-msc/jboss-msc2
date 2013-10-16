@@ -483,6 +483,8 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         private byte completeTransitionState = 0;
         // the total number of setTransition calls expected until completeTransitionTask is finished
         private int transitionCount;
+        // indicates if one or more state changes have occurred inside current transaction
+        private boolean commitScheduled;
 
         synchronized void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
             this.transactionalState = transactionalState;
@@ -523,6 +525,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             switch (transactionalState) {
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
+                        scheduleStateCommit(transaction);
                         transactionalState = STATE_STARTING;
                         completeTransitionTask = StartingServiceTasks.create(ServiceControllerImpl.this, transaction, taskFactory);
                         completeTransitionState = STATE_UP;
@@ -549,6 +552,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                     break;
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
+                        scheduleStateCommit(transaction);
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
                         completeTransitionTask = StoppingServiceTasks.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
@@ -571,6 +575,43 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
             }
             return completeTransitionTask;
+        }
+
+        private boolean hasServiceStarted() {
+            return getState() == STATE_UP && (ServiceControllerImpl.this.getState() == STATE_DOWN ||
+                    ServiceControllerImpl.this.getState() == STATE_NEW);
+        }
+
+        private boolean hasServiceStopped() {
+            return (getState() == STATE_DOWN || getState() == STATE_REMOVED) && ServiceControllerImpl.this.getState() == STATE_UP;
+        }
+
+        private void scheduleStateCommit(Transaction transaction) {
+            if (commitScheduled) {
+                return;
+            }
+            commitScheduled = true;
+            transaction.newTask().setTraits(new ServiceStateCommitter()).release();
+        }
+
+        public void revertState(RollbackContext context) {
+            if (hasServiceStopped()) {
+                service.rollbackStop(context);
+            } else if (hasServiceStarted()) {
+                service.rollbackStart(context);
+            } else {
+                context.complete();
+            }
+        }
+
+        public void commitState(CommitContext context) {
+            if (hasServiceStopped()) {
+                service.commitStop(context);
+            } else if (hasServiceStarted()) {
+                service.commitStart(context);
+            } else {
+                context.complete();
+            }
         }
 
         private void notifyServiceUp(Transaction transaction, TaskFactory taskFactory) {
@@ -627,6 +668,19 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
         private boolean isStopping() {
             return completeTransitionState == STATE_DOWN || completeTransitionState == STATE_REMOVED;
+        }
+    }
+
+    final class ServiceStateCommitter implements Committable, Revertible {
+
+        @Override
+        public void rollback(RollbackContext context) {
+            transactionalInfo.revertState(context);
+        }
+
+        @Override
+        public void commit(CommitContext context) {
+            transactionalInfo.commitState(context);
         }
     }
 

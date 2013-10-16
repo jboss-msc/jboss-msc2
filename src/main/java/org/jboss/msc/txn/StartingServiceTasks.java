@@ -210,7 +210,7 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartServiceTask<T> implements Executable<T>, Validatable, Committable, Revertible {
+    static class StartServiceTask<T> implements Executable<T>, Validatable {
 
         protected final Service<T> service;
         private final Transaction transaction;
@@ -233,16 +233,6 @@ final class StartingServiceTasks {
         @Override
         public void validate(ValidateContext context) {
             service.validateStart(context);
-        }
-
-        @Override
-        public void commit(CommitContext context) {
-            service.commitStart(context);
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            service.rollbackStart(context);
         }
     }
 
