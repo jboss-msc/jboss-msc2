@@ -118,6 +118,10 @@ public interface MSCLogger {
     @Message(id = 19, value = "Lock cleanup failed")
     void lockCleanupFailed(@Cause Throwable cause);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 20, value = "Transaction termination listener execution failed")
+    void terminationListenerFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     /*

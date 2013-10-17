@@ -79,7 +79,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private final Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
+    private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
     private final TaskParent topParent = new TaskParent() {
@@ -121,6 +121,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private Listener<? super AbortResult<? extends Transaction>> abortListener;
     private Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
+    private List<TerminationListener> terminateListeners = new ArrayList<>(0);
     private volatile boolean isRollbackRequested;
     private volatile boolean isPrepareRequested;
 
@@ -131,9 +132,25 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     final void addLock(final TransactionalLock lock) {
+        final boolean reverted;
         synchronized (this) {
-            locks.add(lock);
+            if (locks != null) {
+                locks.add(lock);
+                return;
+            }
+            reverted = isRollbackRequested;
         }
+        lock.unlock(this, reverted);
+    }
+
+    final void addTerminationListener(final TerminationListener listener) {
+        synchronized (this) {
+            if (terminateListeners != null) {
+                terminateListeners.add(listener);
+                return;
+            }
+        }
+        safeCallTerminateListener(listener);
     }
 
     final void forceStateRolledBack() {
@@ -321,11 +338,26 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
             Transactions.unregister(this);
+            final boolean reverted;
+            final Set<TransactionalLock> locks;
+            final List<TerminationListener> listeners;
             synchronized (this) {
-                for (final TransactionalLock lock : locks) {
-                    lock.unlock(this, isRollbackRequested);
-                }
+                reverted = isRollbackRequested;
+                locks = this.locks;
+                this.locks = null;
+                listeners = terminateListeners;
+                terminateListeners = null;
             }
+            // free all locks
+            for (final TransactionalLock lock : locks) {
+                lock.unlock(this, reverted);
+            }
+            locks.clear();
+            // transaction completion notifications
+            for (final TerminationListener listener : listeners) {
+                safeCallTerminateListener(listener);
+            }
+            listeners.clear();
         }
         if (userThread) {
             if (Bits.anyAreSet(state, LISTENERS_MASK)) {
@@ -349,6 +381,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             taskExecutor.execute(command);
         } catch (Throwable t) {
             MSCLogger.ROOT.runnableExecuteFailed(t, command);
+        }
+    }
+
+    static void safeCallTerminateListener(final TerminationListener listener) {
+        try {
+            listener.transactionTerminated();
+        } catch (Throwable t) {
+            MSCLogger.ROOT.terminationListenerFailed(t);
         }
     }
 
@@ -447,10 +487,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     private boolean reportIsCommittable() {
         return problemReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
-    }
-
-    final void waitFor(final Transaction other) throws InterruptedException, DeadlockException {
-        Transactions.waitFor(this,  other);
     }
 
     protected void finalize() {

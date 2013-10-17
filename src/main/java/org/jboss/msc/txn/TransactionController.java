@@ -241,7 +241,7 @@ public final class TransactionController extends SimpleAttachable {
     public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws InterruptedException, DeadlockException, SecurityException {
         validateTransaction(transaction);
         validateTransaction(other);
-        transaction.waitFor(other);
+        Transactions.waitFor(transaction, other);
     }
 
     /**
