@@ -63,7 +63,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     private ServiceRegistry registry3;
 
     @Before
-    public void setup() throws InterruptedException {
+    public void setup() {
         // registry1: contains A, B, and C
         registry1 = serviceContainer.newRegistry();
         serviceA = addService(registry1, serviceAName);
@@ -90,7 +90,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void disableServiceA() throws InterruptedException {
+    public void disableServiceA() {
         final BasicTransaction transaction = newTransaction();
         final ServiceController controller = registry1.getRequiredService(serviceAName);
         controller.disable(transaction);
@@ -108,7 +108,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void disableServiceB() throws InterruptedException {
+    public void disableServiceB() {
         BasicTransaction transaction = newTransaction();
         final ServiceController controller = registry1.getRequiredService(serviceBName);
         controller.disable(transaction);
@@ -142,7 +142,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableServiceC() throws InterruptedException {
+    public void enableServiceC() {
         final BasicTransaction transaction = newTransaction();
         final ServiceController controller = registry1.getRequiredService(serviceCName);
         controller.enable(transaction);
@@ -161,7 +161,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableServiceD() throws InterruptedException {
+    public void enableServiceD() {
         final BasicTransaction transaction = newTransaction();
         final ServiceController controller = registry2.getRequiredService(serviceDName);
         controller.disable(transaction);
@@ -179,7 +179,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableServiceA() throws InterruptedException {
+    public void enableServiceA() {
         disableServiceA();
         final BasicTransaction transaction = newTransaction();
         final ServiceController controller = registry1.getRequiredService(serviceAName);
@@ -197,7 +197,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void disableRegistry1() throws InterruptedException {
+    public void disableRegistry1() {
         final BasicTransaction transaction = newTransaction();
         registry1.disable(transaction);
         prepare(transaction);
@@ -213,7 +213,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void disableRegistry2() throws InterruptedException {
+    public void disableRegistry2() {
         BasicTransaction transaction = newTransaction();
         registry2.disable(transaction);
         // idempotent
@@ -245,7 +245,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableRegistry3() throws InterruptedException {
+    public void enableRegistry3() {
         BasicTransaction transaction = newTransaction();
         registry3.enable(transaction);
         prepare(transaction);
@@ -296,7 +296,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableRegistry1() throws InterruptedException {
+    public void enableRegistry1() {
         final BasicTransaction transaction = newTransaction();
         registry1.enable(transaction);
         registry1.disable(transaction);
@@ -314,7 +314,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void outsiderService() throws InterruptedException {
+    public void outsiderService() {
         final BasicTransaction transaction = newTransaction();
         ServiceNotFoundException expected = null;
         try {

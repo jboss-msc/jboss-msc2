@@ -234,11 +234,10 @@ public final class TransactionController extends SimpleAttachable {
      * 
      * @param transaction transaction containing current operation
      * @param other the other transaction
-     * @throws InterruptedException if the wait was interrupted
-     * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
+     * @throws DeadlockException if this wait would cause a deadlock
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws InterruptedException, DeadlockException, SecurityException {
+    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws DeadlockException, SecurityException {
         validateTransaction(transaction);
         validateTransaction(other);
         Transactions.waitFor(transaction, other);

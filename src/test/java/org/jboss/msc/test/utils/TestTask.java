@@ -54,7 +54,7 @@ public abstract class TestTask {
         if (signal != null) {
             try {
                 signal.await();
-            } catch (final InterruptedException ignored) {
+            } catch (final Exception ignored) {
             }
         }
     }

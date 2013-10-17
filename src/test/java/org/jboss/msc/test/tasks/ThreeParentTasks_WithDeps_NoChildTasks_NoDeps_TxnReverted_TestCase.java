@@ -50,7 +50,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -78,7 +78,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -107,7 +107,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -135,7 +135,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -169,7 +169,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -197,7 +197,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -225,7 +225,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
@@ -294,7 +294,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -322,7 +322,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -353,7 +353,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -381,7 +381,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -414,7 +414,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -442,7 +442,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -471,7 +471,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
@@ -544,7 +544,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase9() throws Exception {
+    public void usecase9() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -572,7 +572,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -602,7 +602,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase10() throws Exception {
+    public void usecase10() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -630,7 +630,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -662,7 +662,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase11() throws Exception {
+    public void usecase11() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -690,7 +690,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -718,7 +718,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase12() throws Exception {
+    public void usecase12() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
@@ -789,7 +789,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase13() throws Exception {
+    public void usecase13() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -817,7 +817,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -847,7 +847,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase14() throws Exception {
+    public void usecase14() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -875,7 +875,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -907,7 +907,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase15() throws Exception {
+    public void usecase15() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -935,7 +935,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -963,7 +963,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_Tes
      * </UL>
      */
     @Test
-    public void usecase16() throws Exception {
+    public void usecase16() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();

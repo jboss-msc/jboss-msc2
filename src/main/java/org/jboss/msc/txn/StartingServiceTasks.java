@@ -122,6 +122,87 @@ final class StartingServiceTasks {
         }
     }
 
+    public static <T> StartContext<T> getStartContext(final ExecuteContext<T> context, final Service<?> service, final Transaction transaction) {
+        return new StartContext<T>() {
+            @Override
+            public void lock(TransactionalLock lock) throws DeadlockException {
+                context.lock(lock);
+            }
+
+            @Override
+            public boolean tryLock(TransactionalLock lock) {
+                return context.tryLock(lock);
+            }
+
+            @Override
+            public void complete(T result) {
+                context.complete(result);
+            }
+
+            @Override
+            public void complete() {
+                context.complete();
+            }
+
+            @Override
+            public void addProblem(Problem reason) {
+                context.addProblem(reason);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message) {
+                context.addProblem(severity, message);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message, Throwable cause) {
+                context.addProblem(severity, message, cause);
+
+            }
+
+            @Override
+            public void addProblem(String message, Throwable cause) {
+                context.addProblem(message, cause);
+            }
+
+            @Override
+            public void addProblem(String message) {
+                context.addProblem(message);
+            }
+
+            @Override
+            public void addProblem(Throwable cause) {
+                context.addProblem(cause);
+            }
+
+            @Override
+            public boolean isCancelRequested() {
+                return context.isCancelRequested();
+            }
+
+            @Override
+            public void cancelled() {
+                context.cancelled();
+            }
+
+            @Override
+            public <K> TaskBuilder<K> newTask(Executable<K> task) throws IllegalStateException {
+                return context.newTask(task);
+            }
+
+            @Override
+            public TaskBuilder<Void> newTask() throws IllegalStateException {
+                return context.newTask();
+            }
+
+            @Override
+            public void fail() {
+                transaction.getAttachment(StartingServiceTasks.FAILED_SERVICES).add(service);
+                complete();
+            }
+        };
+    }
+
     /**
      * Task that starts service.
      * 
@@ -146,12 +227,12 @@ final class StartingServiceTasks {
         public void execute(final ExecuteContext<T> context) {
             service.start(new StartContext<T>() {
                 @Override
-                public void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException {
+                public void lock(TransactionalLock lock) throws DeadlockException {
                     context.lock(lock);
                 }
 
                 @Override
-                public boolean tryLock(TransactionalLock lock) throws NullPointerException {
+                public boolean tryLock(TransactionalLock lock) {
                     return context.tryLock(lock);
                 }
 

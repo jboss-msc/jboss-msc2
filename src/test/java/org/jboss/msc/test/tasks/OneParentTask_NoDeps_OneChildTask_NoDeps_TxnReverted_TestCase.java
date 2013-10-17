@@ -50,7 +50,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         // preparing child task
         final TestExecutable<Void> e1 = new TestExecutable<Void>();
@@ -109,7 +109,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
@@ -135,7 +135,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
@@ -156,7 +156,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
@@ -182,7 +182,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertNotCalled(r0);
@@ -205,7 +205,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
@@ -231,7 +231,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertNotCalled(r0);

@@ -45,7 +45,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         assertNull(addService(firstSN, ON_DEMAND, requiredFlag, secondSN));
     }
 
@@ -57,7 +57,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         assertNull(addService(firstSN, LAZY, secondSN));
     }
 
@@ -69,7 +69,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         assertNull(addService(firstSN, ACTIVE, requiredFlag, secondSN));
     }
 
@@ -81,7 +81,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, ON_DEMAND, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -96,7 +96,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -111,7 +111,7 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, ACTIVE, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();

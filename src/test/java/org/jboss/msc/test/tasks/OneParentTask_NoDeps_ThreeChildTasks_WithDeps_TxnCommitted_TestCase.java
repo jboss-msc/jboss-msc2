@@ -47,7 +47,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
@@ -150,7 +150,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
@@ -260,7 +260,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
@@ -363,7 +363,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();

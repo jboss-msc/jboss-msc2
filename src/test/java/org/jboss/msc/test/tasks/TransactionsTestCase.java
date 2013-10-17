@@ -45,7 +45,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     private static final int MAX_ACTIVE_TRANSACTIONS = 64;
 
     @Test
-    public void testMaximumActiveTransactions() throws Exception {
+    public void testMaximumActiveTransactions() {
         // create transactions to fill in the transaction id limit
         final BasicTransaction[] transactions = new BasicTransaction[MAX_ACTIVE_TRANSACTIONS];
         try {
@@ -93,43 +93,45 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void testDeadlockRollbackVersion() throws Exception {
+    public void testDeadlockRollbackVersion() {
         testDeadlock(false, true);
     }
 
     @Test
-    public void testDeadlockPrepareAbortVersion() throws Exception {
+    public void testDeadlockPrepareAbortVersion() {
         testDeadlock(true, true);
     }
 
     @Test
-    public void testDeadlockPrepareCommitVersion() throws Exception {
+    public void testDeadlockPrepareCommitVersion() {
         testDeadlock(true, false);
     }
 
     @Test
-    public void testWaitForRollbackVersion() throws Exception {
+    public void testWaitForRollbackVersion() {
         testWaitForQueueSplittedFromSeparateThread(false, true);
     }
 
     @Test
-    public void testWaitForPrepareAbortVersion() throws Exception {
+    public void testWaitForPrepareAbortVersion() {
         testWaitForQueueSplittedFromSeparateThread(true, true);
     }
 
     @Test
-    public void testWaitForPrepareCommitVersion() throws Exception {
+    public void testWaitForPrepareCommitVersion() {
         testWaitForQueueSplittedFromSeparateThread(true, false);
     }
 
     @Test
-    public void testTransactionSelfWaits() throws Exception {
+    public void testTransactionSelfWaits() {
         final BasicTransaction transaction = newTransaction();
-        txnController.waitFor(transaction, transaction);
+        try {
+            txnController.waitFor(transaction, transaction);
+        } catch (DeadlockException ignored) {}
         rollback(transaction);
     }
 
-    private void testDeadlock(final boolean callPrepare, final boolean callRollback) throws Exception {
+    private void testDeadlock(final boolean callPrepare, final boolean callRollback) {
         final int deadlockSize = 5;
         final ThreadPoolExecutor executor = newExecutor(deadlockSize);
         // prepare tasks
@@ -178,7 +180,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
         } while (!allTasksFinished);
         executor.shutdown();
-        executor.awaitTermination(60, TimeUnit.SECONDS);
+        try {
+            executor.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
         // assert test output
         final String testOutput = out.toString();
         final String[] expectedStartedTxnOrder = new String[deadlockSize];
@@ -224,8 +228,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         }
     }
 
-    private void testWaitForQueueSplittedFromSeparateThread(final boolean callPrepare, final boolean callRollback)
-            throws Exception {
+    private void testWaitForQueueSplittedFromSeparateThread(final boolean callPrepare, final boolean callRollback) {
         final ThreadPoolExecutor executor = newExecutor(4);
         // prepare tasks
         final BasicTransaction txn0 = newTransaction();
@@ -276,7 +279,9 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             }
         } while (!allTasksFinished);
         executor.shutdown();
-        executor.awaitTermination(60, TimeUnit.SECONDS);
+        try {
+            executor.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (Exception ignored) {}
         // assert test output
         final String testOutput = out.toString();
         // The order in which transactions are executed is well defined.
@@ -475,8 +480,13 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             return id;
         }
 
-        private synchronized boolean isTerminated() throws InterruptedException {
-            return endSignal != null ? endSignal.await(50, TimeUnit.NANOSECONDS) : false;
+        private synchronized boolean isTerminated() {
+            if (endSignal != null) {
+                try {
+                    return endSignal.await(50, TimeUnit.NANOSECONDS);
+                } catch (Exception ignored) {}
+            }
+            return false;
         }
     }
 }

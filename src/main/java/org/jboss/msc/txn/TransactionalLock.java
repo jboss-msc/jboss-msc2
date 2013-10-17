@@ -43,7 +43,7 @@ public final class TransactionalLock {
     
     TransactionalLock() {}
     
-    void lock(final Transaction newOwner) throws InterruptedException, DeadlockException {
+    void lock(final Transaction newOwner) throws DeadlockException {
         Transaction previousOwner;
         do {
             previousOwner = owner;

@@ -721,7 +721,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             validatable.validate(new ValidateContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                public void lock(final TransactionalLock lock) throws DeadlockException {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
@@ -808,7 +808,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             rev.rollback(new RollbackContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                public void lock(final TransactionalLock lock) throws DeadlockException {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
@@ -841,7 +841,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                public void lock(final TransactionalLock lock) throws DeadlockException {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
@@ -931,7 +931,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             committable.commit(new CommitContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException, InterruptedException {
+                public void lock(final TransactionalLock lock) throws DeadlockException {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }

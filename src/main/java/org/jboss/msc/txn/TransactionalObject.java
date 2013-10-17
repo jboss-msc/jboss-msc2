@@ -46,7 +46,7 @@ abstract class TransactionalObject {
         try {
             lock.lock(transaction);
             configureLockCleaner();
-        } catch (InterruptedException|DeadlockException e) {
+        } catch (DeadlockException e) {
             // TODO review this: isn't there a better way of adding this problem, specifically why do we need
             // a task controller, and how will that look like in the log?
             final Problem problem = new Problem(null, e);

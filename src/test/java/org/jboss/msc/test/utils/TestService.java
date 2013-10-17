@@ -85,12 +85,22 @@ public final class TestService implements Service<Void> {
         stopLatch.countDown();
     }
 
-    public void waitStart() throws InterruptedException {
-        startLatch.await();
+    public void waitStart() {
+        while (true) {
+            try {
+                startLatch.await();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
-    public void waitStop() throws InterruptedException {
-        stopLatch.await();
+    public void waitStop() {
+        while (true) {
+            try {
+                stopLatch.await();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
     public boolean isFailed() {

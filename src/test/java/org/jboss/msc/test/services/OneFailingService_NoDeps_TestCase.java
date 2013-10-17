@@ -44,7 +44,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -61,7 +61,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -78,7 +78,7 @@ public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, true, ACTIVE);
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());

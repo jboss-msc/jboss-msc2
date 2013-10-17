@@ -44,7 +44,7 @@ public class OneService_NoDeps_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -59,7 +59,7 @@ public class OneService_NoDeps_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -74,7 +74,7 @@ public class OneService_NoDeps_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         shutdownContainer();

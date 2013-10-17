@@ -43,7 +43,7 @@ public class ListenersTestCase extends AbstractTransactionTest {
     private volatile boolean abortCalled;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         super.setUp();
         prepareCalled = abortCalled = false;
     }
@@ -57,7 +57,7 @@ public class ListenersTestCase extends AbstractTransactionTest {
      * transaction have been aborted.
      */
     @Test
-    public void testPrepareAbortListeners() throws InterruptedException {
+    public void testPrepareAbortListeners() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch abortSignal = new CountDownLatch(1);
         final CountDownLatch executeSignal = new CountDownLatch(1);
@@ -70,7 +70,7 @@ public class ListenersTestCase extends AbstractTransactionTest {
         final Validatable validatable = new Validatable() {
             @Override
             public void validate(final ValidateContext context) {
-                try { executeSignal.await(); } catch (final InterruptedException ignored) {}
+                try { executeSignal.await(); } catch (final Exception ignored) {}
             }
         };
         txnController.newTask(transaction, executable).setValidatable(validatable).release();
@@ -79,7 +79,9 @@ public class ListenersTestCase extends AbstractTransactionTest {
                 prepareCalled = true;
             }
         });
-        abortSignal.await();
+        try {
+            abortSignal.await();
+        } catch (Exception ignored) {}
         final CountDownLatch finishSignal = new CountDownLatch(1);
         txnController.abort(transaction, new Listener<AbortResult<BasicTransaction>>() {
             @Override public void handleEvent(final AbortResult<BasicTransaction> result) {
@@ -88,7 +90,9 @@ public class ListenersTestCase extends AbstractTransactionTest {
             }
         });
         executeSignal.countDown();
-        finishSignal.await();
+        try {
+            finishSignal.await();
+        } catch (Exception ignored) {}
         assertTrue(prepareCalled);
         assertTrue(abortCalled);
     }

@@ -55,7 +55,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch childValidateSignal = new CountDownLatch(1);
         final CountDownLatch childCommitSignal = new CountDownLatch(1);
@@ -90,12 +90,12 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
         final CompletionListener<PrepareResult<BasicTransaction>> prepareListener = new CompletionListener<>();
         prepare(transaction, prepareListener);
         try {
-            prepareListener.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            prepareListener.awaitCompletionUninterruptibly(100, TimeUnit.MILLISECONDS);
             fail("Timeout expected");
         } catch (TimeoutException ignored) {}
         // let children to finish validate
         childValidateSignal.countDown();
-        prepareListener.awaitCompletion();
+        prepareListener.awaitCompletionUninterruptibly();
         assertPrepared(transaction);
         // transaction prepared
         assertCalled(parent0e);
@@ -117,12 +117,12 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
         final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
         commit(transaction, commitListener);
         try {
-            commitListener.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            commitListener.awaitCompletionUninterruptibly(100, TimeUnit.MILLISECONDS);
             fail("Timeout expected");
         } catch (TimeoutException ignored) {}
         // let children to finish commit
         childCommitSignal.countDown();
-        commitListener.awaitCompletion();
+        commitListener.awaitCompletionUninterruptibly();
         assertCommitted(transaction);
         // transaction committed
         assertCalled(parent0e);

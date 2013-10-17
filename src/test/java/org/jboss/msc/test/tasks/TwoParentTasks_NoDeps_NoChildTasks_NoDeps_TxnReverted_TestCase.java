@@ -51,7 +51,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
@@ -105,7 +105,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -126,7 +126,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertNotCalled(r0);
@@ -148,7 +148,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
@@ -169,7 +169,7 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnReverted_TestCas
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);

@@ -48,7 +48,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -68,7 +68,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -88,7 +88,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -108,7 +108,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, firstSN);
@@ -128,7 +128,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, firstSN);
@@ -148,7 +148,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, firstSN);
@@ -168,7 +168,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         final TestService secondService = addService(secondSN, ACTIVE, firstSN);
         assertTrue(firstService.isUp());
@@ -187,7 +187,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, firstSN);
@@ -207,7 +207,7 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
      * </UL>
      */
     @Test
-    public void usecase9() throws Exception {
+    public void usecase9() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, firstSN);

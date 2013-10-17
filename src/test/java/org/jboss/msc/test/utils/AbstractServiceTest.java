@@ -62,7 +62,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     @Override
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         super.setUp();
         serviceContainer = ServiceContainerFactory.getInstance().newServiceContainer();
         serviceRegistry = serviceContainer.newRegistry();
@@ -71,16 +71,16 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     @Override
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         shutdownContainer();
         super.tearDown();
     }
 
-    protected final void removeRegistry() throws Exception {
+    protected final void removeRegistry() {
         removeRegistry(serviceRegistry);
     }
 
-    protected final void removeRegistry(final ServiceRegistry serviceRegistry) throws Exception {
+    protected final void removeRegistry(final ServiceRegistry serviceRegistry) {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
@@ -88,11 +88,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNoCriticalProblems(txn);
     }
 
-    protected final void enableRegistry() throws Exception {
+    protected final void enableRegistry() {
         enableRegistry(serviceRegistry);
     }
 
-    protected final void enableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
+    protected final void enableRegistry(final ServiceRegistry serviceRegistry) {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
@@ -100,11 +100,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNoCriticalProblems(txn);
     }
 
-    protected final void disableRegistry() throws Exception {
+    protected final void disableRegistry() {
         disableRegistry(serviceRegistry);
     }
 
-    protected final void disableRegistry(final ServiceRegistry serviceRegistry) throws Exception {
+    protected final void disableRegistry(final ServiceRegistry serviceRegistry) {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
@@ -112,11 +112,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNoCriticalProblems(txn);
     }
 
-    protected final void shutdownContainer() throws Exception {
+    protected final void shutdownContainer() {
         shutdownContainer(serviceContainer);
     }
 
-    protected final void shutdownContainer(final ServiceContainer serviceContainer) throws Exception {
+    protected final void shutdownContainer(final ServiceContainer serviceContainer) {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn)).release();
         prepare(txn);
@@ -124,11 +124,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNoCriticalProblems(txn);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, new DependencyInfo[0]);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
@@ -148,7 +148,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
         // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
         DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
         for (int i = 0; i < dependencies.length; i++) {
@@ -157,15 +157,15 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencyInfos);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final DependencyInfo<?>... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final DependencyInfo<?>... dependencies) {
         return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
@@ -185,43 +185,43 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencyFlags, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencyFlags, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) throws InterruptedException {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final TestService service) throws InterruptedException {
+    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
@@ -235,11 +235,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final boolean removeService(final ServiceName serviceName, final TestService service) throws InterruptedException {
+    protected final boolean removeService(final ServiceName serviceName, final TestService service) {
         return removeService(serviceRegistry, serviceName, service);
     }
 
-    protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+    protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
@@ -249,11 +249,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNull(serviceRegistry.getService(serviceName));
     }
 
-    protected final void enableService(final ServiceName serviceName) throws InterruptedException {
+    protected final void enableService(final ServiceName serviceName) {
         enableService(serviceRegistry, serviceName);
     }
     
-    protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+    protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
@@ -263,15 +263,15 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNull(serviceRegistry.getService(serviceName));
     }
 
-    protected final void disableService(final ServiceName serviceName) throws InterruptedException {
+    protected final void disableService(final ServiceName serviceName) {
         enableService(serviceRegistry, serviceName);
     }
     
-    protected final TestService getService(final ServiceName serviceName) throws InterruptedException {
+    protected final TestService getService(final ServiceName serviceName) {
         return getService(serviceRegistry, serviceName);
     }
     
-    protected final TestService getService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) throws InterruptedException {
+    protected final TestService getService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         final ServiceController controller = serviceRegistry.getService(serviceName);
         return (TestService) (controller != null ? controller.getService() : null); 
     }

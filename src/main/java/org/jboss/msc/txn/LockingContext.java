@@ -22,7 +22,7 @@ package org.jboss.msc.txn;
  * A context that allows to acquire transaction aware locks.
  * 
  * <p>Once the lock is acquired it will be automatically released when transaction will be terminated i.e.
- * either after transaction rollback or commit phase completion.
+ * either after transaction rollback, commit or abort phase completion.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -30,30 +30,15 @@ package org.jboss.msc.txn;
 public interface LockingContext {
 
     /**
-     * Transaction acquires the lock unless the current thread is interrupted. 
+     * Transaction acquires the lock. 
      *
      * <p>If the lock is not available then the current transaction becomes
-     * inactive and lies dormant until one of two things happens:
-     *
-     * <ul>
-     *   <li>The lock is acquired by the current transaction; or</li>
-     *   <li>Some other thread interrupts the current thread.</li>
-     * </ul> 
+     * inactive and lies dormant until the lock is acquired by the current transaction.
      * 
-     * <p>If the current thread:
-     * 
-     * <ul>
-     *   <li>has its interrupted status set on entry to this method; or</li>
-     *   <li>is interrupted while acquiring the lock</li>
-     * </ul> 
-     * 
-     * <p>then InterruptedException is thrown and the current thread's interrupted status is cleared. 
      * @param lock the lock to acquire
      * @throws DeadlockException if deadlock was detected
-     * @throws InterruptedException if the current thread is interrupted while acquiring the lock
-     * @throws NullPointerException if method parameter is null
      */
-    void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException;
+    void lock(TransactionalLock lock) throws DeadlockException;
 
     /**
      * Transaction acquires the lock only if it is free at the time of invocation.
@@ -66,8 +51,7 @@ public interface LockingContext {
      * @param lock the lock to acquire
      * @return {@code true} if the lock was acquired and
      *         {@code false} otherwise
-     * @throws NullPointerException if method parameter is null
      */
-    boolean tryLock(TransactionalLock lock) throws NullPointerException;
+    boolean tryLock(TransactionalLock lock);
 
 }

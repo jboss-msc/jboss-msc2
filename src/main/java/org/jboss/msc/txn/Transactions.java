@@ -129,7 +129,7 @@ final class Transactions {
         }
     }
 
-    static void waitFor(final Transaction dependent, final Transaction dependency) throws DeadlockException, InterruptedException {
+    static void waitFor(final Transaction dependent, final Transaction dependency) throws DeadlockException {
         final CountDownLatch signal = new CountDownLatch(1);
         final TerminationListener listener = new TerminationListener() {
             @Override
@@ -138,7 +138,18 @@ final class Transactions {
             }
         };
         waitFor(dependent, dependency, listener);
-        signal.await();
+        boolean interrupted = false;
+        while (true) {
+            try {
+                signal.await();
+                break;
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
 

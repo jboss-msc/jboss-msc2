@@ -136,12 +136,12 @@ final class StoppingServiceTasks {
         public void execute(final ExecuteContext<Void> context) {
             service.stop(new StopContext(){
                 @Override
-                public void lock(TransactionalLock lock) throws DeadlockException, InterruptedException, NullPointerException {
+                public void lock(TransactionalLock lock) throws DeadlockException {
                     context.lock(lock);
                 }
 
                 @Override
-                public boolean tryLock(TransactionalLock lock) throws NullPointerException {
+                public boolean tryLock(TransactionalLock lock) {
                     return context.tryLock(lock);
                 }
 

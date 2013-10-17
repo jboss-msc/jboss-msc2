@@ -46,7 +46,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnCommitted_Test
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
