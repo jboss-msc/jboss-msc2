@@ -17,6 +17,8 @@
  */
 package org.jboss.msc.txn;
 
+import java.util.concurrent.CountDownLatch;
+
 /**
  * Object with write lock support per transaction.
  * <p>
@@ -43,16 +45,25 @@ abstract class TransactionalObject {
      */
     final void lockWrite(final Transaction transaction) {
         assert !Thread.holdsLock(this);
-        try {
-            lock.lock(transaction);
-            configureLockCleaner();
-        } catch (DeadlockException e) {
-            // TODO review this: isn't there a better way of adding this problem, specifically why do we need
-            // a task controller, and how will that look like in the log?
-            final Problem problem = new Problem(null, e);
-            transaction.getProblemReport().addProblem(problem);
-            // TODO: we should return and stop processing completely
-        }
+        final CountDownLatch signal = new CountDownLatch(1);
+        lock.lockAsynchronously(transaction, new LockListener() {
+            @Override
+            public void lockAcquired() {
+                configureLockCleaner();
+                signal.countDown();
+            }
+
+            @Override
+            public void deadlockDetected(final DeadlockException e) {
+                // TODO review this: isn't there a better way of adding this problem, specifically why do we need
+                // a task controller, and how will that look like in the log?
+                final Problem problem = new Problem(null, e);
+                transaction.getProblemReport().addProblem(problem);
+                // TODO: we should return and stop processing completely
+                signal.countDown();
+            }
+        });
+        try {signal.await();} catch (InterruptedException ignored) {}
     }
     
     private void configureLockCleaner() {

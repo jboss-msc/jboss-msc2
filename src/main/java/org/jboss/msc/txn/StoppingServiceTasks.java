@@ -136,8 +136,8 @@ final class StoppingServiceTasks {
         public void execute(final ExecuteContext<Void> context) {
             service.stop(new StopContext(){
                 @Override
-                public void lock(TransactionalLock lock) throws DeadlockException {
-                    context.lock(lock);
+                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
+                    context.lockAsynchronously(lock, listener);
                 }
 
                 @Override

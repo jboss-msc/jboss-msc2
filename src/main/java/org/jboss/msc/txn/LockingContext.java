@@ -30,15 +30,16 @@ package org.jboss.msc.txn;
 public interface LockingContext {
 
     /**
-     * Transaction acquires the lock. 
+     * Transaction acquires the lock asynchronously.
+     * Completion listener is called upon lock retrieval.
      *
      * <p>If the lock is not available then the current transaction becomes
      * inactive and lies dormant until the lock is acquired by the current transaction.
      * 
      * @param lock the lock to acquire
-     * @throws DeadlockException if deadlock was detected
+     * @param listener lock request completion listener
      */
-    void lock(TransactionalLock lock) throws DeadlockException;
+    void lockAsynchronously(TransactionalLock lock, LockListener listener);
 
     /**
      * Transaction acquires the lock only if it is free at the time of invocation.

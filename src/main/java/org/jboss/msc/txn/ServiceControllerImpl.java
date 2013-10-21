@@ -656,7 +656,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             if (getState() == STATE_UP && (getState(state) == STATE_DOWN || getState(state) == STATE_NEW)) {
                 service.stop(new StopContext() {
                     @Override
-                    public void lock(TransactionalLock lock) throws DeadlockException {
+                    public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
                         // ignore
                     }
 
@@ -728,7 +728,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             } else if ((getState() == STATE_DOWN || getState() == STATE_REMOVED) && getState(state) == STATE_UP) {
                 service.start(new StartContext<T>() {
                     @Override
-                    public void lock(TransactionalLock lock) throws DeadlockException {
+                    public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
                         // ignore
                     }
 

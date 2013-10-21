@@ -122,6 +122,10 @@ public interface MSCLogger {
     @Message(id = 20, value = "Transaction termination listener execution failed")
     void terminationListenerFailed(@Cause Throwable cause);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 21, value = "Lock request listener execution failed")
+    void lockListenerFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     /*

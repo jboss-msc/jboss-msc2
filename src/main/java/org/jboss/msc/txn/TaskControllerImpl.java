@@ -721,11 +721,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             validatable.validate(new ValidateContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException {
+                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
-                    lock.lock(getTransaction());
+                    if (listener == null) {
+                        throw TXN.methodParameterIsNull("listener");
+                    }
+                    lock.lockAsynchronously(getTransaction(), listener);
                 }
 
                 @Override
@@ -808,11 +811,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             rev.rollback(new RollbackContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException {
+                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
-                    lock.lock(getTransaction());
+                    if (listener == null) {
+                        throw TXN.methodParameterIsNull("listener");
+                    }
+                    lock.lockAsynchronously(getTransaction(), listener);
                 }
 
                 @Override
@@ -841,11 +847,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException {
+                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
-                    lock.lock(getTransaction());
+                    if (listener == null) {
+                        throw TXN.methodParameterIsNull("listener");
+                    }
+                    lock.lockAsynchronously(getTransaction(), listener);
                 }
 
                 @Override
@@ -931,11 +940,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             setClassLoader();
             committable.commit(new CommitContext() {
                 @Override
-                public void lock(final TransactionalLock lock) throws DeadlockException {
+                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
                     if (lock == null) {
                         throw TXN.methodParameterIsNull("lock");
                     }
-                    lock.lock(getTransaction());
+                    if (listener == null) {
+                        throw TXN.methodParameterIsNull("listener");
+                    }
+                    lock.lockAsynchronously(getTransaction(), listener);
                 }
 
                 @Override

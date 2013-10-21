@@ -125,8 +125,8 @@ final class StartingServiceTasks {
     public static <T> StartContext<T> getStartContext(final ExecuteContext<T> context, final Service<?> service, final Transaction transaction) {
         return new StartContext<T>() {
             @Override
-            public void lock(TransactionalLock lock) throws DeadlockException {
-                context.lock(lock);
+            public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
+                context.lockAsynchronously(lock, listener);
             }
 
             @Override
@@ -227,8 +227,8 @@ final class StartingServiceTasks {
         public void execute(final ExecuteContext<T> context) {
             service.start(new StartContext<T>() {
                 @Override
-                public void lock(TransactionalLock lock) throws DeadlockException {
-                    context.lock(lock);
+                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
+                    context.lockAsynchronously(lock, listener);
                 }
 
                 @Override

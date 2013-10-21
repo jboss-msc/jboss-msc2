@@ -43,31 +43,42 @@ public final class TransactionalLock {
     
     TransactionalLock() {}
     
-    void lock(final Transaction newOwner) throws DeadlockException {
+    void lockAsynchronously(final Transaction newOwner, final LockListener listener) {
         Transaction previousOwner;
-        do {
+        while (true) {
             previousOwner = owner;
-            if (previousOwner == newOwner) {
-                return; // reentrant access
+            if (previousOwner == null) {
+                if (ownerUpdater.compareAndSet(this, null, newOwner)) {
+                    // lock successfully acquired
+                    newOwner.addLock(this);
+                    safeCallLockListener(listener, null);
+                    break;
+                }
+            } else {
+                if (previousOwner == newOwner) {
+                    // reentrant access
+                    safeCallLockListener(listener, null);
+                    break;
+                } else {
+                    // some transaction already owns the lock, registering termination listener
+                    try {
+                        Transactions.waitFor(newOwner, previousOwner, new TerminationListener() {
+                            @Override
+                            public void transactionTerminated() {
+                                lockAsynchronously(newOwner, listener);
+                            }
+                        });
+                    } catch (final DeadlockException e) {
+                        safeCallLockListener(listener, e);
+                    }
+                    break;
+                }
             }
-            if (previousOwner != null) {
-                Transactions.waitFor(newOwner, previousOwner);
-            }
-        } while (!ownerUpdater.compareAndSet(this, null, newOwner));
-        newOwner.addLock(this);
+        }
     }
-    
+
     boolean tryLock(final Transaction newOwner) {
-        Transaction previousOwner;
-        do {
-            previousOwner = owner;
-            if (previousOwner == newOwner) {
-                return true; // reentrant access
-            }
-            if (previousOwner != null) {
-                return false;
-            }
-        } while (!ownerUpdater.compareAndSet(this, null, newOwner));
+        if (!ownerUpdater.compareAndSet(this, null, newOwner)) return false;
         newOwner.addLock(this);
         return true;
     }
@@ -91,6 +102,18 @@ public final class TransactionalLock {
         }
     }
     
+    private void safeCallLockListener(final LockListener listener, final DeadlockException e) {
+        try {
+            if (e == null) {
+                listener.lockAcquired();
+            } else {
+                listener.deadlockDetected(e);
+            }
+        } catch (final Throwable t) {
+            MSCLogger.FAIL.lockListenerFailed(t);
+        }
+    }
+
     boolean isOwnedBy(final Transaction txn) {
         return owner == txn;
     }
