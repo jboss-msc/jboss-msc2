@@ -479,7 +479,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         synchronized (this) {
             if (stateOf(state) != STATE_PREPARED) {
-                return false;
+                throw new InvalidTransactionStateException("Transaction must be in prepared state to inspect commitable status");
             }
         }
         return reportIsCommittable();

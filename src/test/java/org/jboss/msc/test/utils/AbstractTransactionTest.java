@@ -174,6 +174,11 @@ public abstract class AbstractTransactionTest {
     protected static void assertPrepared(final BasicTransaction transaction) {
         assertNotNull(transaction);
         try {
+            txnController.canCommit(transaction);
+        } catch (InvalidTransactionStateException e) {
+            fail("It must be possible to call canCommit() on prepared transaction");
+        }
+        try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on prepared transaction");
         } catch (final InvalidTransactionStateException expected) {
@@ -187,7 +192,10 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertAborted(final BasicTransaction transaction) {
         assertNotNull(transaction);
-        assertFalse(txnController.canCommit(transaction));
+        try {
+            txnController.canCommit(transaction);
+        } catch (final InvalidTransactionStateException expected) {
+        }
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on aborted transaction");
@@ -213,7 +221,10 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertRolledBack(final BasicTransaction transaction) {
         assertNotNull(transaction);
-        assertFalse(txnController.canCommit(transaction));
+        try {
+            txnController.canCommit(transaction);
+        } catch (final InvalidTransactionStateException expected) {
+        }
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on rolled back transaction");
@@ -239,7 +250,10 @@ public abstract class AbstractTransactionTest {
 
     protected static void assertCommitted(final BasicTransaction transaction) {
         assertNotNull(transaction);
-        assertFalse(txnController.canCommit(transaction));
+        try {
+            txnController.canCommit(transaction);
+        } catch (final InvalidTransactionStateException expected) {
+        }
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on committed transaction");
