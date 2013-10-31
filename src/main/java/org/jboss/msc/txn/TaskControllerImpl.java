@@ -720,25 +720,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (validatable != null) try {
             setClassLoader();
             validatable.validate(new ValidateContext() {
-                @Override
-                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    if (listener == null) {
-                        throw TXN.methodParameterIsNull("listener");
-                    }
-                    lock.lockAsynchronously(getTransaction(), listener);
-                }
-
-                @Override
-                public boolean tryLock(final TransactionalLock lock) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    return lock.tryLock(getTransaction());
-                }
-
                 public void addProblem(final Problem reason) {
                     problemReport.addProblem(reason);
                 }
@@ -810,25 +791,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (rev != null) try {
             setClassLoader();
             rev.rollback(new RollbackContext() {
-                @Override
-                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    if (listener == null) {
-                        throw TXN.methodParameterIsNull("listener");
-                    }
-                    lock.lockAsynchronously(getTransaction(), listener);
-                }
-
-                @Override
-                public boolean tryLock(final TransactionalLock lock) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    return lock.tryLock(getTransaction());
-                }
-
                 public void complete() {
                     rollbackComplete();
                 }
@@ -939,25 +901,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (committable != null) try {
             setClassLoader();
             committable.commit(new CommitContext() {
-                @Override
-                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    if (listener == null) {
-                        throw TXN.methodParameterIsNull("listener");
-                    }
-                    lock.lockAsynchronously(getTransaction(), listener);
-                }
-
-                @Override
-                public boolean tryLock(final TransactionalLock lock) {
-                    if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
-                    }
-                    return lock.tryLock(getTransaction());
-                }
-
                 public void complete() {
                     commitComplete();
                 }
