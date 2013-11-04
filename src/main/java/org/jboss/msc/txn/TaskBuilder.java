@@ -61,14 +61,6 @@ public interface TaskBuilder<T> {
     TaskBuilder<T> setRevertible(final Revertible revertible);
 
     /**
-     * Set the committable part of this task, or {@code null} if this task should not support commit operations.
-     *
-     * @param committable the committable part
-     * @return this task builder
-     */
-    TaskBuilder<T> setCommittable(final Committable committable);
-
-    /**
      * todo - doc
      *
      * @param task

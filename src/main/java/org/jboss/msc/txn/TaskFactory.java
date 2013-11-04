@@ -26,8 +26,7 @@ interface TaskFactory {
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
-     * builder properties will be pre-initialized.
+     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
      * 
      * @param task the task
      * @param <T> the result value type (may be {@link Void})

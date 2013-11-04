@@ -85,20 +85,20 @@ import org.jboss.msc._private.MSCLogger;
  *  +-------+-------+         |   |   |   |      |        |
  *          |                 |   |   |   |      |        |
  *          |                 |   |   |   |      |        |
- *          v                 v   v   v   v      |        |
- *  +---------------+     +---------------+      |        |
- *  |               |     |               |      |        |
- *  |  COMMIT_WAIT  |     | ROLLBACK_WAIT |      |        |
- *  |               |     |               |      |        |
- *  +-------+-------+     +-------+-------+      |        |
+ *          |                 v   v   v   v      |        |
+ *          |             +---------------+      |        |
+ *          |             |               |      |        |
+ *          |             | ROLLBACK_WAIT |      |        |
+ *          |             |               |      |        |
+ *          |             +-------+-------+      |        |
  *          |                     |              |        |
- *          |                     |              |        |
- *          v                     v              |        |
- *  +---------------+     +---------------+      |        |
- *  |               |     |               |      |        |
- *  |     COMMIT    |     |    ROLLBACK   |      |        |
- *  |               |     |               |      |        |
- *  +-------+-------+     +-------+-------+      |        |
+ *          | commit_req          |              |        |
+ *          |                     v              |        |
+ *          |             +---------------+      |        |
+ *          |             |               |      |        |
+ *          |             |    ROLLBACK   |      |        |
+ *          |             |               |      |        |
+ *          |             +-------+-------+      |        |
  *          |                     |              |        |
  *          |                     |              |        |
  *          v                     v              v        v
@@ -130,7 +130,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private final Executable<T> executable;
     private final Revertible revertible;
     private final Validatable validatable;
-    private final Committable committable;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<TaskControllerImpl<?>>();
     private final ArrayList<TaskChild> children = new ArrayList<TaskChild>();
@@ -139,7 +138,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private int unfinishedDependencies;
     private int unfinishedChildren;
     private int unvalidatedChildren;
-    private int uncommittedDependencies;
     private int unterminatedChildren;
     private int unterminatedDependents;
 
@@ -158,12 +156,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int STATE_VALIDATE               = 5;
     private static final int STATE_VALIDATE_CHILDREN_WAIT = 6;
     private static final int STATE_VALIDATE_DONE          = 7;
-    private static final int STATE_COMMIT_WAIT            = 8;
-    private static final int STATE_COMMIT                 = 9;
-    private static final int STATE_ROLLBACK_WAIT          = 10;
-    private static final int STATE_ROLLBACK               = 11;
-    private static final int STATE_TERMINATE_WAIT         = 12;
-    private static final int STATE_TERMINATED             = 13;
+    private static final int STATE_ROLLBACK_WAIT          = 8;
+    private static final int STATE_ROLLBACK               = 9;
+    private static final int STATE_TERMINATE_WAIT         = 10;
+    private static final int STATE_TERMINATED             = 11;
     private static final int STATE_LAST = STATE_TERMINATED;
 
     private static final int T_NONE = 0;
@@ -189,17 +185,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE = 13;
 
     private static final int T_VALIDATE_DONE_to_ROLLBACK_WAIT = 14;
-    private static final int T_VALIDATE_DONE_to_COMMIT_WAIT = 15;
+    private static final int T_VALIDATE_DONE_to_TERMINATE_WAIT = 15;
 
-    private static final int T_COMMIT_WAIT_to_COMMIT = 16;
+    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 16;
 
-    private static final int T_COMMIT_to_TERMINATE_WAIT = 17;
+    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 17;
 
-    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 18;
-
-    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 19;
-
-    private static final int T_TERMINATE_WAIT_to_TERMINATED = 20;
+    private static final int T_TERMINATE_WAIT_to_TERMINATED = 18;
 
     /**
      * A cancel request, due to rollback or dependency failure.
@@ -214,44 +206,40 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     // non-persistent status flags
     private static final int FLAG_EXECUTE_DONE          = 1 << 8;
     private static final int FLAG_VALIDATE_DONE         = 1 << 9;
-    private static final int FLAG_COMMIT_DONE           = 1 << 10;
-    private static final int FLAG_ROLLBACK_DONE         = 1 << 11;
-    private static final int FLAG_INSTALL_FAILED        = 1 << 12;
+    private static final int FLAG_ROLLBACK_DONE         = 1 << 10;
+    private static final int FLAG_INSTALL_FAILED        = 1 << 11;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_CHILD_DONE           = 1 << 13; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_DONE      = 1 << 14; // to dependents
-    private static final int FLAG_SEND_VALIDATE_REQ         = 1 << 15; // to children
-    private static final int FLAG_SEND_CHILD_VALIDATE_DONE  = 1 << 17; // to parents
-    private static final int FLAG_SEND_COMMIT_DONE          = 1 << 18; // to dependents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 19; // to parents
-    private static final int FLAG_SEND_TERMINATED           = 1 << 20; // to dependencies
-    private static final int FLAG_SEND_CANCEL_REQ           = 1 << 21; // to children
-    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 22; // to children
-    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 23; // to children
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 24; // to dependents
+    private static final int FLAG_SEND_CHILD_DONE           = 1 << 12; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_DONE      = 1 << 13; // to dependents
+    private static final int FLAG_SEND_VALIDATE_REQ         = 1 << 14; // to children
+    private static final int FLAG_SEND_CHILD_VALIDATE_DONE  = 1 << 15; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 16; // to parents
+    private static final int FLAG_SEND_TERMINATED           = 1 << 17; // to dependencies
+    private static final int FLAG_SEND_CANCEL_REQ           = 1 << 18; // to children
+    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 19; // to children
+    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 20; // to children
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 21; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(13, 24);
+    private static final int SEND_FLAGS = Bits.intBitMask(12, 21);
 
-    private static final int FLAG_DO_EXECUTE        = 1 << 25;
-    private static final int FLAG_DO_VALIDATE       = 1 << 26;
-    private static final int FLAG_DO_COMMIT         = 1 << 27;
-    private static final int FLAG_DO_ROLLBACK       = 1 << 28;
+    private static final int FLAG_DO_EXECUTE        = 1 << 22;
+    private static final int FLAG_DO_VALIDATE       = 1 << 23;
+    private static final int FLAG_DO_ROLLBACK       = 1 << 24;
 
-    private static final int DO_FLAGS = Bits.intBitMask(25, 28);
+    private static final int DO_FLAGS = Bits.intBitMask(22, 24);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
 
     private static final int FLAG_USER_THREAD       = 1 << 31; // called from user thread; do not block
 
-    TaskControllerImpl(final TaskParent parent, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final Revertible revertible, final Validatable validatable, final Committable committable, final ClassLoader classLoader) {
+    TaskControllerImpl(final TaskParent parent, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final Revertible revertible, final Validatable validatable, final ClassLoader classLoader) {
         this.parent = parent;
         this.dependencies = dependencies;
         this.executable = executable;
         this.revertible = revertible;
         this.validatable = validatable;
-        this.committable = committable;
         this.classLoader = classLoader;
         state = STATE_NEW;
     }
@@ -343,23 +331,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
             case STATE_VALIDATE_DONE: {
                 if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    return T_VALIDATE_DONE_to_COMMIT_WAIT;
+                    return T_VALIDATE_DONE_to_TERMINATE_WAIT;
                 } else if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                     return T_VALIDATE_DONE_to_ROLLBACK_WAIT;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_COMMIT_WAIT: {
-                if (uncommittedDependencies == 0) {
-                    return T_COMMIT_WAIT_to_COMMIT;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_COMMIT: {
-                if (Bits.allAreSet(state, FLAG_COMMIT_DONE)) {
-                    return T_COMMIT_to_TERMINATE_WAIT;
                 } else {
                     return T_NONE;
                 }
@@ -445,20 +419,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     state = newState(STATE_VALIDATE_DONE, state | FLAG_SEND_CHILD_VALIDATE_DONE);
                     continue;
                 }
-                case T_VALIDATE_DONE_to_COMMIT_WAIT: {
-                    state = newState(STATE_COMMIT_WAIT, state);
-                    continue;
-                }
-                case T_COMMIT_WAIT_to_COMMIT: {
-                    if (committable == null) {
-                        state = newState(STATE_COMMIT, state | FLAG_COMMIT_DONE);
-                        continue;
-                    }
-                    // not possible to go any farther
-                    return newState(STATE_COMMIT, state | FLAG_DO_COMMIT);
-                }
-                case T_COMMIT_to_TERMINATE_WAIT: {
-                    state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_COMMIT_DONE | FLAG_SEND_COMMIT_REQ);
+                case T_VALIDATE_DONE_to_TERMINATE_WAIT: {
+                    state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_COMMIT_REQ);
                     continue;
                 }
                 case T_TERMINATE_WAIT_to_TERMINATED: {
@@ -557,11 +519,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
             parent.childValidationFinished(userThread);
         }
-        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_DONE)) {
-            for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.dependencyCommitComplete(userThread);
-            }
-        }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             parent.childTerminated(userThread);
         }
@@ -589,9 +546,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
                 safeExecute(new AsyncTask(FLAG_DO_ROLLBACK));
             }
-            if (Bits.allAreSet(state, FLAG_DO_COMMIT)) {
-                safeExecute(new AsyncTask(FLAG_DO_COMMIT));
-            }
         } else {
             if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
                 execute();
@@ -601,9 +555,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
                 rollback();
-            }
-            if (Bits.allAreSet(state, FLAG_DO_COMMIT)) {
-                commit();
             }
         }
     }
@@ -896,36 +847,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
     }
 
-    void commit() {
-        final Committable committable = this.committable;
-        if (committable != null) try {
-            setClassLoader();
-            committable.commit(new CommitContext() {
-                public void complete() {
-                    commitComplete();
-                }
-            });
-        } catch (Throwable t) {
-            MSCLogger.TASK.taskCommitFailed(t, committable);
-        } finally {
-            unsetClassLoader();
-        }
-    }
-
-    void commitComplete() {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_USER_THREAD | FLAG_COMMIT_DONE;
-            if (stateOf(state) != STATE_COMMIT) {
-                throw new IllegalStateException("Task may not be completed now");
-            }
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
     public void childExecutionFinished(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
@@ -999,19 +920,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             unfinishedDependencies--;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    public void dependencyCommitComplete(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            uncommittedDependencies--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -1100,7 +1008,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            uncommittedDependencies = unfinishedDependencies = dependencies.length;
+            unfinishedDependencies = dependencies.length;
         }
         try {
             parent.childAdded(this, true);

@@ -70,7 +70,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
         // asserts
-        assertTrue(task.isCommitted());
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
         assertTrue(task.isValidated());
@@ -90,7 +89,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // commit transaction
         commit(transaction);
         // asserts
-        assertTrue(task.isCommitted());
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
         assertTrue(task.isValidated());
@@ -108,7 +106,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
         // asserts
-        assertFalse(task.isCommitted());
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
         assertTrue(task.isValidated());
@@ -128,7 +125,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // abort transaction
         abort(transaction);
         // asserts
-        assertFalse(task.isCommitted());
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
         assertTrue(task.isValidated());
@@ -146,7 +142,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // roll back transaction
         rollback(transaction);
         // asserts
-        assertFalse(task.isCommitted());
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
         assertFalse(task.isValidated());
@@ -183,7 +178,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
         // asserts
-        assertTrue(task.isCommitted());
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
         assertTrue(task.isValidated());
@@ -205,13 +199,11 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // prepare and roll back transaction from listener
         prepareAndRollbackFromListener(transaction);
         // asserts
-        assertFalse(task1.isCommitted());
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
         assertTrue(task1.isValidated());
         assertEquals(controller1.getTransaction(), transaction);
         controller1.getResult();
-        assertFalse(task2.isCommitted());
         assertTrue(task2.isExecuted());
         assertTrue(task2.isReverted());
         assertTrue(task2.isValidated());
@@ -238,11 +230,9 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // abort transaction
         abort(transaction);
         // asserts
-        assertFalse(task1.isCommitted());
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
         assertTrue(task1.isValidated());
-        assertFalse(task2.isCommitted());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
         assertFalse(task2.isValidated());
@@ -267,11 +257,9 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         } catch (InvalidTransactionStateException expected) {
         }
         // asserts
-        assertTrue(task1.isCommitted());
         assertTrue(task1.isExecuted());
         assertFalse(task1.isReverted());
         assertTrue(task1.isValidated());
-        assertFalse(task2.isCommitted());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
         assertFalse(task2.isValidated());
@@ -296,11 +284,9 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         } catch (InvalidTransactionStateException expected) {
         }
         // asserts
-        assertFalse(task1.isCommitted());
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
         assertTrue(task1.isValidated());
-        assertFalse(task2.isCommitted());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
         assertFalse(task2.isValidated());
@@ -337,7 +323,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 final TrackingTask task = tasks[i][j];
-                assertTrue(task.isCommitted());
                 assertTrue(task.isExecuted());
                 assertFalse(task.isReverted());
                 assertTrue(task.isValidated());

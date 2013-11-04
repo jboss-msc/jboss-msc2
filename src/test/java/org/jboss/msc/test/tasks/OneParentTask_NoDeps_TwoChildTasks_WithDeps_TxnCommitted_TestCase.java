@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
@@ -52,28 +51,25 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnCommitted_Test
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestValidatable child0v = new TestValidatable();
         final TestRevertible child0r = new TestRevertible();
-        final TestCommittable child0c = new TestCommittable();
         // preparing child1 task
         final TestExecutable<Void> child1e = new TestExecutable<Void>();
         final TestValidatable child1v = new TestValidatable();
         final TestRevertible child1r = new TestRevertible();
-        final TestCommittable child1c = new TestCommittable();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0v, child0r, child0c);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0v, child0r);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1v, child1r, child1c, child0Controller);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1v, child1r, child0Controller);
                 assertNotNull(child1Controller);
             }
         };
         final TestValidatable parent0v = new TestValidatable();
         final TestRevertible parent0r = new TestRevertible();
-        final TestCommittable parent0c = new TestCommittable();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r, parent0c);
+        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0v, parent0r);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
@@ -86,28 +82,11 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnCommitted_Test
         assertNotCalled(parent0r);
         assertNotCalled(child0r);
         assertNotCalled(child1r);
-        assertNotCalled(parent0c);
-        assertNotCalled(child0c);
-        assertNotCalled(child1c);
         assertCallOrder(parent0e, child0e, child1e, parent0v, child0v);
         assertCallOrder(parent0e, child0e, child1e, parent0v, child1v);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
-        assertCalled(parent0e);
-        assertCalled(child0e);
-        assertCalled(child1e);
-        assertCalled(parent0v);
-        assertCalled(child0v);
-        assertCalled(child1v);
-        assertNotCalled(parent0r);
-        assertNotCalled(child0r);
-        assertNotCalled(child1r);
-        assertCalled(parent0c);
-        assertCalled(child0c);
-        assertCalled(child1c);
-        assertCallOrder(parent0e, child0e, child1e, parent0v, child0v, parent0c, child0c, child1c);
-        assertCallOrder(parent0e, child0e, child1e, parent0v, child1v, parent0c, child0c, child1c);
     }
 
 }

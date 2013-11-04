@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
-import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
@@ -93,12 +92,12 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e, final Validatable v, final Revertible r, final Committable c, final TaskController<?>... dependencies) {
-        return txnController.newTask(transaction, e).addDependencies(dependencies).setValidatable(v).setRevertible(r).setCommittable(c).release();
+    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e, final Validatable v, final Revertible r, final TaskController<?>... dependencies) {
+        return txnController.newTask(transaction, e).addDependencies(dependencies).setValidatable(v).setRevertible(r).release();
     }
 
-    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Validatable v, final Revertible r, final Committable c, final TaskController<?>... dependencies) {
-        return ctx.newTask(e).addDependencies(dependencies).setValidatable(v).setRevertible(r).setCommittable(c).release();
+    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Validatable v, final Revertible r, final TaskController<?>... dependencies) {
+        return ctx.newTask(e).addDependencies(dependencies).setValidatable(v).setRevertible(r).release();
     }
 
     protected static void prepare(BasicTransaction transaction, Listener<PrepareResult<BasicTransaction>> listener) {

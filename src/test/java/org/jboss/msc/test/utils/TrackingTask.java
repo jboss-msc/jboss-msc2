@@ -20,8 +20,6 @@ package org.jboss.msc.test.utils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jboss.msc.txn.CommitContext;
-import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Revertible;
@@ -33,7 +31,6 @@ import org.jboss.msc.txn.ValidateContext;
  * A simple transaction task that tracks task calls. It provides utility methods:
  * 
  * <UL>
- * <LI>{@link #isCommitted()} - returns <code>true</code> if transaction have been committed, <code>false</code> otherwise</LI>
  * <LI>{@link #isValidated()} - returns <code>true</code> if transaction have been validated, <code>false</code> otherwise</LI>
  * <LI>{@link #isReverted()} - returns <code>true</code> if transaction have been aborted, <code>false</code> otherwise</LI>
  * <LI>{@link #isExecuted()} - returns <code>true</code> if transaction have been executed, <code>false</code> otherwise</LI>
@@ -41,18 +38,11 @@ import org.jboss.msc.txn.ValidateContext;
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class TrackingTask implements Executable<Object>, Revertible, Validatable, Committable {
+public class TrackingTask implements Executable<Object>, Revertible, Validatable {
 
     private final AtomicBoolean executed = new AtomicBoolean();
     private final AtomicBoolean validated = new AtomicBoolean();
     private final AtomicBoolean reverted = new AtomicBoolean();
-    private final AtomicBoolean committed = new AtomicBoolean();
-
-    @Override
-    public void commit(final CommitContext context) {
-        committed.set(true);
-        context.complete();
-    }
 
     @Override
     public void validate(final ValidateContext context) {
@@ -70,10 +60,6 @@ public class TrackingTask implements Executable<Object>, Revertible, Validatable
     public void execute(final ExecuteContext<Object> context) {
         executed.set(true);
         context.complete();
-    }
-
-    public final boolean isCommitted() {
-        return committed.get();
     }
 
     public final boolean isValidated() {
