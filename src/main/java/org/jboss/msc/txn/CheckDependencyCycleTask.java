@@ -48,16 +48,18 @@ final class CheckDependencyCycleTask implements Validatable {
         if (transaction.hasAttachment(key)) {
             task = transaction.getAttachment(key);
         } else {
-            task = new CheckDependencyCycleTask();
+            task = new CheckDependencyCycleTask(transaction);
             transaction.getTaskFactory().newTask().setValidatable(task).release();
         }
         task.checkService(service);
     }
 
     private final List<ServiceControllerImpl<?>> services;
+    private final Transaction transaction;
 
-    private CheckDependencyCycleTask() {
+    private CheckDependencyCycleTask(Transaction transaction) {
         services = new CopyOnWriteArrayList<ServiceControllerImpl<?>>();
+        this.transaction = transaction;
     }
 
     private void checkService(ServiceControllerImpl<?> service) {
@@ -70,7 +72,7 @@ final class CheckDependencyCycleTask implements Validatable {
             final Set<ServiceControllerImpl<?>> checkedServices = new HashSet<ServiceControllerImpl<?>>();
             final LinkedHashMap<ServiceName, ServiceControllerImpl<?>> pathTrace = new LinkedHashMap<ServiceName, ServiceControllerImpl<?>>();
             for (ServiceControllerImpl<?> service: services) {
-                if (checkedServices.contains(service)) {
+                if (checkedServices.contains(service) || service.getState(transaction) != ServiceControllerImpl.STATE_DOWN) {
                     continue;
                 }
                 final ServiceName serviceName = service.getPrimaryRegistration().getServiceName();
