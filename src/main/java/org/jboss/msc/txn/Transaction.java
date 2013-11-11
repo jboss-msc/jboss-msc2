@@ -82,7 +82,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
-    private final TaskParent topParent = new TaskParent() {
+    final TaskParent topParent = new TaskParent() {
         public void childExecutionFinished(final boolean userThread) {
             doChildExecutionFinished(userThread);
         }
@@ -567,6 +567,22 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             unfinishedChildren++;
             unvalidatedChildren++;
             unterminatedChildren++;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
+        }
+        executeTasks(state);
+    }
+
+    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
+        assert ! holdsLock(this);
+        int state;
+        synchronized (this) {
+            topLevelTasks.addAll(grandchildren);
+            unfinishedChildren += unfinishedGreatGrandchildren;
+            unvalidatedChildren += unvalidatedGreatGrandchildren;
+            unterminatedChildren += unterminatedGreatGrandchildren;
+            state = this.state;
+            if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
