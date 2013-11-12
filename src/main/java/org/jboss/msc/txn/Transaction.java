@@ -436,7 +436,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (!isPrepareRequested || !stateIsIn(state, STATE_ACTIVE, STATE_PREPARING, STATE_PREPARED)) {
+            if (!isPrepareRequested || stateOf(state) != STATE_PREPARED) {
                 throw new InvalidTransactionStateException("Transaction must be in prepared state to abort");
             }
             if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
