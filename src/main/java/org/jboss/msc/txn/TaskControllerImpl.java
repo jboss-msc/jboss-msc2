@@ -47,7 +47,7 @@ import org.jboss.msc._private.MSCLogger;
  *          |                                                  |
  *          v                                                  |
  *  +---------------+                                          |
- *  |               |           CANCEL_REQ                     |
+ *  |               |         SELF_CANCEL_REQ                  |
  *  |    EXECUTE    +---------------------------------+        |
  *  |               |                                 |        |
  *  +-------+-------+                                 |        |
@@ -56,45 +56,45 @@ import org.jboss.msc._private.MSCLogger;
  *          v                                         |        |
  *  +-----------------------+                         |        |
  *  |                       |                         |        |
- *  | EXECUTE_CHILDREN_WAIT +-----------------+       |        |
- *  |                       |                 |       |        |
- *  +-------+---------------+                 |       |        |
- *          |                                 |       |        |
- *          |                                 |       |        |
- *          v                                 |       |        |
- *  +---------------+                         |       |        |
- *  |               |                         |       |        |
- *  |  EXECUTE_DONE +---------------------+   |       |        |
- *  |               |                     |   |       |        |
- *  +-------+-------+                     |   |       |        |
- *          |                             |   |       |        |
- *          |                             |   |       |        |
- *          v                             |   |       |        |
- *  +---------------+                     |   |       |        |
- *  |               |                     |   |       |        |
- *  |    VALIDATE   +-----------------+   |   |       |        |
- *  |               |                 |   |   |       |        |
- *  +-------+-------+                 |   |   |       |        |
- *          |                         |   |   |       |        |
- *          |                         |   |   |       |        |
- *          v                         |   |   |       |        |
- *  +------------------------+        |   |   |       |        |
- *  |                        |        |   |   |       |        |
- *  | VALIDATE_CHILDREN_WAIT +----+   |   |   |       |        |
- *  |                        |    |   |   |   |       |        |
- *  +-------+----------------+    |   |   |   |       |        |
- *          |                     |   |   |   |       |        |
- *          |                     |   |   |   |       |        |
- *          v                     |   |   |   |       |        |
- *  +---------------+             |   |   |   |       |        |
- *  |               |             |   |   |   |       |        |
- *  | VALIDATE_DONE +---------+   |   |   |   |       |        |
- *  |               |         |   |   |   |   |       |        |
+ *  | EXECUTE_CHILDREN_WAIT +----------------+        |        |
+ *  |                       |                |        |        |
+ *  +-------+---------------+                |        |        |
+ *          |                                |        |        |
+ *          |                                |        |        |
+ *          v                                |        |        |
+ *  +---------------+                        |        |        |
+ *  |               |                        |        |        |
+ *  |  EXECUTE_DONE +-------------------+    |        |        |
+ *  |               |                   |    |        |        |
+ *  +-------+-------+                   |    |        |        |
+ *          |                           |    |        |        |
+ *          |                           |    |        |        |
+ *          v                           |    |        |        |
+ *  +---------------+                   |    |        |        |
+ *  |               |                   |    |        |        |
+ *  |    VALIDATE   |                   |    |        |        |
+ *  |               |                   |    |        |        |
+ *  +-------+-------+                   |    |        |        |
+ *          |                           |    |        |        |
+ *          |                           |    |        |        |
+ *          v                           |    |        |        |
+ *  +------------------------+          |    |        |        |
+ *  |                        |          |    |        |        |
+ *  | VALIDATE_CHILDREN_WAIT +-----+    |    |        |        |
+ *  |                        |     |    |    |        |        |
+ *  +-------+----------------+     |    |    |        |        |
+ *          |                      |    |    |        |        |
+ *          |                      |    |    |        |        |
+ *          v                      |    |    |        |        |
+ *  +---------------+              |    |    |        |        |
+ *  |               |              |    |    |        |        |
+ *  | VALIDATE_DONE +---------+    |    |    |        |        |
+ *  |               |         |    |    |    |        |        |
  *  +-------+-------+                                 |        |
  *          |            ROLLBACK_REQ or CANCEL_REQ   |        |
  *          |                                         |        |
- *          |                 |   |   |   |   |       |        |
- *          |                 v   v   v   v   v       |        |
+ *          |                 |    |    |    |        |        |
+ *          |                 v    v    v    v        |        |
  *          |             +----------------------+    |        |
  *          |             |                      |    |        |
  *          |             |    ROLLBACK_WAIT     |    |        |
@@ -189,56 +189,56 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int T_EXECUTE_DONE_to_ROLLBACK_WAIT = 9;
     private static final int T_EXECUTE_DONE_to_VALIDATE = 10;
 
-    private static final int T_VALIDATE_to_ROLLBACK_WAIT = 11;
-    private static final int T_VALIDATE_to_VALIDATE_CHILDREN_WAIT = 12;
+    private static final int T_VALIDATE_to_VALIDATE_CHILDREN_WAIT = 11;
 
-    private static final int T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT = 13;
-    private static final int T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE = 14;
+    private static final int T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT = 12;
+    private static final int T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE = 13;
 
-    private static final int T_VALIDATE_DONE_to_ROLLBACK_WAIT = 15;
-    private static final int T_VALIDATE_DONE_to_TERMINATE_WAIT = 16;
+    private static final int T_VALIDATE_DONE_to_ROLLBACK_WAIT = 14;
+    private static final int T_VALIDATE_DONE_to_TERMINATE_WAIT = 15;
 
-    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 17;
+    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 16;
 
-    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 18;
+    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 17;
 
-    private static final int T_TERMINATE_WAIT_to_TERMINATED = 19;
+    private static final int T_TERMINATE_WAIT_to_TERMINATED = 18;
 
     /**
      * A cancel request, due to rollback or dependency failure.
      */
-    private static final int FLAG_CANCEL_REQ   = 1 << 4;
-    private static final int FLAG_ROLLBACK_REQ = 1 << 5;
-    private static final int FLAG_VALIDATE_REQ = 1 << 6;
-    private static final int FLAG_COMMIT_REQ   = 1 << 7;
+    private static final int FLAG_CANCEL_REQ      = 1 << 4;
+    private static final int FLAG_SELF_CANCEL_REQ = 1 << 5;
+    private static final int FLAG_ROLLBACK_REQ    = 1 << 6;
+    private static final int FLAG_VALIDATE_REQ    = 1 << 7;
+    private static final int FLAG_COMMIT_REQ      = 1 << 8;
 
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_CANCEL_REQ | FLAG_ROLLBACK_REQ | FLAG_VALIDATE_REQ | FLAG_COMMIT_REQ;
 
     // non-persistent status flags
-    private static final int FLAG_EXECUTE_DONE   = 1 << 8;
-    private static final int FLAG_VALIDATE_DONE  = 1 << 9;
-    private static final int FLAG_ROLLBACK_DONE  = 1 << 10;
-    private static final int FLAG_INSTALL_FAILED = 1 << 11;
+    private static final int FLAG_EXECUTE_DONE   = 1 << 9;
+    private static final int FLAG_VALIDATE_DONE  = 1 << 10;
+    private static final int FLAG_ROLLBACK_DONE  = 1 << 11;
+    private static final int FLAG_INSTALL_FAILED = 1 << 12;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_CHILD_DONE          = 1 << 12; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_DONE     = 1 << 13; // to dependents
-    private static final int FLAG_SEND_VALIDATE_REQ        = 1 << 14; // to children
-    private static final int FLAG_SEND_CHILD_VALIDATE_DONE = 1 << 15; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED    = 1 << 16; // to parents
-    private static final int FLAG_SEND_TERMINATED          = 1 << 17; // to dependencies
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 18; // to transaction
-    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 19; // to children
-    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 20; // to children
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 21; // to dependents
+    private static final int FLAG_SEND_CHILD_DONE          = 1 << 13; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_DONE     = 1 << 14; // to dependents
+    private static final int FLAG_SEND_VALIDATE_REQ        = 1 << 15; // to children
+    private static final int FLAG_SEND_CHILD_VALIDATE_DONE = 1 << 16; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED    = 1 << 17; // to parents
+    private static final int FLAG_SEND_TERMINATED          = 1 << 18; // to dependencies
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 19; // to transaction
+    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 20; // to children
+    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 21; // to children
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 22; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(12, 21);
+    private static final int SEND_FLAGS = Bits.intBitMask(13, 22);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 22;
-    private static final int FLAG_DO_VALIDATE = 1 << 23;
-    private static final int FLAG_DO_ROLLBACK = 1 << 24;
+    private static final int FLAG_DO_EXECUTE  = 1 << 23;
+    private static final int FLAG_DO_VALIDATE = 1 << 24;
+    private static final int FLAG_DO_ROLLBACK = 1 << 25;
 
-    private static final int DO_FLAGS = Bits.intBitMask(22, 24);
+    private static final int DO_FLAGS = Bits.intBitMask(23, 25);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -342,10 +342,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE: {
-                if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
-                    return T_EXECUTE_to_EXECUTE_CHILDREN_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
+                if (Bits.allAreSet(state, FLAG_SELF_CANCEL_REQ)) {
                     return T_EXECUTE_to_TERMINATE_WAIT;
+                } else if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
+                    return T_EXECUTE_to_EXECUTE_CHILDREN_WAIT;
                 } else {
                     return T_NONE;
                 }
@@ -369,16 +369,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_VALIDATE: {
-                if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
-                    return T_VALIDATE_to_ROLLBACK_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_VALIDATE_DONE)) {
+                if (Bits.allAreSet(state, FLAG_VALIDATE_DONE)) {
                     return T_VALIDATE_to_VALIDATE_CHILDREN_WAIT;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_VALIDATE_CHILDREN_WAIT: {
-                if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
+                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT;
                 } else if (unvalidatedChildren == 0) {
                     return T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE;
@@ -548,23 +546,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                         } else {
                             state = newState(STATE_ROLLBACK_WAIT, state);
                         }
-                    }
-                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
-                    }
-                    continue;
-                }
-                case T_VALIDATE_to_ROLLBACK_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                        if (! dependents.isEmpty()) {
-                            cachedDependents = dependents.toArray(new TaskControllerImpl[dependents.size()]);
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
-                        } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state);
-                        }
-                    }
-                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
                     }
                     continue;
                 }
@@ -768,7 +749,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            state = this.state | FLAG_USER_THREAD | FLAG_CANCEL_REQ;
+            state = this.state | FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
             if (stateOf(state) != STATE_EXECUTE) {
                 throw new IllegalStateException("Task may not be cancelled now");
             }
