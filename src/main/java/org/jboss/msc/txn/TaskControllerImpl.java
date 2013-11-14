@@ -228,19 +228,18 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_SEND_CHILD_VALIDATE_DONE = 1 << 16; // to parents
     private static final int FLAG_SEND_CHILD_TERMINATED    = 1 << 17; // to parents
     private static final int FLAG_SEND_TERMINATED          = 1 << 18; // to dependencies
-    private static final int FLAG_SEND_CANCELLED           = 1 << 19; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 20; // to transaction
-    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 21; // to children
-    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 22; // to children
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 23; // to dependents
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 19; // to transaction
+    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 20; // to children
+    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 21; // to children
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 22; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(13, 23);
+    private static final int SEND_FLAGS = Bits.intBitMask(13, 22);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 24;
-    private static final int FLAG_DO_VALIDATE = 1 << 25;
-    private static final int FLAG_DO_ROLLBACK = 1 << 26;
+    private static final int FLAG_DO_EXECUTE  = 1 << 23;
+    private static final int FLAG_DO_VALIDATE = 1 << 24;
+    private static final int FLAG_DO_ROLLBACK = 1 << 25;
 
-    private static final int DO_FLAGS = Bits.intBitMask(24, 26);
+    private static final int DO_FLAGS = Bits.intBitMask(23, 25);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -579,9 +578,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     } else {
                         state = newState(STATE_TERMINATE_WAIT, state);
                     }
-                    if (Bits.anyAreSet(state,  FLAG_CANCEL_REQ)) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCELLED);
-                    }
                     continue;
                 }
                 default: throw new IllegalStateException();
@@ -631,9 +627,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             parent.childTerminated(userThread);
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
-            getTransaction().taskCancelled(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_TERMINATED)) {
             for (TaskControllerImpl<?> dependency : dependencies) {
@@ -710,9 +703,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     return;
                 }
                 throw new RuntimeException("Illegal state");
-            }
-            if (stateOf(this.state) == STATE_EXECUTE_DONE) {
-                getTransaction().taskForcedToCancel();
             }
             state = this.state | FLAG_CANCEL_REQ;
             if (userThread) state |= FLAG_USER_THREAD;

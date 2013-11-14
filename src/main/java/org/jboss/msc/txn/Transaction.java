@@ -36,7 +36,6 @@ import org.jboss.msc._private.Version;
  * 
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 public abstract class Transaction extends SimpleAttachable implements Attachable {
 
@@ -525,17 +524,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
-    }
-
-    void taskCancelled(final boolean userThread) {
-        doChildExecutionFinished(userThread);
-    }
-
-    synchronized void taskForcedToCancel() {
-        if (stateOf(state) != STATE_ACTIVE) {
-            throw new InvalidTransactionStateException("Transaction is not active" + stateOf(state));
-        }
-        unfinishedChildren++;
     }
 
     private void doChildValidationFinished(final boolean userThread) {
