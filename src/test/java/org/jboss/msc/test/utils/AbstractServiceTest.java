@@ -118,9 +118,12 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void shutdownContainer(final ServiceContainer serviceContainer) {
         final BasicTransaction txn = newTransaction();
-        txnController.newTask(txn, new ShutdownContainerTask(serviceContainer, txn)).release();
-        prepare(txn);
-        commit(txn);
+        try {
+        serviceContainer.shutdown(txn);
+        } finally{
+            prepare(txn);
+            commit(txn);
+        }
         assertNoCriticalProblems(txn);
     }
 
@@ -168,14 +171,20 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         // new transaction
         final BasicTransaction txn = newTransaction();
-        // create service builder
-        final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
-        // install
-        final ServiceController serviceController = serviceBuilder.install();
-        assertNotNull(serviceController);
-        final TestService service = serviceBuilder.getService();
-        // attempt to commit or check aborted installation
-        if (attemptToCommit(txn)) {
+        TestService service = null;
+        final boolean committed; 
+        try {
+            // create service builder
+            final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
+            // install
+            final ServiceController serviceController = serviceBuilder.install();
+            assertNotNull(serviceController);
+            service = serviceBuilder.getService();
+        } finally {
+            // attempt to commit or check aborted installation
+            committed = attemptToCommit(txn);
+        }
+        if (committed) {
             assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
             return service;
         } else {

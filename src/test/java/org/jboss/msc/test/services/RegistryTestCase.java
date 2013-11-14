@@ -92,10 +92,13 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceA() {
         final BasicTransaction transaction = newTransaction();
-        final ServiceController controller = registry1.getRequiredService(serviceAName);
-        controller.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            final ServiceController controller = registry1.getRequiredService(serviceAName);
+            controller.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertFalse(serviceA.isUp());
         // all other services remain UP:
         assertTrue(serviceB.isUp());
@@ -110,11 +113,15 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableServiceB() {
         BasicTransaction transaction = newTransaction();
-        final ServiceController controller = registry1.getRequiredService(serviceBName);
-        controller.disable(transaction);
-        controller.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        final ServiceController controller;
+        try {
+            controller = registry1.getRequiredService(serviceBName);
+            controller.disable(transaction);
+            controller.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertFalse(serviceB.isUp());
         // service F depends on B
         assertFalse(serviceF.isUp());
@@ -127,9 +134,12 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         // idempotent
         transaction = newTransaction();
-        controller.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            controller.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertFalse(serviceB.isUp());
         // service F depends on B
         assertFalse(serviceF.isUp());
@@ -142,14 +152,18 @@ public class RegistryTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void enableServiceC() {
+    public void enableServiceC() throws Exception {
         final BasicTransaction transaction = newTransaction();
-        final ServiceController controller = registry1.getRequiredService(serviceCName);
-        controller.enable(transaction);
-        controller.disable(transaction);
-        controller.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            final ServiceController controller = registry1.getRequiredService(serviceCName);
+            controller.enable(transaction);
+            controller.disable(transaction);
+            controller.enable(transaction);
+        } finally {
+            Thread.sleep(300);
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -163,11 +177,14 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceD() {
         final BasicTransaction transaction = newTransaction();
-        final ServiceController controller = registry2.getRequiredService(serviceDName);
-        controller.disable(transaction);
-        controller.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            final ServiceController controller = registry2.getRequiredService(serviceDName);
+            controller.disable(transaction);
+            controller.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -182,10 +199,13 @@ public class RegistryTestCase extends AbstractServiceTest {
     public void enableServiceA() {
         disableServiceA();
         final BasicTransaction transaction = newTransaction();
-        final ServiceController controller = registry1.getRequiredService(serviceAName);
-        controller.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            final ServiceController controller = registry1.getRequiredService(serviceAName);
+            controller.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -199,9 +219,12 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableRegistry1() {
         final BasicTransaction transaction = newTransaction();
-        registry1.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry1.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertFalse(serviceA.isUp());
         assertFalse(serviceB.isUp());
         assertFalse(serviceC.isUp());
@@ -215,11 +238,14 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void disableRegistry2() {
         BasicTransaction transaction = newTransaction();
-        registry2.disable(transaction);
-        // idempotent
-        registry2.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry2.disable(transaction);
+            // idempotent
+            registry2.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -231,9 +257,12 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         // idempotent
         transaction = newTransaction();
-        registry2.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry2.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -247,9 +276,12 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableRegistry3() {
         BasicTransaction transaction = newTransaction();
-        registry3.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry3.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         // nothing happens, registry 3 is empty
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
@@ -261,9 +293,12 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         transaction = newTransaction();
-        registry3.disable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry3.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         // nothing happens, registry 3 is empty
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
@@ -279,9 +314,12 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertFalse(serviceI.isUp()); // as registry 3 is disabled, serviceI won't start
 
         transaction = newTransaction();
-        registry3.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry3.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         // service I finally starts
         assertTrue(serviceI.isUp());
         // remainder services keep the same
@@ -298,11 +336,14 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableRegistry1() {
         final BasicTransaction transaction = newTransaction();
-        registry1.enable(transaction);
-        registry1.disable(transaction);
-        registry1.enable(transaction);
-        prepare(transaction);
-        commit(transaction);
+        try {
+            registry1.enable(transaction);
+            registry1.disable(transaction);
+            registry1.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -316,22 +357,25 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void outsiderService() {
         final BasicTransaction transaction = newTransaction();
-        ServiceNotFoundException expected = null;
         try {
-            registry3.getRequiredService(serviceAName);
-        } catch (ServiceNotFoundException e) {
-            expected = e;
+            ServiceNotFoundException expected = null;
+            try {
+                registry3.getRequiredService(serviceAName);
+            } catch (ServiceNotFoundException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+    
+            expected = null;
+            try {
+                registry3.getRequiredService(serviceAName);
+            } catch (ServiceNotFoundException e) {
+                expected = e;
+            }
+            assertNotNull(expected);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
         }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            registry3.getRequiredService(serviceAName);
-        } catch (ServiceNotFoundException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        prepare(transaction);
-        commit(transaction);
     }
 }
