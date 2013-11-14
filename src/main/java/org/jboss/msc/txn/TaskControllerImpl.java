@@ -693,6 +693,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            if (stateOf(this.state)  >= STATE_TERMINATE_WAIT) {
+                // idempotent
+                if (Bits.anyAreSet(this.state, FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ)) {
+                    return;
+                }
+                throw new RuntimeException("Illegal state");
+            }
             state = this.state | FLAG_CANCEL_REQ;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
