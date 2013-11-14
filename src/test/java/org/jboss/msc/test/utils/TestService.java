@@ -32,7 +32,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.txn.CommitContext;
 import org.jboss.msc.txn.RollbackContext;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ValidateContext;
@@ -161,11 +160,6 @@ public final class TestService implements Service<Void> {
     }
 
     @Override
-    public void commitStart(CommitContext startContext) {
-        startContext.complete();
-    }
-
-    @Override
     public void rollbackStart(RollbackContext rollbackContext) {
         stop();
         rollbackContext.complete();
@@ -187,11 +181,6 @@ public final class TestService implements Service<Void> {
     public void rollbackStop(RollbackContext rollbackContext) {
         start();
         rollbackContext.complete();
-    }
-
-    @Override
-    public void commitStop(final CommitContext context) {
-        context.complete();
     }
 
     private void start() {

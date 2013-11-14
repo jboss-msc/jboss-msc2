@@ -18,7 +18,6 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.CommitContext;
 import org.jboss.msc.txn.RollbackContext;
 import org.jboss.msc.txn.ValidateContext;
 
@@ -46,13 +45,6 @@ public interface Service<T> {
     void validateStart(ValidateContext validateContext);
 
     /**
-     * Service start commit method.
-     * 
-     * @param commitContext commit context
-     */
-    void commitStart(CommitContext startContext);
-    
-    /**
      * Service rollback start method.
      * 
      * @param rollbackContext rollback context
@@ -66,27 +58,19 @@ public interface Service<T> {
      * @param stopContext stop context
      */
     void executeStop(StopContext stopContext);
-    
+
     /**
      * Service stop validation method.
      * 
      * @param validateContext validate context
      */
     void validateStop(ValidateContext validateContext);
-    
-    /**
-     * Service stop commit method.
-     * 
-     * @param commitContext commit context
-     */
-    void commitStop(CommitContext commitContext);
-    
+
     /**
      * Service rollback stop method.
      * 
      * @param rollbackContext rollback context
      */
     void rollbackStop(RollbackContext rollbackContext);
-
 
 }
