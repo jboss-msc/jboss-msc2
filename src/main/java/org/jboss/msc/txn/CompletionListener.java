@@ -104,7 +104,7 @@ public final class CompletionListener<R> implements Listener<R> {
      * @return transaction phase result
      * @throws TimeoutException if timed out
      */
-    public R awaitCompletionUninterruptibly(final long timeout, final TimeUnit unit) throws InterruptedException, TimeoutException {
+    public R awaitCompletionUninterruptibly(final long timeout, final TimeUnit unit) throws TimeoutException {
         if (result != null) return result;
         boolean intr = false;
         try {

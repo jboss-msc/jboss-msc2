@@ -45,8 +45,13 @@ public final class CommittingListener implements Listener<PrepareResult<BasicTra
         transactionController.commit(subject.getTransaction(), listener);
     }
 
-    public void awaitCommit() throws InterruptedException {
-        listener.awaitCompletion();
+    public void awaitCommit() {
+        while (true) {
+            try {
+                listener.awaitCompletion();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
 }

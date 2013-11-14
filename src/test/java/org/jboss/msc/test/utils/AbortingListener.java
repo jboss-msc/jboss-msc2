@@ -45,8 +45,13 @@ public final class AbortingListener implements Listener<PrepareResult<BasicTrans
         transactionController.abort(subject.getTransaction(), listener);
     }
 
-    public void awaitAbort() throws InterruptedException {
-        listener.awaitCompletion();
+    public void awaitAbort() {
+        while (true) {
+            try {
+                listener.awaitCompletion();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
 }

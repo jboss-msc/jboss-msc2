@@ -35,14 +35,6 @@ interface TaskChild {
     void dependencyExecutionComplete(boolean userThread);
 
     /**
-     * Indicate to this child that a dependency's commit has completed. Once all dependencies have
-     * completed commit, this child may proceed with commit.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void dependencyCommitComplete(boolean userThread);
-
-    /**
      * Request this child to initiate rollback when possible. Neither {@link #childInitiateValidate(boolean)} nor
      * {@link #childInitiateCommit(boolean)} may be called after this method is called.
      *
@@ -66,11 +58,4 @@ interface TaskChild {
      * @param userThread {@code true} if executed from a user thread
      */
     void childInitiateCommit(boolean userThread);
-
-    /**
-     * Request this child to initiate cancellation when possible.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void forceCancel(boolean userThread);
 }

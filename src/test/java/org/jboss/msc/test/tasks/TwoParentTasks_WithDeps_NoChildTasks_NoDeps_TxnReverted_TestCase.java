@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.CountDownLatch;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestCommittable;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.test.utils.TestValidatable;
@@ -50,32 +49,28 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestValidatable v0 = new TestValidatable();
         final TestRevertible r0 = new TestRevertible();
-        final TestCommittable c0 = new TestCommittable();
-        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0, c0);
+        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<Void>();
         final TestValidatable v1 = new TestValidatable();
         final TestRevertible r1 = new TestRevertible();
-        final TestCommittable c1 = new TestCommittable();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, c1, task0Controller);
+        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, task0Controller);
         assertNotNull(task1Controller);
         // preparing transaction
         prepare(transaction);
         assertCalled(e0);
         assertCalled(v0);
         assertNotCalled(r0);
-        assertNotCalled(c0);
         assertCalled(e1);
         assertCalled(v1);
         assertNotCalled(r1);
-        assertNotCalled(c1);
         assertCallOrder(e0, e1, v0);
         assertCallOrder(e0, e1, v1);
         // reverting transaction
@@ -84,11 +79,9 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
         assertCalled(e0);
         assertCalled(v0);
         assertCalled(r0);
-        assertNotCalled(c0);
         assertCalled(e1);
         assertCalled(v1);
         assertCalled(r1);
-        assertNotCalled(c1);
         assertCallOrder(e0, e1, v0, r1, r0);
         assertCallOrder(e0, e1, v1, r1, r0);
     }
@@ -103,36 +96,32 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>(signal);
         final TestValidatable v0 = new TestValidatable();
         final TestRevertible r0 = new TestRevertible();
-        final TestCommittable c0 = new TestCommittable();
-        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0, c0);
+        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<Void>(true, signal);
         final TestValidatable v1 = new TestValidatable();
         final TestRevertible r1 = new TestRevertible();
-        final TestCommittable c1 = new TestCommittable();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, c1, task0Controller);
+        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, task0Controller);
         assertNotNull(task1Controller);
         // reverting transaction
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertCalled(r0);
-        assertNotCalled(c0);
         assertCalled(e1);
         assertNotCalled(v1);
         assertNotCalled(r1);
-        assertNotCalled(c1);
         assertCallOrder(e0, e1, r0);
     }
 
@@ -146,36 +135,32 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>(true, signal);
         final TestValidatable v0 = new TestValidatable();
         final TestRevertible r0 = new TestRevertible();
-        final TestCommittable c0 = new TestCommittable();
-        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0, c0);
+        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<Void>(true, signal);
         final TestValidatable v1 = new TestValidatable();
         final TestRevertible r1 = new TestRevertible();
-        final TestCommittable c1 = new TestCommittable();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, c1, task0Controller);
+        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, task0Controller);
         assertNotNull(task1Controller);
         // reverting transaction
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertNotCalled(r0);
-        assertNotCalled(c0);
         // e1.wasCalled() can return either true or false, depends on threads scheduling
         assertNotCalled(v1);
         assertNotCalled(r1);
-        assertNotCalled(c1);
         if (e1.wasCalled()) {
             assertCallOrder(e0, e1);
         }
@@ -191,32 +176,29 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final BasicTransaction transaction = newTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>(true, signal);
         final TestValidatable v0 = new TestValidatable();
         final TestRevertible r0 = new TestRevertible();
-        final TestCommittable c0 = new TestCommittable();
-        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0, c0);
+        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<Void>(signal);
         final TestValidatable v1 = new TestValidatable();
         final TestRevertible r1 = new TestRevertible();
-        final TestCommittable c1 = new TestCommittable();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, c1, task0Controller);
+        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1, task0Controller);
         assertNotNull(task1Controller);
         // reverting transaction
         final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
-        rollbackListener.awaitCompletion();
+        rollbackListener.awaitCompletionUninterruptibly();
         assertCalled(e0);
         assertNotCalled(v0);
         assertNotCalled(r0);
-        assertNotCalled(c0);
         // e1.wasCalled() can return either true or false, depends on threads scheduling
         assertNotCalled(v1);
         if (e1.wasCalled()) {
@@ -225,6 +207,5 @@ public final class TwoParentTasks_WithDeps_NoChildTasks_NoDeps_TxnReverted_TestC
         } else {
             assertNotCalled(r1);
         }
-        assertNotCalled(c1);
     }
 }

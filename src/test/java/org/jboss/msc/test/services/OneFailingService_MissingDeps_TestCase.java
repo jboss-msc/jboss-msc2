@@ -45,7 +45,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         assertNull(addService(firstSN, true, ON_DEMAND, secondSN));
     }
 
@@ -56,7 +56,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         assertNull(addService(firstSN, true, LAZY, secondSN));
     }
 
@@ -67,7 +67,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         assertNull(addService(firstSN, true, ACTIVE, secondSN));
     }
 
@@ -79,7 +79,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue(removeService(firstSN, firstService));
@@ -94,7 +94,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, true, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue( removeService(firstSN, firstService));
@@ -109,7 +109,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, true, ACTIVE, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue(removeService(firstSN, firstService));

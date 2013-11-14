@@ -84,7 +84,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lockWrite(transaction, transaction.getTaskFactory());
+            lockWrite(transaction);
             registration = new Registration(name);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {

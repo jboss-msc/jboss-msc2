@@ -43,7 +43,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     private Executable<T> executable;
     private Validatable validatable;
     private Revertible revertible;
-    private Committable committable;
 
     TaskBuilderImpl(final Transaction transaction, final TaskParent parent, final Executable<T> executable) {
         this.transaction = transaction;
@@ -51,7 +50,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         this.executable = executable;
         if (executable instanceof Validatable) validatable = (Validatable) executable;
         if (executable instanceof Revertible) revertible = (Revertible) executable;
-        if (executable instanceof Committable) committable = (Committable) executable;
     }
 
     TaskBuilderImpl(final Transaction transaction, final TaskParent parent) {
@@ -101,24 +99,12 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     }
 
     /**
-     * Set the committable part of this task, or {@code null} if this task should not support commit operations.
-     *
-     * @param committable the committable part
-     * @return this task builder
-     */
-    public TaskBuilderImpl<T> setCommittable(final Committable committable) {
-        this.committable = committable;
-        return this;
-    }
-
-    /**
      * todo - doc
      *
      * @param task
      * @return this task builder
      */
     public TaskBuilderImpl<T> setTraits(final Object task) {
-        if (task instanceof Committable) committable = (Committable) task;
         if (task instanceof Revertible) revertible = (Revertible) task;
         if (task instanceof Validatable) validatable = (Validatable) task;
         return this;
@@ -157,7 +143,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
      * @param dependencies the dependencies to add
      * @return this builder
      */
-    public TaskBuilderImpl<T> addDependencies(final Collection<TaskController<?>> dependencies) throws IllegalStateException {
+    public TaskBuilderImpl<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException {
         if (dependencies == null) {
             throw TXN.methodParameterIsNull("dependencies");
         }
@@ -190,7 +176,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<T>(parent, dependenciesArray, executable, revertible, validatable, committable, classLoader);
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<T>(parent, dependenciesArray, executable, revertible, validatable, classLoader);
         controller.install();
         return controller;
     }

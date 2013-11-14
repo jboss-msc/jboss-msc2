@@ -36,6 +36,8 @@ import org.jboss.msc.service.ServiceName;
  */
 final class Registration extends TransactionalObject {
 
+    private static final AttachmentKey<Boolean> VALIDATE_TASK = AttachmentKey.create();
+
     /** The registration name */
     private final ServiceName serviceName;
     /**
@@ -65,7 +67,7 @@ final class Registration extends TransactionalObject {
     }
 
     boolean setController(final Transaction transaction, final ServiceControllerImpl<?> serviceController) {
-        lockWrite(transaction, transaction.getTaskFactory());
+        lockWrite(transaction);
         final boolean upDemanded;
         synchronized (this) {
             if (this.controller != null) {
@@ -80,34 +82,43 @@ final class Registration extends TransactionalObject {
         return true;
     }
 
-    void clearController(final Transaction transaction, final TaskFactory taskFactory) {
-        lockWrite(transaction, taskFactory);
+    void clearController(final Transaction transaction) {
+        lockWrite(transaction);
+        installDependenciesValidateTask(transaction);
         synchronized (this) {
             this.controller = null;
         }
     }
 
-    void addIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
-        lockWrite(transaction, transaction.getTaskFactory());
-        final boolean dependencyUp;
+    <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
+        lockWrite(transaction);
+        installDependenciesValidateTask(transaction);
+        final TaskController<Boolean> startTask;
+        final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
-            dependencyUp = controller != null && controller.getState() == STATE_UP;
+            if (controller == null) {
+                up = false;
+                startTask = null;
+            } else {
+                startTask = controller.getStartTask(transaction);
+                up = startTask != null || controller.getState() == ServiceControllerImpl.STATE_UP;
+            }
         }
-        if (dependencyUp) {
-            dependency.dependencyUp(transaction, transaction.getTaskFactory());
+        if (up) {
+            dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
         }
     }
 
-    void removeIncomingDependency(final Transaction transaction, final TaskFactory taskFactory, final DependencyImpl<?> dependency) {
-        lockWrite(transaction, taskFactory);
+    void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
+        lockWrite(transaction);
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
 
-    void serviceUp(final Transaction transaction, final TaskFactory taskFactory) {
+    void serviceUp(final Transaction transaction, final TaskFactory taskFactory, final TaskController<Boolean> startTask) {
         for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            incomingDependency.dependencyUp(transaction, taskFactory);
+            incomingDependency.dependencyUp(transaction, taskFactory, startTask);
         }
     }
 
@@ -121,8 +132,7 @@ final class Registration extends TransactionalObject {
     }
 
     void addDemand(Transaction transaction, TaskFactory taskFactory) {
-        assert ! Thread.holdsLock(this);
-        lockWrite(transaction, taskFactory);
+        lockWrite(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
@@ -136,8 +146,7 @@ final class Registration extends TransactionalObject {
     }
 
     void removeDemand(Transaction transaction, TaskFactory taskFactory) {
-        assert ! Thread.holdsLock(this);
-        lockWrite(transaction, taskFactory);
+        lockWrite(transaction);
         synchronized (this) {
             controller = this.controller;
             if (--upDemandedByCount > 0) {
@@ -149,6 +158,24 @@ final class Registration extends TransactionalObject {
         }
     }
 
+    void installDependenciesValidateTask(final Transaction transaction) {
+        if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
+        transaction.newTask().setValidatable(new Validatable() {
+            @Override
+            public void validate(final ValidateContext context) {
+                try {
+                    synchronized (Registration.this) {
+                        for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
+                            incomingDependency.validate(controller, context);
+                        }
+                    }
+                } finally {
+                    context.complete();
+                }
+            }
+        }).release();
+    }
+
     @Override
     Object takeSnapshot() {
         return new Snapshot();
@@ -157,13 +184,6 @@ final class Registration extends TransactionalObject {
     @Override
     void revert(final Object snapshot) {
         ((Snapshot)snapshot).apply();
-    }
-
-    @Override
-    protected synchronized void validate(ReportableContext context) {
-        for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            incomingDependency.validate(controller, context);
-        }
     }
 
     private final class Snapshot {

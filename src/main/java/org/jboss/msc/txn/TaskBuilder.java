@@ -61,14 +61,6 @@ public interface TaskBuilder<T> {
     TaskBuilder<T> setRevertible(final Revertible revertible);
 
     /**
-     * Set the committable part of this task, or {@code null} if this task should not support commit operations.
-     *
-     * @param committable the committable part
-     * @return this task builder
-     */
-    TaskBuilder<T> setCommittable(final Committable committable);
-
-    /**
      * todo - doc
      *
      * @param task
@@ -98,7 +90,7 @@ public interface TaskBuilder<T> {
      * @param dependencies the dependencies to add
      * @return this builder
      */
-    TaskBuilder<T> addDependencies(final Collection<TaskController<?>> dependencies) throws IllegalStateException;
+    TaskBuilder<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException;
 
     /**
      * Add a single dependency, if this subtask has not yet been executed.

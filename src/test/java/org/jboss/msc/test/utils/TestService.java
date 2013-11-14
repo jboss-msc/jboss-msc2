@@ -32,7 +32,9 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
+import org.jboss.msc.txn.RollbackContext;
 import org.jboss.msc.txn.ServiceContext;
+import org.jboss.msc.txn.ValidateContext;
 
 /**
  * Basic service for tests.
@@ -63,34 +65,35 @@ public final class TestService implements Service<Void> {
     }
 
     @Override
-    public void start(final StartContext<Void> context) {
+    public void executeStart(final StartContext<Void> context) {
         assertFalse(up.get() || failed.get());
         if (failToStart) {
             failed.set(true);
             //context.addProblem(new UnsupportedOperationException());
             context.fail();
         } else {
-            up.set(true);
+            start();
             context.complete();
         }
         startLatch.countDown();
     }
 
-    @Override
-    public void stop(final StopContext context) {
-        assertTrue(up.get() || failed.get());
-        up.set(false);
-        failed.set(false);
-        context.complete();
-        stopLatch.countDown();
+    public void waitStart() {
+        while (true) {
+            try {
+                startLatch.await();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
-    public void waitStart() throws InterruptedException {
-        startLatch.await();
-    }
-
-    public void waitStop() throws InterruptedException {
-        stopLatch.await();
+    public void waitStop() {
+        while (true) {
+            try {
+                stopLatch.await();
+                break;
+            } catch (Exception ignored) {}
+        }
     }
 
     public boolean isFailed() {
@@ -149,5 +152,44 @@ public final class TestService implements Service<Void> {
                 }
             }
         }
+    }
+
+    @Override
+    public void validateStart(ValidateContext validateContext) {
+        validateContext.complete();
+    }
+
+    @Override
+    public void rollbackStart(RollbackContext rollbackContext) {
+        stop();
+        rollbackContext.complete();
+    }
+
+    @Override
+    public void executeStop(StopContext stopContext) {
+        stop();
+        stopContext.complete();
+        stopLatch.countDown();
+    }
+
+    @Override
+    public void validateStop(ValidateContext validateContext) {
+        validateContext.complete();
+    }
+
+    @Override
+    public void rollbackStop(RollbackContext rollbackContext) {
+        start();
+        rollbackContext.complete();
+    }
+
+    private void start() {
+        up.set(true);
+    }
+
+    private void stop() {
+        assertTrue(up.get() || failed.get());
+        up.set(false);
+        failed.set(false);
     }
 }

@@ -58,7 +58,6 @@ class DemandDependenciesTask implements Executable<Void> {
         if(taskDependency != null) {
             taskBuilder.addDependency(taskDependency);
         }
-        taskBuilder.addDependency(service.getUnlockTask());
         return taskBuilder.release();
     }
 

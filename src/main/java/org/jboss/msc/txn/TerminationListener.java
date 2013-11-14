@@ -16,34 +16,20 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import java.util.concurrent.CountDownLatch;
-
-import org.jboss.msc.txn.CommitContext;
-import org.jboss.msc.txn.Committable;
+import java.util.EventListener;
 
 /**
+ * A transaction termination completion listener.
+ *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TestCommittable extends TestTask implements Committable {
+interface TerminationListener extends EventListener {
 
-    public TestCommittable() {
-        this((CountDownLatch) null);
-    }
-
-    public TestCommittable(final String name) {
-        super(name);
-    }
-
-    public TestCommittable(final CountDownLatch signal) {
-        super(null, signal);
-    }
-
-    @Override
-    public void commit(final CommitContext ctx) {
-        super.call();
-        ctx.complete();
-    }
-
+    /**
+     * Notify observers.
+     */
+    void transactionTerminated();
+    
 }

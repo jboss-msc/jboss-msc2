@@ -20,13 +20,7 @@ package org.jboss.msc.txn;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
 
-import java.util.IdentityHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Shared thread-safe utility class that keeps track of active transactions and their dependencies.
@@ -35,10 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 final class Transactions {
 
-    private static final Lock lock = new ReentrantLock();
     private static final int maxTxns = 64;
     private static final Transaction[] activeTxns = new Transaction[maxTxns];
-    private static final Map<Transaction, List<Condition>> txnConds = new IdentityHashMap<Transaction, List<Condition>>(maxTxns);
     private static final long[] txnDeps = new long[maxTxns];
 
     private Transactions() {
@@ -51,20 +43,14 @@ final class Transactions {
      * @param txn new active transaction
      * @throws IllegalStateException if there are too many active transactions
      */
-    static void register(final Transaction txn) throws IllegalStateException {
-        lock.lock();
-        try {
-            for (int i = 0; i < maxTxns; i++) {
-                if (activeTxns[i] == null) {
-                    activeTxns[i] = txn;
-                    txnConds.put(txn, new LinkedList<Condition>());
-                    return;
-                }
+    static synchronized void register(final Transaction txn) throws IllegalStateException {
+        for (int i = 0; i < maxTxns; i++) {
+            if (activeTxns[i] == null) {
+                activeTxns[i] = txn;
+                return;
             }
-            throw TXN.tooManyActiveTransactions();
-        } finally {
-            lock.unlock();
         }
+        throw TXN.tooManyActiveTransactions();
     }
 
     /**
@@ -72,33 +58,21 @@ final class Transactions {
      * 
      * @param txn old terminated transaction
      */
-    static void unregister(final Transaction txn) {
-        lock.lock();
-        try {
-            List<Condition> conds = null;
-            int txnIndex = -1;
-            // unregister transaction and clean up its dependencies list
-            for (int i = 0; i < maxTxns; i++) {
-                if (activeTxns[i] == txn) {
-                    activeTxns[i] = null;
-                    conds = txnConds.remove(txn);
-                    txnDeps[i] = 0L;
-                    txnIndex = i;
-                    break;
-                }
+    static synchronized void unregister(final Transaction txn) {
+        // unregister transaction and clean up its dependencies list
+        int txnIndex = -1;
+        for (int i = 0; i < maxTxns; i++) {
+            if (activeTxns[i] == txn) {
+                activeTxns[i] = null;
+                txnDeps[i] = 0L;
+                txnIndex = i;
+                break;
             }
-            // clean up transaction dependency for every dependent
-            long bit = 1L << txnIndex;
-            for (int i = 0; i < maxTxns; i++) {
-                txnDeps[i] &= ~bit;
-            }
-            // wake up associated waiters
-            for (final Condition cond : conds) {
-                cond.signal();
-            }
-            conds.clear();
-        } finally {
-            lock.unlock();
+        }
+        // clean up transaction dependency for every dependent
+        long bit = 1L << txnIndex;
+        for (int i = 0; i < maxTxns; i++) {
+            txnDeps[i] &= ~bit;
         }
     }
 
@@ -108,20 +82,17 @@ final class Transactions {
      * 
      * @param dependent the dependent
      * @param dependency the dependency
+     * @param listener the completion listener 
      * @throws DeadlockException if transactions dependency deadlock was detected
-     * @throws InterruptedException if the current thread was interrupted while waiting
      */
-    static void waitFor(final Transaction dependent, final Transaction dependency) throws DeadlockException, InterruptedException {
+    static void waitFor(final Transaction dependent, final Transaction dependency, final TerminationListener listener) throws DeadlockException {
         // detect self waits
         if (dependent == dependency) {
+            Transaction.safeCallTerminateListener(listener);
             return;
         }
-        // check interrupt status
-        if (Thread.interrupted()) {
-            throw new InterruptedException();
-        }
-        lock.lock();
-        try {
+        boolean staleTransactions = true;
+        synchronized (Transactions.class) {
             // lookup transaction indices from active transactions
             int dependentIndex = -1, dependencyIndex = -1;
             for (int i = 0; i < maxTxns; i++) {
@@ -134,28 +105,53 @@ final class Transactions {
                     break; // we have both indices
                 }
             }
-            // ensure indices are still valid
-            if (dependentIndex == -1 || dependencyIndex == -1) {
-                // Stale data - some of participating transactions have been terminated in the meantime
-                return;
+            // ensure transaction indices are still valid
+            if (dependentIndex != -1 && dependencyIndex != -1) {
+                staleTransactions = false;
+                // register transactions dependency and detect deadlock
+                try {
+                    addDependency(dependentIndex, dependencyIndex);
+                    checkDeadlock(dependentIndex, 0L);
+                } catch (final DeadlockException e) {
+                    removeDependency(dependentIndex, dependencyIndex);
+                    throw e;
+                }
             }
-            // register transactions dependency and detect deadlock
-            try {
-                addDependency(dependentIndex, dependencyIndex);
-                checkDeadlock(dependentIndex, 0L);
-            } catch (final DeadlockException e) {
-                removeDependency(dependentIndex, dependencyIndex);
-                throw e;
-            }
-            // transactions dependency have been registered and no deadlock was detected, let's wait
-            final Condition cond = lock.newCondition();
-            txnConds.get(dependent).add(cond);
-            txnConds.get(dependency).add(cond);
-            cond.await();
-        } finally {
-            lock.unlock();
+        }
+        if (staleTransactions) {
+            // Some of participating transactions have been terminated so we're done
+            Transaction.safeCallTerminateListener(listener);
+        } else {
+            // transactions dependency have been registered and no deadlock was detected, registering termination listener
+            final OneShotTerminationListener oneShotCompletionListener = OneShotTerminationListener.wrap(listener);
+            dependency.addTerminationListener(oneShotCompletionListener);
+            dependent.addTerminationListener(oneShotCompletionListener);
         }
     }
+
+    static void waitFor(final Transaction dependent, final Transaction dependency) throws DeadlockException {
+        final CountDownLatch signal = new CountDownLatch(1);
+        final TerminationListener listener = new TerminationListener() {
+            @Override
+            public void transactionTerminated() {
+                signal.countDown();
+            }
+        };
+        waitFor(dependent, dependency, listener);
+        boolean interrupted = false;
+        while (true) {
+            try {
+                signal.await();
+                break;
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 
     private static void addDependency(final int dependentIndex, final int dependencyIndex) {
         long bit = 1L << dependencyIndex;

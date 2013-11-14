@@ -132,10 +132,9 @@ class DependencyImpl<T> implements Dependency<T> {
      * Clears the dependency dependent, invoked during {@link dependentController} removal.
      * 
      * @param transaction   the active transaction
-     * @param taskFactory   the task factory
      */
-    void clearDependent(Transaction transaction, TaskFactory taskFactory) {
-        dependencyRegistration.removeIncomingDependency(transaction, taskFactory, this);
+    void clearDependent(Transaction transaction) {
+        dependencyRegistration.removeIncomingDependency(transaction, this);
     }
 
     /**
@@ -172,17 +171,18 @@ class DependencyImpl<T> implements Dependency<T> {
     }
 
     /**
-     * Notifies that dependency is now {@code UP}.
+     * Notifies that dependency is now {@code UP} or is scheduled to start.
      * 
      * @param transaction   the active transaction
      * @param context       the service context
+     * @param startTask     the dependency start task
      */
-    TaskController<?> dependencyUp(Transaction transaction, TaskFactory taskFactory) {
-        return dependent.dependencySatisfied(transaction, taskFactory);
+    void dependencyUp(Transaction transaction, TaskFactory taskFactory, TaskController<Boolean> startTask) {
+        dependent.dependencySatisfied(transaction, taskFactory, startTask);
     }
 
     /**
-     * Notifies that dependency is now {@code DOWN}).
+     * Notifies that dependency is now stopping.
      *  
      * @param transaction    the active transaction
      * @param taskFactory    the task factory

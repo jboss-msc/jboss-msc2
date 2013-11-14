@@ -57,7 +57,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     private static final ServiceName secondSN = ServiceName.of("second");
     private static final ServiceName thirdSN = ServiceName.of("third");
 
-    protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException {
+    protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName parentDependency) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         try {
@@ -99,7 +99,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
@@ -151,7 +151,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -203,7 +203,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -236,7 +236,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
@@ -288,7 +288,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -340,7 +340,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -373,7 +373,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
 
         final ServiceContext parentContext = firstService.getServiceContext();
@@ -424,7 +424,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -476,7 +476,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase9() throws Exception {
+    public void usecase9() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -509,7 +509,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase10() throws Exception {
+    public void usecase10() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
@@ -560,7 +560,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase11() throws Exception {
+    public void usecase11() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -611,7 +611,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase12() throws Exception {
+    public void usecase12() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -644,7 +644,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase13() throws Exception {
+    public void usecase13() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
@@ -695,7 +695,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase14() throws Exception {
+    public void usecase14() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -747,7 +747,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase15() throws Exception {
+    public void usecase15() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -780,7 +780,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase16() throws Exception {
+    public void usecase16() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
 
         final ServiceContext parentContext = firstService.getServiceContext();
@@ -830,7 +830,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase17() throws Exception {
+    public void usecase17() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
@@ -881,7 +881,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase18() throws Exception {
+    public void usecase18() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
 
@@ -906,7 +906,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     }
 
     @Ignore @Test // TODO fix this
-    public void problemReport() throws Exception {
+    public void problemReport() {
         final TestService firstService = addService(firstSN, ACTIVE);
         final BasicTransaction transaction = txnController.create(defaultExecutor);
         final ServiceContext serviceContext = firstService.getServiceContext();

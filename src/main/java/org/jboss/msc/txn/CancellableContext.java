@@ -19,11 +19,10 @@
 package org.jboss.msc.txn;
 
 /**
- * A task which may be cancelled.  If threads executing on
- * behalf of the corresponding task are interrupted, the {@link #isCancelRequested()} method should be checked to
- * see if the task should be cancelled.
+ * A task which may be cancelled.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface CancellableContext {
 

@@ -46,7 +46,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         assertNull(addService(firstSN, ON_DEMAND, secondSN));
     }
 
@@ -58,7 +58,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         assertNull(addService(firstSN, LAZY, requiredFlag, secondSN));
     }
 
@@ -70,7 +70,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         assertNull(addService(firstSN, ACTIVE, requiredFlag, secondSN));
     }
 
@@ -82,7 +82,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, ON_DEMAND, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue(removeService(firstSN, firstService));
@@ -97,7 +97,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final TestService firstService = addService(firstSN, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue(removeService(firstSN, firstService));
@@ -112,7 +112,7 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final TestService firstService = addService(firstSN, ACTIVE, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         assertTrue(removeService(firstSN, firstService));

@@ -17,10 +17,8 @@
  */
 package org.jboss.msc.txn;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StopContext;
@@ -33,6 +31,15 @@ import org.jboss.msc.txn.Problem.Severity;
  *
  */
 final class StoppingServiceTasks {
+
+    static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
+
+        @Override
+        public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
+            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>();
+        }
+
+    });
 
     /**
      * Creates stopping service tasks. When all created tasks finish execution, {@code service} will enter {@code DOWN} state.
@@ -49,55 +56,31 @@ final class StoppingServiceTasks {
 
         final Service<T> serviceValue = service.getService();
 
+        // notify dependents
+        final TaskController<Void> notifyDependentsTask = taskFactory.<Void>newTask().setRevertible(new NotifyDependentsTask(service, transaction)).release();
+
         // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask(serviceValue));
+        final StopServiceTask stopServiceTask = new StopServiceTask(serviceValue);
+        final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask(stopServiceTask).setTraits(stopServiceTask);
         stopTaskBuilder.addDependencies(taskDependencies);
-        if (taskDependencies.isEmpty()) {
-            stopTaskBuilder.addDependency(service.getUnlockTask());
-        }
+        stopTaskBuilder.addDependency(notifyDependentsTask);
         final TaskController<Void> stop = stopTaskBuilder.release();
 
+        // notifyDependentsTask is the one that needs to be reverted if service has to rollback stop
+        transaction.getAttachment(STOP_TASKS).put(service, notifyDependentsTask);
+
         // post stop task
-        final TaskBuilder<Void> setServiceDownBuilder =  taskFactory.newTask(new SetServiceDownTask(service, transaction)).addDependency(stop);
+        final TaskBuilder<Void> setServiceDownBuilder =  taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, service.getValue()));
 
         // undemand dependencies if needed
         if (service.getDependencies().length > 0) {
             TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, stop, transaction, transaction.getTaskFactory());
             setServiceDownBuilder.addDependency(undemandDependenciesTask);
+        } else {
+            setServiceDownBuilder.addDependency(stop);
         }
 
         return setServiceDownBuilder.release();
-    }
-
-    /**
-     * Creates stopping service tasks. When all created tasks finish execution, {@code service} will enter {@code DOWN} state.
-     * 
-     * @param service          stopping service
-     * @param taskDependency   the task that must be first concluded before service can stop
-     * @param transaction      the active transaction
-     * @param taskFactory      the task factory
-     * @return                 the final task to be executed. Can be used for creating tasks that depend on the
-     *                         conclusion of stopping transition.
-     */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, TaskController<?> taskDependency,
-            Transaction transaction, TaskFactory taskFactory) {
-
-        final List<TaskController<?>> taskDependencies = new ArrayList<TaskController<?>>(1);
-        taskDependencies.add(taskDependency);
-        return create(service, taskDependencies, transaction, taskFactory);
-    }
-
-    /**
-     * Creates stopping service tasks. When all created tasks finish execution, {@code service} will enter {@code DOWN} state.
-     * @param service         stopping service
-     * @param transaction     the active transaction
-     * @param taskFactory     the task factory
-     * @return                the final task to be executed. Can be used for creating tasks that depend on the
-     *                        conclusion of stopping transition.
-     */
-    @SuppressWarnings("unchecked")
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
-        return create(service, Collections.EMPTY_LIST, transaction, taskFactory);
     }
 
     /**
@@ -108,29 +91,67 @@ final class StoppingServiceTasks {
      * @return                the final task to be executed. Can be used for creating tasks that depend on the
      *                        conclusion of stopping transition.
      */
-    // TODO discuss: what if we just set the service down after it fails?
     static <T> TaskController<Void> createForFailedService(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
 
         // post stop task
-        final TaskBuilder<Void> setServiceDownBuilder = taskFactory.newTask(new SetServiceDownTask(service, transaction));
+        final TaskBuilder<Void> setServiceDownBuilder = taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, null));
 
         // undemand dependencies if needed
         if (service.getDependencies().length > 0) {
             TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, transaction, transaction.getTaskFactory());
             setServiceDownBuilder.addDependency(undemandDependenciesTask);
-        } else {
-            setServiceDownBuilder.addDependency(service.getUnlockTask());
         }
 
         return setServiceDownBuilder.release();
     }
 
     /**
+     * Attempt to revert stop tasks for {@code service}.
+     * 
+     * @param service     the service whose stop tasks will be reverted
+     * @param transaction the active transaction
+     * @return {@code true} if {@code service} has stop tasks created during current transaction, indicating they have
+     *                      been reverted; {@code false} if no such tasks exist, indicating start tasks have to be
+     *                      created to start the service 
+     */
+    static boolean revertStop(ServiceControllerImpl<?> service, Transaction transaction) {
+        final TaskController<Void> stopTask = transaction.getAttachment(STOP_TASKS).remove(service);
+        if (stopTask != null) {
+            ((TaskControllerImpl<Void>) stopTask).forceCancel();
+            return true;
+        }
+        return false;
+    }
+
+    static class NotifyDependentsTask implements Revertible {
+
+        private final ServiceControllerImpl<?> serviceController;
+        private final Transaction transaction;
+
+        public NotifyDependentsTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
+            this.serviceController = serviceController;
+            this.transaction = transaction;
+        }
+
+        @Override
+        public void rollback(RollbackContext context) {
+            // set UP state
+            serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction, transaction.getTaskFactory());
+            try {
+                serviceController.notifyServiceUp(transaction);
+            } finally {
+                context.complete();
+            }
+        }
+    }
+
+    /**
      * Task that stops service.
      * 
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopServiceTask implements Executable<Void> {
+    static class StopServiceTask implements Executable<Void>, Validatable, Revertible {
 
         private final Service<?> service;
 
@@ -139,7 +160,16 @@ final class StoppingServiceTasks {
         }
 
         public void execute(final ExecuteContext<Void> context) {
-            service.stop(new StopContext(){
+            service.executeStop(new StopContext(){
+                @Override
+                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
+                    context.lockAsynchronously(lock, listener);
+                }
+
+                @Override
+                public boolean tryLock(TransactionalLock lock) {
+                    return context.tryLock(lock);
+                }
 
                 @Override
                 public void complete(Void result) {
@@ -202,6 +232,16 @@ final class StoppingServiceTasks {
                 }
             });
         }
+
+        @Override
+        public void validate(ValidateContext context) {
+            service.validateStop(context);
+        }
+
+        @Override
+        public void rollback(RollbackContext context) {
+            service.rollbackStop(context);
+        }
     }
 
     /**
@@ -210,14 +250,16 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      *
      */
-    private static class SetServiceDownTask implements Executable<Void> {
+    private static class SetServiceDownTask<T> implements Executable<Void>, Revertible {
 
         private final Transaction transaction;
-        private final ServiceControllerImpl<?> serviceController;
+        private final ServiceControllerImpl<T> serviceController;
+        private final T serviceValue;
 
-        private SetServiceDownTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
+        private SetServiceDownTask(ServiceControllerImpl<T> serviceController, Transaction transaction, T serviceValue) {
             this.transaction = transaction;
             this.serviceController = serviceController;
+            this.serviceValue = serviceValue;
         }
 
         @Override
@@ -237,6 +279,24 @@ final class StoppingServiceTasks {
                         dependencyController.dependentStopped(transaction, (TaskFactory)context);
                     }
                 }
+            } finally {
+                context.complete();
+            }
+        }
+
+        @Override
+        public void rollback(RollbackContext context) {
+            try {
+                // notify dependent is up
+                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
+                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
+                    if (dependencyController != null) {
+                        dependencyController.dependentStarted(transaction, transaction.getTaskFactory());
+                    }
+                }
+
+                // reset service value, thus performing an automatic injection
+                serviceController.setValue(serviceValue);
             } finally {
                 context.complete();
             }

@@ -47,7 +47,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -72,7 +72,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -97,7 +97,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, true, ACTIVE);
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
@@ -122,7 +122,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -147,7 +147,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -172,7 +172,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, true, ACTIVE);
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
@@ -197,7 +197,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -222,7 +222,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
@@ -247,7 +247,7 @@ public class OneFailingService_OneDep_ContainerShutdown_TestCase extends Abstrac
      * </UL>
      */
     @Test
-    public void usecase9() throws Exception {
+    public void usecase9() {
         final TestService firstService = addService(firstSN, true, ACTIVE);
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());

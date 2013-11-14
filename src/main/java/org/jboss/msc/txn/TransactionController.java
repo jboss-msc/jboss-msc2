@@ -74,8 +74,6 @@ public final class TransactionController extends SimpleAttachable {
         return registerTransaction(new BasicTransaction(this, executor, maxSeverity));
     }
 
-
-
     BasicTransaction registerTransaction(final BasicTransaction transaction) {
         try {
             Transactions.register(transaction);
@@ -118,11 +116,18 @@ public final class TransactionController extends SimpleAttachable {
     public ServiceContext getServiceContext() {
         return serviceContext;
     }
+    
+    /**
+     * Creates a new transaction aware lock. Only one transaction at a time can own the lock.
+     * @return new transaction aware lock
+     */
+    public TransactionalLock newTransactionalLock() {
+        return new TransactionalLock();
+    }
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
-     * builder properties will be pre-initialized.
+     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
      *
      * @param transaction the transaction
      * @param task        the task
@@ -228,14 +233,13 @@ public final class TransactionController extends SimpleAttachable {
      * 
      * @param transaction transaction containing current operation
      * @param other the other transaction
-     * @throws InterruptedException if the wait was interrupted
-     * @throws DeadlockException if this wait has caused a deadlock and this task was selected to break it
+     * @throws DeadlockException if this wait would cause a deadlock
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws InterruptedException, DeadlockException, SecurityException {
+    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws DeadlockException, SecurityException {
         validateTransaction(transaction);
         validateTransaction(other);
-        transaction.waitFor(other);
+        Transactions.waitFor(transaction, other);
     }
 
     /**

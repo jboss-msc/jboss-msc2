@@ -28,7 +28,6 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.txn.Committable;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.Validatable;
@@ -97,22 +96,30 @@ public interface MSCLogger {
     void taskValidationFailed(@Cause Throwable cause, Validatable task);
 
     @LogMessage(level = ERROR)
-    @Message(id = 14, value = "Commit of task \"%s\" caused an exception")
-    void taskCommitFailed(@Cause Throwable cause, Committable task);
-
-    @LogMessage(level = ERROR)
-    @Message(id = 15, value = "Rollback of task \"%s\" caused an exception")
+    @Message(id = 14, value = "Rollback of task \"%s\" caused an exception")
     void taskRollbackFailed(@Cause Throwable cause, Revertible task);
 
     @LogMessage(level = FATAL)
-    @Message(id = 16, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
+    @Message(id = 15, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
     void runnableExecuteFailed(@Cause Throwable cause, Runnable command);
 
-    @Message(id = 17, value ="Service %s has a required dependency on service %s that is missing")
+    @Message(id = 16, value ="Service %s has a required dependency on service %s that is missing")
     String requiredDependency(ServiceName dependentName, ServiceName dependencyName);
 
-    @Message(id = 18, value="Dependency cycle found: %s")
+    @Message(id = 17, value="Dependency cycle found: %s")
     String dependencyCycle(ServiceName[] cycle);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 18, value = "Lock cleanup failed")
+    void lockCleanupFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 19, value = "Transaction termination listener execution failed")
+    void terminationListenerFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 20, value = "Lock request listener execution failed")
+    void lockListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
 

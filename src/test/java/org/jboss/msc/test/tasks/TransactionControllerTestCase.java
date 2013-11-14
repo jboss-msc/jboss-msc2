@@ -36,7 +36,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     // TODO add more tests to this class
 
     @Test
-    public void outsiderTransaction() throws InterruptedException, DeadlockException {
+    public void outsiderTransaction() {
         final TransactionController outsiderController = TransactionController.createInstance();
         final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
         SecurityException expected = null;
@@ -110,6 +110,8 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
             txnController.waitFor(outsiderTransaction, transaction);
         } catch (SecurityException e) {
             expected = e;
+        } catch (DeadlockException e) {
+            // never happens
         }
         assertNotNull(expected);
         outsiderController.prepare(outsiderTransaction, null);

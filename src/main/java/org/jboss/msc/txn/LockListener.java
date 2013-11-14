@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012 Red Hat, Inc., and individual contributors
+ * Copyright 2013 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,9 +19,21 @@
 package org.jboss.msc.txn;
 
 /**
- * The context for a commit operation.
+ * Lock acquisition request callback listener.
  *
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface CommitContext extends SimpleWorkContext, TransactionalContext {
+public interface LockListener {
+    
+    /**
+     * Called when lock is successfully acquired.
+     */
+    void lockAcquired();
+    
+    /**
+     * Called when deadlock is detected.
+     * @param e caught deadlock exception
+     */
+    void deadlockDetected(DeadlockException e);
+
 }

@@ -47,7 +47,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase1() throws Exception {
+    public void usecase1() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -69,7 +69,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase2() throws Exception {
+    public void usecase2() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -98,7 +98,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase3() throws Exception {
+    public void usecase3() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, firstSN);
@@ -120,7 +120,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase4() throws Exception {
+    public void usecase4() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, requiredFlag, firstSN);
@@ -149,7 +149,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase5() throws Exception {
+    public void usecase5() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, requiredFlag, firstSN);
@@ -169,7 +169,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase6() throws Exception {
+    public void usecase6() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, firstSN);
@@ -197,7 +197,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase7() throws Exception {
+    public void usecase7() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         final TestService secondService = addService(secondSN, ACTIVE, firstSN);
         assertTrue(firstService.isUp());
@@ -218,7 +218,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase8() throws Exception {
+    public void usecase8() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, requiredFlag, firstSN);
@@ -247,7 +247,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase9() throws Exception {
+    public void usecase9() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, requiredFlag, firstSN);
@@ -267,7 +267,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase10() throws Exception {
+    public void usecase10() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, unrequiredFlag, firstSN);
@@ -287,7 +287,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase11() throws Exception {
+    public void usecase11() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, unrequiredFlag, firstSN);
@@ -308,7 +308,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase12() throws Exception {
+    public void usecase12() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ON_DEMAND, unrequiredFlag, firstSN);
@@ -328,7 +328,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase13() throws Exception {
+    public void usecase13() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, unrequiredFlag, firstSN);
@@ -348,7 +348,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase14() throws Exception {
+    public void usecase14() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, unrequiredFlag, firstSN);
@@ -368,7 +368,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase15() throws Exception {
+    public void usecase15() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, LAZY, unrequiredFlag, firstSN);
@@ -388,7 +388,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase16() throws Exception {
+    public void usecase16() {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         final TestService secondService = addService(secondSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
@@ -407,7 +407,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase17() throws Exception {
+    public void usecase17() {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, unrequiredFlag, firstSN);
@@ -427,7 +427,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase18() throws Exception {
+    public void usecase18() {
         final TestService firstService = addService(firstSN, ACTIVE);
         assertTrue(firstService.isUp());
         final TestService secondService = addService(secondSN, ACTIVE, unrequiredFlag, firstSN);

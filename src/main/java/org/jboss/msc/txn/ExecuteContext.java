@@ -24,8 +24,9 @@ package org.jboss.msc.txn;
  * @param <T> the result type of the associated task
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends TransactionalContext, ReportableContext, CancellableContext, SimpleWorkContext {
+public interface ExecuteContext<T> extends CancellableContext, LockingContext, ReportableContext, SimpleWorkContext {
 
     /**
      * Register the completion of this task with a value.  This method returns without blocking.
@@ -41,8 +42,7 @@ public interface ExecuteContext<T> extends TransactionalContext, ReportableConte
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible}, {@link Validatable}, or {@link Committable}, the corresponding
-     * builder properties will be pre-initialized.
+     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
      * 
      * @param task the task
      * @param <R> the result value type (may be {@link Void})

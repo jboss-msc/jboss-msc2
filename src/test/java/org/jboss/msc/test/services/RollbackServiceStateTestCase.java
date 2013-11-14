@@ -51,7 +51,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceInstallation() throws Exception {
+    public void revertServiceInstallation() {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
@@ -80,7 +80,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceRemoval() throws Exception {
+    public void revertServiceRemoval() {
         final TestService firstService, secondService;
         final ServiceController secondServiceController;
         // new transaction
@@ -129,7 +129,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceStart() throws Exception {
+    public void revertServiceStart() {
         final TestService firstService = addService(firstSN, ServiceMode.ON_DEMAND);
         assertFalse(firstService.isUp());
         System.out.println("first service is down");
@@ -165,7 +165,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceStopAndRemoval() throws Exception {
+    public void revertServiceStopAndRemoval() {
         final BasicTransaction txn1 = newTransaction();
         final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn1, firstSN, ServiceMode.ON_DEMAND);
         final TestServiceBuilder secondServiceBuilder = new TestServiceBuilder(txn1, secondSN, firstSN);
@@ -197,7 +197,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceDisable() throws Exception {
+    public void revertServiceDisable() {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable service and rollback
@@ -218,7 +218,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceDisableEnable() throws Exception {
+    public void revertServiceDisableEnable() {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable and enable service, then rollback
@@ -241,7 +241,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void revertServiceEnable() throws Exception {
+    public void revertServiceEnable() {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable service
