@@ -545,8 +545,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unfinishedChildren--;
-            unvalidatedChildren--;
             unterminatedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
