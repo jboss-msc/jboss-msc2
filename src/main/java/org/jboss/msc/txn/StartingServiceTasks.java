@@ -352,7 +352,7 @@ final class StartingServiceTasks {
                     service.setValue(result);
                     service.setTransition(ServiceControllerImpl.STATE_UP, transaction, (TaskFactory) context);
                     serviceUp = true;
-                    service.notifyServiceUp(transaction, (TaskFactory) context);
+                    service.notifyServiceUp(transaction);
                 }
             } finally {
                 context.complete(serviceUp);
@@ -363,7 +363,7 @@ final class StartingServiceTasks {
         public void rollback(RollbackContext context) {
             try {
                 service.setValue(null);
-                service.notifyServiceDown(transaction, (TaskFactory) context);
+                service.notifyServiceDown(transaction);
                 service.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, transaction.getTaskFactory());
             } finally {
                 context.complete();

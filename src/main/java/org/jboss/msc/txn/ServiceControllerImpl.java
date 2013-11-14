@@ -435,14 +435,14 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         return transition(transaction, taskFactory);
     }
 
-    public Collection<TaskController<?>> notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
+    public Collection<TaskController<?>> notifyServiceDown(Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        return transactionalInfo.notifyServiceDown(transaction, taskFactory);
+        return transactionalInfo.notifyServiceDown(transaction, transaction.getTaskFactory());
     }
 
-    public void notifyServiceUp(Transaction transaction, TaskFactory taskFactory) {
+    public void notifyServiceUp(Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        transactionalInfo.notifyServiceStarting(transaction, taskFactory, null);
+        transactionalInfo.notifyServiceStarting(transaction, transaction.getTaskFactory(), null);
     }
 
     /**
