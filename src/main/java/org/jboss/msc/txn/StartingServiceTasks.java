@@ -163,7 +163,7 @@ final class StartingServiceTasks {
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                     ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
                     if (dependencyController != null) {
-                        dependencyController.dependentStarted(transaction, (TaskFactory)context);
+                        dependencyController.dependentStarted(transaction);
                     }
                 }
             } finally {

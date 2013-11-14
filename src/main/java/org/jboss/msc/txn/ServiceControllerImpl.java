@@ -390,7 +390,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * 
      * @param transaction the active transaction
      */
-    void dependentStarted(Transaction transaction, TaskFactory taskFactory) {
+    void dependentStarted(Transaction transaction) {
         lockWrite(transaction);
         synchronized (this) {
             runningDependents++;

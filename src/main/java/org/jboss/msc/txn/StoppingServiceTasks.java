@@ -291,7 +291,7 @@ final class StoppingServiceTasks {
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                     ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
                     if (dependencyController != null) {
-                        dependencyController.dependentStarted(transaction, transaction.getTaskFactory());
+                        dependencyController.dependentStarted(transaction);
                     }
                 }
 
