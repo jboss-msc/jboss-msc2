@@ -511,6 +511,20 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     }
                     continue;
                 }
+                case T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
+                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
+                        if (! dependents.isEmpty()) {
+                            cachedDependents = dependents.toArray(new TaskControllerImpl[dependents.size()]);
+                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        } else {
+                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        }
+                    }
+                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
+                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                    }
+                    continue;
+                }
                 case T_EXECUTE_DONE_to_ROLLBACK_WAIT: {
                     if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         if (! dependents.isEmpty()) {
@@ -525,27 +539,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     }
                     continue;
                 }
-                case T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
+                case T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
                     if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         if (! dependents.isEmpty()) {
                             cachedDependents = dependents.toArray(new TaskControllerImpl[dependents.size()]);
                             state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_VALIDATE_DONE);
                         } else {
                             state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CHILD_VALIDATE_DONE);
-                        }
-                    }
-                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ | FLAG_SEND_CHILD_DONE);
-                    }
-                    continue;
-                }
-                case T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                        if (! dependents.isEmpty()) {
-                            cachedDependents = dependents.toArray(new TaskControllerImpl[dependents.size()]);
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
-                        } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state);
                         }
                     }
                     continue;
@@ -665,7 +665,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert !holdsLock(this);
         int state;
         synchronized (this) {
-            getTransaction().adoptGrandchildren(children, userThread, Math.max(unfinishedChildren, 0), Math.max(unvalidatedChildren, 0), Math.max(unterminatedChildren, 0));
+            getTransaction().adoptGrandchildren(children, userThread, unfinishedChildren, unvalidatedChildren, unterminatedChildren);
             adopter = getTransaction().topParent;
             for (final TaskControllerImpl<?> child : children) {
                 child.parent.setDelegate(adopter);
