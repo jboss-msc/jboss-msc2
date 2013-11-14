@@ -594,7 +594,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             for (TaskControllerImpl<?> dependent : cachedDependents) {
                 dependent.forceCancel(userThread);
             }
-            cachedDependents = null;
+            if (!Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_DONE)) {
+                cachedDependents = null;
+            }
         }
         if (Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_DONE)) {
             for (TaskControllerImpl<?> dependent : cachedDependents) {
