@@ -177,7 +177,7 @@ final class StartingServiceTasks {
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                     ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
                     if (dependencyController != null) {
-                        dependencyController.dependentStopped(transaction, (TaskFactory)context);
+                        dependencyController.dependentStopped(transaction, transaction.getTaskFactory());
                     }
                 }
             } finally {
@@ -363,7 +363,7 @@ final class StartingServiceTasks {
         public void rollback(RollbackContext context) {
             try {
                 service.setValue(null);
-                service.notifyServiceDown(transaction, (TaskFactory) context);
+                service.notifyServiceDown(transaction, transaction.getTaskFactory());
                 service.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, transaction.getTaskFactory());
             } finally {
                 context.complete();
