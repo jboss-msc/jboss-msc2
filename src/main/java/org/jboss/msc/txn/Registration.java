@@ -90,16 +90,23 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void addIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
+    <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
         lockWrite(transaction);
         installDependenciesValidateTask(transaction);
-        final boolean dependencyUp;
+        final TaskController<Boolean> startTask;
+        final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
-            dependencyUp = controller != null && controller.getState() == STATE_UP;
+            if (controller == null) {
+                up = false;
+                startTask = null;
+            } else {
+                startTask = controller.getStartTask(transaction);
+                up = startTask != null || controller.getState() == ServiceControllerImpl.STATE_UP;
+            }
         }
-        if (dependencyUp) {
-            dependency.dependencyUp(transaction, transaction.getTaskFactory());
+        if (up) {
+            dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
         }
     }
 
@@ -109,9 +116,9 @@ final class Registration extends TransactionalObject {
         incomingDependencies.remove(dependency);
     }
 
-    void serviceUp(final Transaction transaction, final TaskFactory taskFactory) {
+    void serviceUp(final Transaction transaction, final TaskFactory taskFactory, final TaskController<Boolean> startTask) {
         for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            incomingDependency.dependencyUp(transaction, taskFactory);
+            incomingDependency.dependencyUp(transaction, taskFactory, startTask);
         }
     }
 

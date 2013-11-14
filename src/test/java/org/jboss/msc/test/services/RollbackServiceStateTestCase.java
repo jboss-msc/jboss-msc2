@@ -32,7 +32,6 @@ import org.jboss.msc.test.utils.TestServiceBuilder;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ServiceController;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
