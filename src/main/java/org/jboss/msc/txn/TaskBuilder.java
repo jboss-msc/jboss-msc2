@@ -90,7 +90,7 @@ public interface TaskBuilder<T> {
      * @param dependencies the dependencies to add
      * @return this builder
      */
-    TaskBuilder<T> addDependencies(final Collection<TaskController<?>> dependencies) throws IllegalStateException;
+    TaskBuilder<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException;
 
     /**
      * Add a single dependency, if this subtask has not yet been executed.

@@ -143,7 +143,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
      * @param dependencies the dependencies to add
      * @return this builder
      */
-    public TaskBuilderImpl<T> addDependencies(final Collection<TaskController<?>> dependencies) throws IllegalStateException {
+    public TaskBuilderImpl<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException {
         if (dependencies == null) {
             throw TXN.methodParameterIsNull("dependencies");
         }
