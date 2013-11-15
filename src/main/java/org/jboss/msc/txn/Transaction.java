@@ -173,11 +173,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return sid == sid1 || sid == sid2;
     }
 
-    private static boolean stateIsIn(int state, int sid1, int sid2, int sid3) {
-        final int sid = stateOf(state);
-        return sid == sid1 || sid == sid2 || sid == sid3;
-    }
-
     public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
