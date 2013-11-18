@@ -695,10 +695,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void forceCancel() {
-        forceCancel(Bits.allAreSet(state, FLAG_USER_THREAD));
+        forceCancel(false);
     }
 
-    void forceCancel(final boolean userThread) {
+    private void forceCancel(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
