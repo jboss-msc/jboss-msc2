@@ -136,7 +136,7 @@ final class StoppingServiceTasks {
         @Override
         public void rollback(RollbackContext context) {
             // set UP state
-            serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction, transaction.getTaskFactory());
+            serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction);
             try {
                 serviceController.notifyServiceUp(transaction);
             } finally {
@@ -267,7 +267,7 @@ final class StoppingServiceTasks {
             assert context instanceof TaskFactory;
             try {
                 // set down state
-                serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, (TaskFactory)context);
+                serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
 
                 // clear service value, thus performing an automatic uninjection
                 serviceController.setValue(null);

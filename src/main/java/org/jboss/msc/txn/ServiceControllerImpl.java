@@ -464,11 +464,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * Sets the new transactional state of this service.
      * 
      * @param transactionalState the transactional state
-     * @param taskFactory        the task factory
      */
-    void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
+    void setTransition(byte transactionalState, Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
+        transactionalInfo.setTransition(transactionalState, transaction);
     }
 
     private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
@@ -515,7 +514,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             transition(transaction, taskFactory);
         }
 
-        synchronized void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
+        synchronized void setTransition(byte transactionalState, Transaction transaction) {
             this.transactionalState = transactionalState;
             if (transactionalState == STATE_REMOVED) {
                 for (DependencyImpl<?> dependency: dependencies) {
