@@ -25,20 +25,19 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 interface TaskParent {
-
     /**
-     * Indicate to this parent that a child's execution has finished.
+     * Indicate to this parent that a child is executed.
      *
      * @param userThread {@code true} if executed from a user thread
      */
-    void childExecutionFinished(boolean userThread);
+    void childExecuted(boolean userThread);
 
     /**
-     * Indicate to this parent that a child's validation has finished.
+     * Indicate to this parent that a child is validated.
      *
      * @param userThread {@code true} if executed from a user thread
      */
-    void childValidationFinished(boolean userThread);
+    void childValidated(boolean userThread);
 
     /**
      * Indicate to this parent that a child is terminated.

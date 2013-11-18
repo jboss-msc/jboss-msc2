@@ -84,12 +84,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
-        public void childExecutionFinished(final boolean userThread) {
-            doChildExecutionFinished(userThread);
+        public void childExecuted(final boolean userThread) {
+            doChildExecuted(userThread);
         }
 
-        public void childValidationFinished(final boolean userThread) {
-            doChildValidationFinished(userThread);
+        public void childValidated(final boolean userThread) {
+            doChildValidated(userThread);
         }
 
         public void childTerminated(final boolean userThread) {
@@ -509,7 +509,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    private void doChildExecutionFinished(final boolean userThread) {
+    private void doChildExecuted(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -523,7 +523,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     void taskCancelled(final boolean userThread) {
-        doChildExecutionFinished(userThread);
+        doChildExecuted(userThread);
     }
 
     synchronized void taskForcedToCancel() {
@@ -533,7 +533,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         unfinishedChildren++;
     }
 
-    private void doChildValidationFinished(final boolean userThread) {
+    private void doChildValidated(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {

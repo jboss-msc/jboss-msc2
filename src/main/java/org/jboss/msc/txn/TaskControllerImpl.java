@@ -264,13 +264,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
 
         @Override
-        public void childExecutionFinished(final boolean userThread) {
-            getDelegate().childExecutionFinished(userThread);
+        public void childExecuted(final boolean userThread) {
+            getDelegate().childExecuted(userThread);
         }
 
         @Override
-        public void childValidationFinished(final boolean userThread) {
-            getDelegate().childValidationFinished(userThread);
+        public void childValidated(final boolean userThread) {
+            getDelegate().childValidated(userThread);
         }
 
         @Override
@@ -607,7 +607,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_DONE)) {
-            parent.childExecutionFinished(userThread);
+            parent.childExecuted(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
             for (TaskChild child : children) {
@@ -625,7 +625,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
-            parent.childValidationFinished(userThread);
+            parent.childValidated(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             parent.childTerminated(userThread);
@@ -974,7 +974,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     @Override
-    public void childExecutionFinished(final boolean userThread) {
+    public void childExecuted(final boolean userThread) {
         assert ! holdsLock(this);
         int state = 0;
         TaskParent adopter = null;
@@ -992,12 +992,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (adopter == null) {
             executeTasks(state);
         } else {
-            adopter.childExecutionFinished(userThread);
+            adopter.childExecuted(userThread);
         }
     }
 
     @Override
-    public void childValidationFinished(final boolean userThread) {
+    public void childValidated(final boolean userThread) {
         assert ! holdsLock(this);
         int state = 0;
         TaskParent adopter = null;
@@ -1015,7 +1015,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (adopter == null) {
             executeTasks(state);
         } else {
-            adopter.childValidationFinished(userThread);
+            adopter.childValidated(userThread);
         }
     }
 
