@@ -74,7 +74,7 @@ final class StoppingServiceTasks {
 
         // undemand dependencies if needed
         if (service.getDependencies().length > 0) {
-            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, stop, transaction, transaction.getTaskFactory());
+            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, stop, transaction, taskFactory);
             setServiceDownBuilder.addDependency(undemandDependenciesTask);
         } else {
             setServiceDownBuilder.addDependency(stop);

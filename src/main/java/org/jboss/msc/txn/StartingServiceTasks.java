@@ -68,10 +68,8 @@ final class StartingServiceTasks {
     static <T> TaskController<Boolean> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<Boolean>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
-        final Service<T> serviceValue = serviceController.getService();
-
         // start service task builder
-        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceController, serviceValue, transaction, dependencyStartTasks, serviceController.getServiceName().toString());
+        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks, serviceController.getServiceName().toString());
         final TaskBuilder<T> startBuilder = taskFactory.<T>newTask(startServiceTask).setTraits(startServiceTask);
 
         final TaskController<T> start; 
@@ -200,7 +198,7 @@ final class StartingServiceTasks {
         private boolean failed;
         private final Collection<TaskController<Boolean>> dependencyStartTasks;
 
-        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Service<T> service, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks, final String serviceName) {
+        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks, final String serviceName) {
             this.serviceController = serviceController;
             this.service = serviceController.getService();
             this.transaction = transaction;
