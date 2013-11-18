@@ -138,7 +138,7 @@ final class StoppingServiceTasks {
             // set UP state
             serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction, transaction.getTaskFactory());
             try {
-                serviceController.notifyServiceUp(transaction, transaction.getTaskFactory());
+                serviceController.notifyServiceUp(transaction);
             } finally {
                 context.complete();
             }

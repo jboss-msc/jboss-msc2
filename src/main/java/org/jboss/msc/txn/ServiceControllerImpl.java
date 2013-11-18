@@ -352,7 +352,9 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         if (propagate) {
             DemandDependenciesTask.create(this, transaction, taskFactory);
         }
-        transition(transaction, taskFactory);
+        if (taskFactory != null) {
+            transition(transaction, taskFactory);
+        }
     }
 
     /**
@@ -406,11 +408,15 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     void dependentStopped(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         synchronized (this) {
-            if (--runningDependents > 0) {
+            if (--runningDependents > 0 || taskFactory == null) {
                 return;
             }
         }
         transition(transaction, taskFactory);
+    }
+
+    void dependentStopped(Transaction transaction) {
+        dependentStopped(transaction, null);
     }
 
     public ServiceName getServiceName() {
@@ -440,9 +446,18 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         return transactionalInfo.notifyServiceDown(transaction, taskFactory);
     }
 
+    public void notifyServiceDown(Transaction transaction) {
+        assert lock.isOwnedBy(transaction);
+        transactionalInfo.notifyServiceDown(transaction, null);
+    }
+
     public void notifyServiceUp(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         transactionalInfo.notifyServiceStarting(transaction, taskFactory, null);
+    }
+
+    public void notifyServiceUp(Transaction transaction) {
+        notifyServiceUp(transaction, null);
     }
 
     /**
@@ -529,6 +544,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                             }
                             break;
                         }
+                        if (taskFactory == null) {
+                            // a null taskFactory means we are on revert
+                            throw new IllegalStateException("Cannot create task on revert");
+                        }
                         transactionalState = STATE_STARTING;
                         startTask = StartingServiceTasks.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
                         completeTransitionTask = startTask;
@@ -549,6 +568,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                                 transactionalState = STATE_DOWN;
                             }
                             break;
+                        }
+                        if (taskFactory == null) {
+                            // a null taskFactory means we are on revert
+                            throw new IllegalStateException("Cannot create task on revert");
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
