@@ -20,7 +20,8 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceStopExecutable;
+import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
@@ -54,16 +55,23 @@ final class StoppingServiceTasks {
     static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Collection<TaskController<?>> taskDependencies,
             Transaction transaction, TaskFactory taskFactory) {
 
-        final Service<T> serviceValue = service.getService();
+        final Object serviceValue = service.getService();
 
         // notify dependents
         final TaskController<Void> notifyDependentsTask = taskFactory.<Void>newTask().setRevertible(new NotifyDependentsTask(service, transaction)).release();
 
         // stop service
+        final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask();
         final StopServiceTask stopServiceTask = new StopServiceTask(serviceValue);
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask(stopServiceTask).setTraits(stopServiceTask);
+        if (serviceValue instanceof ServiceStopExecutable) {
+            stopTaskBuilder.setExecutable (stopServiceTask);
+        }
+        if (serviceValue instanceof ServiceStopRevertible) {
+            stopTaskBuilder.setRevertible(stopServiceTask);
+        }
         stopTaskBuilder.addDependencies(taskDependencies);
         stopTaskBuilder.addDependency(notifyDependentsTask);
+
         final TaskController<Void> stop = stopTaskBuilder.release();
 
         // notifyDependentsTask is the one that needs to be reverted if service has to rollback stop
@@ -151,16 +159,16 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopServiceTask implements Executable<Void>, Validatable, Revertible {
+    static class StopServiceTask implements Executable<Void>, Revertible {
 
-        private final Service<?> service;
+        private final Object service;
 
-        StopServiceTask(final Service<?> service) {
+        StopServiceTask(final Object service) {
             this.service = service;
         }
 
         public void execute(final ExecuteContext<Void> context) {
-            service.executeStop(new StopContext(){
+            ((ServiceStopExecutable)service).executeStop(new StopContext(){
                 @Override
                 public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
                     context.lockAsynchronously(lock, listener);
@@ -234,13 +242,8 @@ final class StoppingServiceTasks {
         }
 
         @Override
-        public void validate(ValidateContext context) {
-            service.validateStop(context);
-        }
-
-        @Override
         public void rollback(RollbackContext context) {
-            service.rollbackStop(context);
+            ((ServiceStopRevertible) service).rollbackStop(context);
         }
     }
 

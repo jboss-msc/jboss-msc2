@@ -23,7 +23,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.msc._private.MSCLogger;
-import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceStartExecutable;
+import org.jboss.msc.service.ServiceStartRevertible;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.txn.Problem.Severity;
 
@@ -45,10 +46,10 @@ final class StartingServiceTasks {
     });
 
     // keep track of services that have failed to start at current transaction
-    static final AttachmentKey<Set<Service<?>>> FAILED_SERVICES = AttachmentKey.<Set<Service<?>>>create(new Factory<Set<Service<?>>>() {
+    static final AttachmentKey<Set<Object>> FAILED_SERVICES = AttachmentKey.<Set<Object>>create(new Factory<Set<Object>>() {
         @Override
-        public Set<Service<?>> create() {
-            return new HashSet<Service<?>>();
+        public Set<Object> create() {
+            return new HashSet<Object>();
         }
     });
 
@@ -69,8 +70,15 @@ final class StartingServiceTasks {
             Collection<TaskController<Boolean>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
         // start service task builder
-        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks, serviceController.getServiceName().toString());
-        final TaskBuilder<T> startBuilder = taskFactory.<T>newTask(startServiceTask).setTraits(startServiceTask);
+        final Object service = serviceController.getService();
+        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks);
+        final TaskBuilder<T> startBuilder = taskFactory.<T>newTask();
+        if (service instanceof ServiceStartExecutable) {
+            startBuilder.setExecutable(startServiceTask);
+        }
+        if (service instanceof ServiceStartRevertible) {
+            startBuilder.setRevertible(startServiceTask);
+        }
 
         final TaskController<T> start; 
 
@@ -88,8 +96,7 @@ final class StartingServiceTasks {
             // start service
             start = startBuilder.release();
 
-        } else
-        {
+        } else {
             if (taskDependency != null) {
                 startBuilder.addDependency(taskDependency);
             }
@@ -190,15 +197,15 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartServiceTask<T> implements Executable<T>, Validatable, Revertible {
+    static class StartServiceTask<T> implements Executable<T>, Revertible {
 
         private final ServiceControllerImpl<T> serviceController;
-        protected final Service<T> service;
+        protected final Object service;
         private final Transaction transaction;
         private boolean failed;
         private final Collection<TaskController<Boolean>> dependencyStartTasks;
 
-        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks, final String serviceName) {
+        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks) {
             this.serviceController = serviceController;
             this.service = serviceController.getService();
             this.transaction = transaction;
@@ -210,6 +217,7 @@ final class StartingServiceTasks {
          *
          * @param context
          */
+        @SuppressWarnings("unchecked")
         @Override
         public void execute(final ExecuteContext<T> context) {
             for (TaskController<Boolean> dependencyStartTask: dependencyStartTasks) {
@@ -221,7 +229,7 @@ final class StartingServiceTasks {
                     return;
                 }
             }
-            service.executeStart(new StartContext<T>() {
+            ((ServiceStartExecutable<T>) service).executeStart(new StartContext<T>() {
                 @Override
                 public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
                     context.lockAsynchronously(lock, listener);
@@ -302,20 +310,11 @@ final class StartingServiceTasks {
         }
 
         @Override
-        public void validate(ValidateContext context) {
-            if (failed) {
-                context.complete();
-            } else {
-                service.validateStart(context);
-            }
-        }
-
-        @Override
         public void rollback(RollbackContext context) {
             if (failed) {
                 context.complete();
             } else {
-                service.rollbackStart(context);
+                ((ServiceStartRevertible) service).rollbackStart(context);
             }
         }
     }

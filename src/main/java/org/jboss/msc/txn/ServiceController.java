@@ -18,7 +18,6 @@
 
 package org.jboss.msc.txn;
 
-import org.jboss.msc.service.Service;
 
 /**
  * A controller for a single service instance.
@@ -68,6 +67,6 @@ public interface ServiceController {
      * Gets associated service.
      * @return service
      */
-    public Service<?> getService();
+    public Object getService();
 
 }

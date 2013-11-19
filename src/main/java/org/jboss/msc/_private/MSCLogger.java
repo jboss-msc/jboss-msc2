@@ -145,6 +145,9 @@ public interface MSCLogger {
     @Message(id = 105, value = "Parameter %s is invalid")
     IllegalArgumentException methodParameterIsInvalid(final String parameterName);
 
+    @Message(id = 106, value = "Service parameter implements ServiceStartExecutable: invoke ServiceBuilder.setService(ServiceStartExecutable) instead")
+    IllegalArgumentException serviceParameterIsStartExecutable();
+
     /*
      * Location nesting types.
      */

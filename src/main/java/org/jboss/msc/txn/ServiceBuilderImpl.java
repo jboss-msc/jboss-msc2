@@ -26,11 +26,11 @@ import java.util.Set;
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.service.ServiceStartExecutable;
 
 /**
  * A service builder.
@@ -52,7 +52,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service aliases
     private final Set<ServiceName> aliases = new HashSet<ServiceName>(0);
     // service itself
-    private Service<T> service;
+    private Object service;
     // dependencies
     private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<ServiceName, DependencyImpl<?>>();
     // active transaction
@@ -97,11 +97,28 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public ServiceBuilder<T> setService(final Service<T> service) {
+    public ServiceBuilder<T> setService(final ServiceStartExecutable<T> service) {
         assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
         checkAlreadyInstalled();
         if (service == null) {
             MSCLogger.SERVICE.methodParameterIsNull("service");
+        }
+        this.service = service;
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ServiceBuilder<T> setService(final Object service) {
+        assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
+        checkAlreadyInstalled();
+        if (service == null) {
+            MSCLogger.SERVICE.methodParameterIsNull("service");
+        }
+        if (service instanceof ServiceStartExecutable) {
+            MSCLogger.SERVICE.serviceParameterIsStartExecutable();
         }
         this.service = service;
         return this;

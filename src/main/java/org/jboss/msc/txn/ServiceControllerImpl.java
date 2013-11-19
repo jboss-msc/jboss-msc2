@@ -26,9 +26,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.jboss.msc.service.DuplicateServiceException;
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceStartExecutable;
 
 /**
  * A service controller implementation.
@@ -63,7 +63,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     /**
      * The service itself.
      */
-    private final Service<T> service;
+    private final Object service;
     /**
      * The primary registration of this service.
      */
@@ -115,7 +115,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @param dependencies        the service dependencies
      * @param transaction         the active transaction
      */
-    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Service<T> service,
+    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Object service,
             final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final Transaction transaction) {
         this.service = service;
         setMode(mode);
@@ -198,7 +198,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     /**
      * Gets the service.
      */
-    public Service<T> getService() {
+    public Object getService() {
         return service;
     }
 

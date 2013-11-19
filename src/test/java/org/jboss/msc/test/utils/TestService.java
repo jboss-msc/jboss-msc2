@@ -26,15 +26,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.service.ServiceStartExecutable;
+import org.jboss.msc.service.ServiceStartRevertible;
+import org.jboss.msc.service.ServiceStopExecutable;
+import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.RollbackContext;
 import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.ValidateContext;
 
 /**
  * Basic service for tests.
@@ -42,7 +44,7 @@ import org.jboss.msc.txn.ValidateContext;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TestService implements Service<Void> {
+public final class TestService implements ServiceStartExecutable<Void>, ServiceStartRevertible, ServiceStopExecutable, ServiceStopRevertible {
     private CountDownLatch startLatch = new CountDownLatch(1);
     private CountDownLatch stopLatch = new CountDownLatch(1);
 
@@ -155,11 +157,6 @@ public final class TestService implements Service<Void> {
     }
 
     @Override
-    public void validateStart(ValidateContext validateContext) {
-        validateContext.complete();
-    }
-
-    @Override
     public void rollbackStart(RollbackContext rollbackContext) {
         stop();
         rollbackContext.complete();
@@ -170,11 +167,6 @@ public final class TestService implements Service<Void> {
         stop();
         stopContext.complete();
         stopLatch.countDown();
-    }
-
-    @Override
-    public void validateStop(ValidateContext validateContext) {
-        validateContext.complete();
     }
 
     @Override
