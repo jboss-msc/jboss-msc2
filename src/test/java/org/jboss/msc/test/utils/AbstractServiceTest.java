@@ -119,7 +119,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void shutdownContainer(final ServiceContainer serviceContainer) {
         final BasicTransaction txn = newTransaction();
         try {
-        serviceContainer.shutdown(txn);
+            serviceContainer.shutdown(txn);
         } finally{
             prepare(txn);
             commit(txn);

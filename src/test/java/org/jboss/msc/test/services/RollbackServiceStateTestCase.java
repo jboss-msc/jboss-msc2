@@ -132,7 +132,6 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     public void revertServiceStart() {
         final TestService firstService = addService(firstSN, ServiceMode.ON_DEMAND);
         assertFalse(firstService.isUp());
-        System.out.println("first service is down");
         // add a dependent and rollback
         final BasicTransaction txn = newTransaction();
         final TestService secondService;
