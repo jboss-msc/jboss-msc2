@@ -17,7 +17,6 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.ServiceControllerImpl.STATE_REMOVED;
 
 /**
  * Service removal task.
@@ -25,7 +24,7 @@ import static org.jboss.msc.txn.ServiceControllerImpl.STATE_REMOVED;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class ServiceRemoveTask implements Executable<Void> {
+final class ServiceRemoveTask implements Executable<Void>, Revertible {
     private final Transaction transaction;
     private final ServiceControllerImpl<?> serviceController;
 
@@ -38,11 +37,17 @@ final class ServiceRemoveTask implements Executable<Void> {
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            serviceController.getPrimaryRegistration().clearController(transaction);
-            for (Registration registration: serviceController.getAliasRegistrations()) {
-                registration.clearController(transaction);
-            }
-            serviceController.setTransition(STATE_REMOVED, transaction, (TaskFactory) context);
+            serviceController.clear(transaction, (TaskFactory) context);
+            serviceController.setTransition(ServiceControllerImpl.STATE_REMOVED, transaction);
+        } finally {
+            context.complete();
+        }
+    }
+
+    @Override
+    public void rollback(RollbackContext context) {
+        try {
+            serviceController.reinstall(transaction);
         } finally {
             context.complete();
         }

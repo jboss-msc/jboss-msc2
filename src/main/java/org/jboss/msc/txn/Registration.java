@@ -64,18 +64,28 @@ final class Registration extends TransactionalObject {
         return controller;
     }
 
-    boolean setController(final Transaction transaction, final ServiceControllerImpl<?> serviceController) {
+    boolean resetController(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
+        assert lock.isOwnedBy(transaction);
+        assert controller == null;
+        return setController(serviceController, transaction, null);
+    }
+
+    boolean setController(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
+        return setController(serviceController, transaction, transaction.getTaskFactory());
+    }
+
+    private boolean setController(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final TaskFactory taskFactory) {
         lockWrite(transaction);
-        final boolean upDemanded;
+        final boolean demanded;
         synchronized (this) {
             if (this.controller != null) {
                 return false;
             }
             this.controller = serviceController;
-            upDemanded = demandedByCount > 0;
+            demanded = demandedByCount > 0;
         }
-        if (upDemanded) {
-            serviceController.demand(transaction, transaction.getTaskFactory());
+        if (demanded) {
+            serviceController.demand(transaction, taskFactory);
         }
         return true;
     }

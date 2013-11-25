@@ -145,13 +145,13 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         assert lock.isOwnedBy(transaction);
         // if registry is removed, get an exception right away
         registry.newServiceInstalled(this, transaction);
-        if (!primaryRegistration.setController(transaction, this)) {
+        if (!primaryRegistration.setController(this, transaction)) {
             throw new DuplicateServiceException("Service " + primaryRegistration.getServiceName() + " is already installed");
         }
         int installedAliases = 0; 
         for (Registration alias: aliasRegistrations) {
             // attempt to install controller at alias
-            if (!alias.setController(transaction, this)) {
+            if (!alias.setController(this, transaction)) {
                 // first of all, uninstall controller from installed aliases
                 primaryRegistration.clearController(transaction);
                 for (int j = 0; j < installedAliases; j++) {
@@ -171,6 +171,37 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             demandDependencies(transaction, transaction.getTaskFactory());
         }
         transactionalInfo.transition(transaction, transaction.getTaskFactory());
+    }
+
+    void reinstall(Transaction transaction) {
+        assert lock.isOwnedBy(transaction);
+        primaryRegistration.resetController(this, transaction);
+        for (Registration alias: aliasRegistrations) {
+            alias.resetController(this, transaction);
+        }
+        boolean demandDependencies;
+        synchronized (this) {
+            state |= SERVICE_ENABLED;
+            transactionalInfo.setState(STATE_DOWN);
+            demandDependencies = isMode(MODE_ACTIVE);
+        }
+        if (demandDependencies) {
+            demandDependencies(transaction, null);
+        }
+    }
+
+    void clear(Transaction transaction, TaskFactory taskFactory) {
+        primaryRegistration.clearController(transaction);
+        for (Registration registration: aliasRegistrations) {
+            registration.clearController(transaction);
+        }
+        final boolean undemand = isMode(MODE_ACTIVE);
+        for (DependencyImpl<?> dependency: dependencies) {
+            if (undemand) {
+                dependency.undemand(transaction, taskFactory);
+            }
+            dependency.clearDependent(transaction, taskFactory);
+        }
     }
 
     /**
@@ -355,9 +386,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         if (propagate) {
             demandDependencies(transaction, taskFactory);
         }
-        if (taskFactory != null) {
-            transition(transaction, taskFactory);
-        }
+        transition(transaction, taskFactory);
     }
 
     /**
@@ -491,11 +520,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * Sets the new transactional state of this service.
      * 
      * @param transactionalState the transactional state
-     * @param taskFactory            the task factory
      */
-    void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
+    void setTransition(byte transactionalState, Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
+        transactionalInfo.setTransition(transactionalState, transaction);
     }
 
     private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
@@ -542,20 +570,9 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             transition(transaction, taskFactory);
         }
 
-        void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
+        void setTransition(byte transactionalState, Transaction transaction) {
+            assert lock.isOwnedBy(transaction);
             this.transactionalState = transactionalState;
-            final boolean undemand;
-            synchronized (ServiceControllerImpl.this) {
-                undemand = isMode(MODE_ACTIVE);
-            }
-            if (transactionalState == STATE_REMOVED) {
-                for (DependencyImpl<?> dependency: dependencies) {
-                    if (undemand) {
-                        dependency.undemand(transaction, taskFactory);
-                    }
-                    dependency.clearDependent(transaction, taskFactory);
-                }
-            }
         }
 
         private synchronized void retry(Transaction transaction) {

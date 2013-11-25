@@ -122,6 +122,65 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         serviceRegistry.getRequiredService(secondSN);
     }
 
+    @Test
+    public void revertServiceRemoval2() {
+        final TestService firstService, secondService;
+        final ServiceController secondServiceController;
+
+        // new transaction
+        final BasicTransaction txn = newTransaction();
+        try {
+            // create service builder
+            final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(secondSN, DependencyFlag.UNREQUIRED));
+            firstService = firstServiceBuilder.getService();
+            final ServiceController firstServiceController = firstServiceBuilder.install();
+            assertNotNull(firstServiceController);
+            // install missing unrequired dependency
+            final TestServiceBuilder secondServiceBuilder = new TestServiceBuilder(txn, secondSN);
+            secondService = secondServiceBuilder.getService();
+            secondServiceController = secondServiceBuilder.install();
+            assertNotNull(secondServiceController);
+            secondService.waitStart();
+            firstService.waitStart();
+            assertTrue(secondService.isUp());
+            assertTrue(firstService.isUp());
+        } finally {
+            prepare(txn);
+            commit(txn);
+        }
+
+        // atempt to remove second service, transaction will rollback
+        final BasicTransaction txn2 = newTransaction();
+        try {
+            secondServiceController.remove(txn2);
+            secondService.waitStop();
+        } finally {
+            rollback(txn2);
+        }
+
+        final BasicTransaction txn3 = newTransaction();
+        try {
+            secondServiceController.disable(txn3);
+        } finally {
+            prepare(txn3);
+            commit(txn3);
+        }
+
+        final BasicTransaction txn4 = newTransaction();
+        try {
+            secondServiceController.enable(txn4);
+        } finally {
+            prepare(txn4);
+            commit(txn4);
+        }
+
+        // check both services are up
+        assertTrue(secondService.isUp());
+        assertTrue(firstService.isUp());
+        serviceRegistry.getRequiredService(firstSN);
+        serviceRegistry.getRequiredService(secondSN);
+    }
+
     /**
      * Usecase:
      * <UL>

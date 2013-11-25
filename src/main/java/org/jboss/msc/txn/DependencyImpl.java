@@ -117,11 +117,19 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction  the active transaction
      */
     void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
+        setDependent(dependent, transaction, transaction.getTaskFactory());
+    }
+
+    void resetDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
+        setDependent(dependent, transaction, null);
+    }
+
+    private void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction, TaskFactory taskFactory) {
         synchronized (this) {
             this.dependent = dependent;
             dependencyRegistration.addIncomingDependency(transaction, this);
             if (!propagateDemand && hasDemandedFlag()) {
-                dependencyRegistration.addDemand(transaction, transaction.getTaskFactory());
+                dependencyRegistration.addDemand(transaction, taskFactory);
             }
         }
     }
