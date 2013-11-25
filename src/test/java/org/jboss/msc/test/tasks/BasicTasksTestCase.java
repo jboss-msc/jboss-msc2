@@ -72,7 +72,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
-        assertTrue(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -91,7 +90,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
-        assertTrue(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -108,7 +106,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
-        assertTrue(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -127,7 +124,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
-        assertTrue(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -144,7 +140,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertTrue(task.isReverted());
-        assertFalse(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -180,7 +175,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task.isExecuted());
         assertFalse(task.isReverted());
-        assertTrue(task.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -201,12 +195,10 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
-        assertTrue(task1.isValidated());
         assertEquals(controller1.getTransaction(), transaction);
         controller1.getResult();
         assertTrue(task2.isExecuted());
         assertTrue(task2.isReverted());
-        assertTrue(task2.isValidated());
         assertEquals(controller2.getTransaction(), transaction);
         controller2.getResult();
     }
@@ -232,10 +224,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
-        assertTrue(task1.isValidated());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
-        assertFalse(task2.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -259,10 +249,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task1.isExecuted());
         assertFalse(task1.isReverted());
-        assertTrue(task1.isValidated());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
-        assertFalse(task2.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -286,10 +274,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         // asserts
         assertTrue(task1.isExecuted());
         assertTrue(task1.isReverted());
-        assertTrue(task1.isValidated());
         assertFalse(task2.isExecuted());
         assertFalse(task2.isReverted());
-        assertFalse(task2.isValidated());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -325,7 +311,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
                 final TrackingTask task = tasks[i][j];
                 assertTrue(task.isExecuted());
                 assertFalse(task.isReverted());
-                assertTrue(task.isValidated());
                 final TaskController<?> controller = controllers[i][j];
                 assertEquals(controller.getTransaction(), transaction);
                 controller.getResult();

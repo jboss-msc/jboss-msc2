@@ -43,7 +43,6 @@ import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.Validatable;
 import org.junit.After;
 import org.junit.Before;
 
@@ -92,12 +91,12 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e, final Validatable v, final Revertible r, final TaskController<?>... dependencies) {
-        return txnController.newTask(transaction, e).addDependencies(dependencies).setValidatable(v).setRevertible(r).release();
+    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e, final Revertible r, final TaskController<?>... dependencies) {
+        return txnController.newTask(transaction, e).addDependencies(dependencies).setRevertible(r).release();
     }
 
-    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Validatable v, final Revertible r, final TaskController<?>... dependencies) {
-        return ctx.newTask(e).addDependencies(dependencies).setValidatable(v).setRevertible(r).release();
+    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Revertible r, final TaskController<?>... dependencies) {
+        return ctx.newTask(e).addDependencies(dependencies).setRevertible(r).release();
     }
 
     protected static void prepare(BasicTransaction transaction, Listener<PrepareResult<BasicTransaction>> listener) {

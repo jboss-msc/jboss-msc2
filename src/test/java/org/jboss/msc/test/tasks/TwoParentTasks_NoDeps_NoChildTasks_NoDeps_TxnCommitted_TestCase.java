@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
-import org.jboss.msc.test.utils.TestValidatable;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TaskController;
 import org.junit.Test;
@@ -49,26 +48,20 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnCommitted_TestCa
         final BasicTransaction transaction = newTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
-        final TestValidatable v0 = new TestValidatable();
         final TestRevertible r0 = new TestRevertible();
-        final TaskController<Void> task0Controller = newTask(transaction, e0, v0, r0);
+        final TaskController<Void> task0Controller = newTask(transaction, e0, r0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<Void>();
-        final TestValidatable v1 = new TestValidatable();
         final TestRevertible r1 = new TestRevertible();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, v1, r1);
+        final TaskController<Void> task1Controller = newTask(transaction, e1, r1);
         assertNotNull(task1Controller);
         // preparing transaction
         prepare(transaction);
         assertCalled(e0);
-        assertCalled(v0);
         assertNotCalled(r0);
         assertCalled(e1);
-        assertCalled(v1);
         assertNotCalled(r1);
-        assertCallOrder(e0, v0);
-        assertCallOrder(e1, v1);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);
