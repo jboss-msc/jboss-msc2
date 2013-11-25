@@ -160,7 +160,62 @@ public class RegistryTestCase extends AbstractServiceTest {
             controller.disable(transaction);
             controller.enable(transaction);
         } finally {
-            Thread.sleep(300);
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+    }
+
+    @Test
+    public void enableServiceCInTwoSteps() throws Exception {
+        final ServiceController controller = registry1.getRequiredService(serviceCName);
+        // operation that will be ignored, services are already enabled
+        BasicTransaction transaction = newTransaction();
+        try {
+            
+            controller.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+
+        // disable service C
+        transaction = newTransaction();
+        try {
+            controller.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertFalse(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertFalse(serviceG.isUp());
+        assertFalse(serviceH.isUp());
+
+        // enable service C
+        transaction = newTransaction();
+        try {
+            controller.enable(transaction);
+        } finally {
             prepare(transaction);
             commit(transaction);
         }
@@ -180,6 +235,44 @@ public class RegistryTestCase extends AbstractServiceTest {
         try {
             final ServiceController controller = registry2.getRequiredService(serviceDName);
             controller.disable(transaction);
+            controller.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+    }
+
+    @Test
+    public void enableServiceDInTwoSteps() {
+        final ServiceController controller = registry2.getRequiredService(serviceDName);
+
+        BasicTransaction transaction = newTransaction();
+        try {
+            
+            controller.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertFalse(serviceD.isUp());
+        assertFalse(serviceE.isUp());
+        assertFalse(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+
+        transaction = newTransaction();
+        try {
             controller.enable(transaction);
         } finally {
             prepare(transaction);
@@ -339,6 +432,60 @@ public class RegistryTestCase extends AbstractServiceTest {
         try {
             registry1.enable(transaction);
             registry1.disable(transaction);
+            registry1.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+    }
+
+    @Test
+    public void enableRegistry1InTwoSteps() {
+        // enable registry1: nothing happens, it is already enabled
+        BasicTransaction transaction = newTransaction();
+        try {
+            registry1.enable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertTrue(serviceA.isUp());
+        assertTrue(serviceB.isUp());
+        assertTrue(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertTrue(serviceF.isUp());
+        assertTrue(serviceG.isUp());
+        assertTrue(serviceH.isUp());
+
+        // disable registry 1
+        transaction = newTransaction();
+        try {
+            registry1.disable(transaction);
+        } finally {
+            prepare(transaction);
+            commit(transaction);
+        }
+        assertFalse(serviceA.isUp());
+        assertFalse(serviceB.isUp());
+        assertFalse(serviceC.isUp());
+        assertTrue(serviceD.isUp());
+        assertTrue(serviceE.isUp());
+        assertFalse(serviceF.isUp());
+        assertFalse(serviceG.isUp());
+        assertFalse(serviceH.isUp());
+
+        // reenable registry 1
+        transaction = newTransaction();
+        try {
             registry1.enable(transaction);
         } finally {
             prepare(transaction);
