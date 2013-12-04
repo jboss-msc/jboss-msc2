@@ -223,7 +223,7 @@ final class StartingServiceTasks {
             for (TaskController<Boolean> dependencyStartTask: dependencyStartTasks) {
                 if (!dependencyStartTask.getResult()) {
                     failed = true;
-                    serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
+                    serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, (TaskFactory) context);
                     transaction.getAttachment(START_TASKS).remove(serviceController);
                     context.cancelled();
                     return;
@@ -344,10 +344,10 @@ final class StartingServiceTasks {
                 // service failed
                 if (result == null && transaction.getAttachment(FAILED_SERVICES).contains(service.getService())) {
                     MSCLogger.FAIL.startFailed(service.getServiceName());
-                    service.setTransition(ServiceControllerImpl.STATE_FAILED, transaction);
+                    service.setTransition(ServiceControllerImpl.STATE_FAILED, transaction, (TaskFactory) context);
                 } else {
                     service.setValue(result);
-                    service.setTransition(ServiceControllerImpl.STATE_UP, transaction);
+                    service.setTransition(ServiceControllerImpl.STATE_UP, transaction, (TaskFactory) context);
                     serviceUp = true;
                     service.notifyServiceUp(transaction, (TaskFactory) context);
                 }
@@ -361,7 +361,7 @@ final class StartingServiceTasks {
             try {
                 service.setValue(null);
                 service.notifyServiceDown(transaction);
-                service.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
+                service.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, null);
             } finally {
                 context.complete();
             }

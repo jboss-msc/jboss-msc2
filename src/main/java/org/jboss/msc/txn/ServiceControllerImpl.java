@@ -28,7 +28,6 @@ import java.util.List;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceStartExecutable;
 
 /**
  * A service controller implementation.
@@ -91,7 +90,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     /**
      * Indicates if this service is demanded to start. Has precedence over {@link downDemanded}.
      */
-    private int upDemandedByCount;
+    private int demandedByCount;
     /**
      * The number of dependents that are currently running. The deployment will
      * not execute the {@code stop()} method (and subsequently leave the
@@ -339,16 +338,16 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     /**
-     * Notifies this service that it is up demanded (demanded to be UP) by one of its incoming dependencies.
+     * Notifies this service that it is demanded by one of its incoming dependencies.
      * 
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void upDemanded(Transaction transaction, TaskFactory taskFactory) {
+    void demand(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         final boolean propagate;
         synchronized (this) {
-            if (upDemandedByCount ++ > 0) {
+            if (demandedByCount ++ > 0) {
                 return;
             }
             propagate = !isMode(MODE_ACTIVE);
@@ -362,17 +361,17 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     /**
-     * Notifies this service that it is no longer up demanded by one of its incoming dependencies (invoked when incoming
+     * Notifies this service that it is no longer demanded by one of its incoming dependencies (invoked when incoming
      * dependency is being disabled or removed).
      * 
      * @param transaction the active transaction
      * @param taskFactory the task factory
      */
-    void upUndemanded(Transaction transaction, TaskFactory taskFactory) {
+    void undemand(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         final boolean propagate;
         synchronized (this) {
-            if (-- upDemandedByCount > 0) {
+            if (-- demandedByCount > 0) {
                 return;
             }
             propagate = !isMode(MODE_ACTIVE);
@@ -388,7 +387,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * @return
      */
     synchronized boolean isUpDemanded() {
-        return upDemandedByCount > 0;
+        return demandedByCount > 0;
     }
 
     /**
@@ -468,10 +467,11 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      * Sets the new transactional state of this service.
      * 
      * @param transactionalState the transactional state
+     * @param taskFactory            the task factory
      */
-    void setTransition(byte transactionalState, Transaction transaction) {
+    void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
-        transactionalInfo.setTransition(transactionalState, transaction);
+        transactionalInfo.setTransition(transactionalState, transaction, taskFactory);
     }
 
     private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
@@ -518,11 +518,18 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             transition(transaction, taskFactory);
         }
 
-        synchronized void setTransition(byte transactionalState, Transaction transaction) {
+        void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
             this.transactionalState = transactionalState;
+            final boolean undemand;
+            synchronized (ServiceControllerImpl.this) {
+                undemand = isMode(MODE_ACTIVE);
+            }
             if (transactionalState == STATE_REMOVED) {
                 for (DependencyImpl<?> dependency: dependencies) {
-                    dependency.clearDependent(transaction);
+                    if (undemand) {
+                        dependency.undemand(transaction, taskFactory);
+                    }
+                    dependency.clearDependent(transaction, taskFactory);
                 }
             }
         }
@@ -540,7 +547,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             switch (transactionalState) {
                 case STATE_STOPPING:
                 case STATE_DOWN:
-                    if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting(transaction)) {
+                    if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
                         if (StoppingServiceTasks.revertStop(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STOPPING) {
                                 transactionalState = STATE_UP;
@@ -557,7 +564,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                     }
                     break;
                 case STATE_FAILED:
-                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping(transaction)) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         transactionalState = STATE_STOPPING;
                         TaskController<Void> stopTask = StoppingServiceTasks.createForFailedService(ServiceControllerImpl.this, transaction, taskFactory);
                         completeTransitionTask = stopTask;
@@ -565,7 +572,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                     break;
                 case STATE_STARTING:
                 case STATE_UP:
-                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping(transaction)) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         if (StartingServiceTasks.revertStart(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STARTING) {
                                 transactionalState = STATE_DOWN;
@@ -617,7 +624,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             final TaskController<?> stoppingTask = transition(transaction, taskFactory);
-            assert isStopping(transaction) || transactionalState == STATE_DOWN;// prevent hard to find bugs
+            assert isStopping() || transactionalState == STATE_DOWN;// prevent hard to find bugs
             // create remove task
             final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new ServiceRemoveTask(ServiceControllerImpl.this, transaction));
             if (stoppingTask != null) {
@@ -635,18 +642,18 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             return transactionalState;
         }
 
-        private boolean isStarting(Transaction transaction) {
+        private boolean isStarting() {
             return transactionalState == STATE_STARTING;
         }
 
-        private boolean isStopping(Transaction transaction) {
+        private boolean isStopping() {
             return transactionalState == STATE_STOPPING;
         }
     }
 
     private final class Snapshot {
         private final byte state;
-        private final int upDemandedByCount;
+        private final int demandedByCount;
         private final int unsatisfiedDependencies;
         private final int runningDependents;
 
@@ -654,7 +661,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         public Snapshot() {
             assert holdsLock(ServiceControllerImpl.this);
             state = ServiceControllerImpl.this.state;
-            upDemandedByCount = ServiceControllerImpl.this.upDemandedByCount;
+            demandedByCount = ServiceControllerImpl.this.demandedByCount;
             unsatisfiedDependencies = ServiceControllerImpl.this.unsatisfiedDependencies;
             runningDependents = ServiceControllerImpl.this.runningDependents;
         }
@@ -663,18 +670,18 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         public void apply() {
             assert holdsLock(ServiceControllerImpl.this);
             ServiceControllerImpl.this.state = state;
-            ServiceControllerImpl.this.upDemandedByCount = upDemandedByCount;
+            ServiceControllerImpl.this.demandedByCount = demandedByCount;
             ServiceControllerImpl.this.unsatisfiedDependencies = unsatisfiedDependencies;
             ServiceControllerImpl.this.runningDependents = runningDependents;
         }
     }
 
     private synchronized boolean shouldStart() {
-        return (isMode(MODE_ACTIVE) || upDemandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ACTIVE) || demandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
     }
 
     private synchronized boolean shouldStop() {
-        return (isMode(MODE_ON_DEMAND) && upDemandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
     }
 
     private void setMode(final byte mid) {

@@ -18,8 +18,6 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.ServiceControllerImpl.STATE_UP;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,7 +50,7 @@ final class Registration extends TransactionalObject {
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
      */
-    private int upDemandedByCount;
+    private int demandedByCount;
 
     Registration(ServiceName serviceName) {
         this.serviceName = serviceName;
@@ -74,10 +72,10 @@ final class Registration extends TransactionalObject {
                 return false;
             }
             this.controller = serviceController;
-            upDemanded = upDemandedByCount > 0;
+            upDemanded = demandedByCount > 0;
         }
         if (upDemanded) {
-            serviceController.upDemanded(transaction, transaction.getTaskFactory());
+            serviceController.demand(transaction, transaction.getTaskFactory());
         }
         return true;
     }
@@ -136,25 +134,26 @@ final class Registration extends TransactionalObject {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
-            if (++ upDemandedByCount > 1) {
+            if (++ demandedByCount > 1) {
                 return;
             }
         }
         if (controller != null) {
-            controller.upDemanded(transaction, taskFactory);
+            controller.demand(transaction, taskFactory);
         }
     }
 
     void removeDemand(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
+        final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
-            if (--upDemandedByCount > 0) {
+            if (--demandedByCount > 0) {
                 return;
             }
         }
         if (controller != null) {
-            controller.upUndemanded(transaction, taskFactory);
+            controller.undemand(transaction, taskFactory);
         }
     }
 
@@ -190,20 +189,20 @@ final class Registration extends TransactionalObject {
 
         private final ServiceControllerImpl<?> controller;
         private final Collection<DependencyImpl<?>> incomingDependencies;
-        private final int upDemandedByCount;
+        private final int demandedByCount;
 
         // take snapshot
         public Snapshot() {
             controller = Registration.this.controller;
             incomingDependencies = new ArrayList<DependencyImpl<?>>(Registration.this.incomingDependencies.size());
             incomingDependencies.addAll(Registration.this.incomingDependencies);
-            upDemandedByCount = Registration.this.upDemandedByCount;
+            demandedByCount = Registration.this.demandedByCount;
         }
 
         // revert ServiceController state to what it was when snapshot was taken; invoked on rollback or abort
         public void apply() {
             Registration.this.controller = controller;
-            Registration.this.upDemandedByCount = upDemandedByCount;
+            Registration.this.demandedByCount = demandedByCount;
             Registration.this.incomingDependencies.clear();
             Registration.this.incomingDependencies.addAll(incomingDependencies);
         }

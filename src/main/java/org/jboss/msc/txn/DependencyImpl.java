@@ -120,10 +120,8 @@ class DependencyImpl<T> implements Dependency<T> {
         synchronized (this) {
             this.dependent = dependent;
             dependencyRegistration.addIncomingDependency(transaction, this);
-            if (!propagateDemand) {
-                if (hasDemandedFlag()) {
-                    dependencyRegistration.addDemand(transaction, transaction.getTaskFactory());
-                }
+            if (!propagateDemand && hasDemandedFlag()) {
+                dependencyRegistration.addDemand(transaction, transaction.getTaskFactory());
             }
         }
     }
@@ -132,9 +130,13 @@ class DependencyImpl<T> implements Dependency<T> {
      * Clears the dependency dependent, invoked during {@link dependentController} removal.
      * 
      * @param transaction   the active transaction
+     * @param taskFactory   the task factory
      */
-    void clearDependent(Transaction transaction) {
+    void clearDependent(Transaction transaction, TaskFactory taskFactory) {
         dependencyRegistration.removeIncomingDependency(transaction, this);
+        if (!propagateDemand && hasDemandedFlag()) {
+            dependencyRegistration.removeDemand(transaction, taskFactory);
+        }
     }
 
     /**

@@ -78,17 +78,8 @@ final class StoppingServiceTasks {
         transaction.getAttachment(STOP_TASKS).put(service, notifyDependentsTask);
 
         // post stop task
-        final TaskBuilder<Void> setServiceDownBuilder =  taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, service.getValue()));
-
-        // undemand dependencies if needed
-        if (service.getDependencies().length > 0) {
-            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, stop, transaction, taskFactory);
-            setServiceDownBuilder.addDependency(undemandDependenciesTask);
-        } else {
-            setServiceDownBuilder.addDependency(stop);
-        }
-
-        return setServiceDownBuilder.release();
+        final SetServiceDownTask<T> setServiceDownTask = new SetServiceDownTask<T>(service, transaction, service.getValue());
+        return  taskFactory.newTask(setServiceDownTask).addDependency(stop).release();
     }
 
     /**
@@ -100,17 +91,8 @@ final class StoppingServiceTasks {
      *                        conclusion of stopping transition.
      */
     static <T> TaskController<Void> createForFailedService(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
-
         // post stop task
-        final TaskBuilder<Void> setServiceDownBuilder = taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, null));
-
-        // undemand dependencies if needed
-        if (service.getDependencies().length > 0) {
-            TaskController<Void> undemandDependenciesTask = UndemandDependenciesTask.create(service, transaction, transaction.getTaskFactory());
-            setServiceDownBuilder.addDependency(undemandDependenciesTask);
-        }
-
-        return setServiceDownBuilder.release();
+        return taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, null)).release();
     }
 
     /**
@@ -144,7 +126,7 @@ final class StoppingServiceTasks {
         @Override
         public void rollback(RollbackContext context) {
             // set UP state
-            serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction);
+            serviceController.setTransition(ServiceControllerImpl.STATE_UP, transaction, null);
             try {
                 serviceController.notifyServiceUp(transaction);
             } finally {
@@ -270,7 +252,7 @@ final class StoppingServiceTasks {
             assert context instanceof TaskFactory;
             try {
                 // set down state
-                serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
+                serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, null);
 
                 // clear service value, thus performing an automatic uninjection
                 serviceController.setValue(null);

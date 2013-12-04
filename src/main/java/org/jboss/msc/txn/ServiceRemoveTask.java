@@ -42,7 +42,7 @@ final class ServiceRemoveTask implements Executable<Void> {
             for (Registration registration: serviceController.getAliasRegistrations()) {
                 registration.clearController(transaction);
             }
-            serviceController.setTransition(STATE_REMOVED, transaction);
+            serviceController.setTransition(STATE_REMOVED, transaction, (TaskFactory) context);
         } finally {
             context.complete();
         }

@@ -31,34 +31,16 @@ class UndemandDependenciesTask implements Executable<Void> {
     /**
      * Creates and releases the undemand dependencies task.
      * 
-     * @param service      the service whose dependencies will be undemanded by the task
-     * @param transaction  the active transaction
-     * @param taskFactory  the task factory
-     * @return the task controller
-     */
-    static TaskController<Void> create(ServiceControllerImpl<?> service, Transaction transaction, TaskFactory taskFactory) {
-        return create(service, null, transaction, taskFactory);
-    }
-
-    /**
-     * Creates and releases the undemand dependencies task.
-     * <p>
-     * Invoke this method when the undemand dependencies task must be executed only after other tasks finish execution.
-     * 
      * @param service          the service whose dependencies will be undemanded by the task
-     * @param taskDependencies the dependencies of the undemand dependencies task
      * @param transaction      the active transaction
      * @param taskFactory      the task factory
      * @return the task controller
      */
-    static TaskController<Void> create(ServiceControllerImpl<?> service, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+    static TaskController<Void> create(ServiceControllerImpl<?> service, Transaction transaction, TaskFactory taskFactory) {
         if (service.getDependencies().length == 0) {
             return null;
         }
         TaskBuilder<Void> taskBuilder = taskFactory.newTask(new UndemandDependenciesTask(transaction, service));
-        if (taskDependency != null) {
-            taskBuilder.addDependencies(taskDependency);
-        }
         return taskBuilder.release();
     }
 
