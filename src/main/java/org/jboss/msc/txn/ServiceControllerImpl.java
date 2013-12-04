@@ -330,6 +330,10 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      *         {@code REMOVED} state.
      */
     TaskController<Void> remove(Transaction transaction, TaskFactory taskFactory) {
+        // idempotent
+        if (getState() == STATE_REMOVED) {
+            return null;
+        }
         lockWrite(transaction);
         return transactionalInfo.scheduleRemoval(transaction, taskFactory);
     }
@@ -603,7 +607,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
         private synchronized TaskController<Void> scheduleRemoval(Transaction transaction, TaskFactory taskFactory) {
             // idempotent
-            if (getState() == STATE_REMOVED) {
+            if (transactionalState == STATE_REMOVED) {
                 return null;
             }
             // disable service
@@ -613,7 +617,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             final TaskController<?> stoppingTask = transition(transaction, taskFactory);
-            assert getState() == STATE_DOWN || isStopping(transaction);// prevent hard to find bugs
+            assert isStopping(transaction) || transactionalState == STATE_DOWN;// prevent hard to find bugs
             // create remove task
             final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new ServiceRemoveTask(ServiceControllerImpl.this, transaction));
             if (stoppingTask != null) {
