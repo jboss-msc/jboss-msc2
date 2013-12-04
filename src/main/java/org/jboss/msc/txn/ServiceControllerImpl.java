@@ -168,7 +168,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
-            DemandDependenciesTask.create(this, transaction, transaction.getTaskFactory());
+            demandDependencies(transaction, transaction.getTaskFactory());
         }
         transactionalInfo.transition(transaction, transaction.getTaskFactory());
     }
@@ -353,10 +353,22 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             propagate = !isMode(MODE_ACTIVE);
         }
         if (propagate) {
-            DemandDependenciesTask.create(this, transaction, taskFactory);
+            demandDependencies(transaction, taskFactory);
         }
         if (taskFactory != null) {
             transition(transaction, taskFactory);
+        }
+    }
+
+    /**
+     * Demands this service's dependencies to start.
+     * 
+     * @param transaction the active transaction
+     * @param taskFactory the task factory
+     */
+    private void demandDependencies(Transaction transaction, TaskFactory taskFactory) {
+        for (DependencyImpl<?> dependency: dependencies) {
+            dependency.demand(transaction, taskFactory);
         }
     }
 
@@ -377,9 +389,21 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             propagate = !isMode(MODE_ACTIVE);
         }
         if (propagate) {
-            UndemandDependenciesTask.create(this, transaction, taskFactory);
+            undemandDependencies(transaction, taskFactory);
         }
         transition(transaction, taskFactory);
+    }
+
+    /**
+     * Undemands this service's dependencies to start.
+     * 
+     * @param transaction the active transaction
+     * @param taskFactory the task factory
+     */
+    private void undemandDependencies(Transaction transaction, TaskFactory taskFactory) {
+        for (DependencyImpl<?> dependency: dependencies) {
+            dependency.undemand(transaction, taskFactory);
+        }
     }
 
     /**
