@@ -402,7 +402,10 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         List<Problem> problems = txnController.getProblemReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {
-                fail("Critical problem detected");
+                if (problem.getCause() != null) {
+                    problem.getCause().printStackTrace();
+                }
+                fail("Critical problem detected: " + problem.getMessage());
             }
         }
     }

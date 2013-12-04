@@ -259,7 +259,6 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         BasicTransaction transaction = newTransaction();
         try {
-
             controller.disable(transaction);
         } finally {
             prepare(transaction);
