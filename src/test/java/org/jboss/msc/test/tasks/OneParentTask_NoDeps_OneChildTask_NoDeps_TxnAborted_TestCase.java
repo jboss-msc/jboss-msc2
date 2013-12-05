@@ -19,41 +19,38 @@
 package org.jboss.msc.test.tasks;
 
 import static org.junit.Assert.assertNotNull;
-
-import java.util.concurrent.CountDownLatch;
+import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
 import org.junit.Test;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase extends AbstractTransactionTest {
+public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnAborted_TestCase extends AbstractTransactionTest {
 
     /**
      * Scenario:
      * <UL>
      * <LI>parent task completes at EXECUTE</LI>
      * <LI>child task completes at EXECUTE</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
     public void usecase1() {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>(signal);
+        final TestExecutable<Void> child1e = new TestExecutable<Void>();
         final TestRevertible child1r = new TestRevertible();
         // installing parent task
-        final TestExecutable<Void> parent0e = new TestExecutable<Void>(signal) {
+        final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child task
@@ -64,18 +61,21 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TestRevertible parent0r = new TestRevertible();
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
-        // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
-        rollback(transaction, rollbackListener);
-        signal.countDown();
-        rollbackListener.awaitCompletionUninterruptibly();
+        // preparing transaction
+        prepare(transaction);
+        assertCalled(parent0e);
+        assertNotCalled(parent0r);
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e);
+        // aborting transaction
+        assertTrue(canCommit(transaction));
+        abort(transaction);
         assertCalled(parent0e);
         assertCalled(parent0r);
-        assertCallOrder(parent0e, parent0r);
-        if (child1e.wasCalled()) {
-            assertCalled(child1r);
-            assertCallOrder(parent0e, child1e, child1r, parent0r);
-        }
+        assertCalled(child1e);
+        assertCalled(child1r);
+        assertCallOrder(parent0e, child1e, child1r, parent0r);
     }
 
     /**
@@ -83,18 +83,18 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * <UL>
      * <LI>parent task completes at EXECUTE</LI>
      * <LI>child task cancels at EXECUTE</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
     public void usecase2() {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>(true, signal);
+        final TestExecutable<Void> child1e = new TestExecutable<Void>(true);
         final TestRevertible child1r = new TestRevertible();
         // installing parent task
-        final TestExecutable<Void> parent0e = new TestExecutable<Void>(signal) {
+        final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child task
@@ -105,18 +105,21 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TestRevertible parent0r = new TestRevertible();
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
-        // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
-        rollback(transaction, rollbackListener);
-        signal.countDown();
-        rollbackListener.awaitCompletionUninterruptibly();
+        // preparing transaction
+        prepare(transaction);
+        assertCalled(parent0e);
+        assertNotCalled(parent0r);
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e);
+        // aborting transaction
+        assertTrue(canCommit(transaction));
+        abort(transaction);
         assertCalled(parent0e);
         assertCalled(parent0r);
-        assertCallOrder(parent0e, parent0r);
-        if (child1e.wasCalled()) {
-            assertNotCalled(child1r);
-            assertCallOrder(parent0e, child1e, parent0r);
-        }
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e, parent0r);
     }
 
     /**
@@ -124,18 +127,18 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * <UL>
      * <LI>parent task cancels at EXECUTE</LI>
      * <LI>child task cancels at EXECUTE</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
     public void usecase3() {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>(true, signal);
+        final TestExecutable<Void> child1e = new TestExecutable<Void>(true);
         final TestRevertible child1r = new TestRevertible();
         // installing parent task
-        final TestExecutable<Void> parent0e = new TestExecutable<Void>(true, signal) {
+        final TestExecutable<Void> parent0e = new TestExecutable<Void>(true) {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child task
@@ -146,17 +149,21 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TestRevertible parent0r = new TestRevertible();
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
-        // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
-        rollback(transaction, rollbackListener);
-        signal.countDown();
-        rollbackListener.awaitCompletionUninterruptibly();
+        // preparing transaction
+        prepare(transaction);
         assertCalled(parent0e);
         assertNotCalled(parent0r);
-        if (child1e.wasCalled()) {
-            assertNotCalled(child1r);
-            assertCallOrder(parent0e, child1e);
-        }
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e);
+        // aborting transaction
+        assertTrue(canCommit(transaction));
+        abort(transaction);
+        assertCalled(parent0e);
+        assertNotCalled(parent0r);
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e);
     }
 
     /**
@@ -164,18 +171,18 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      * <UL>
      * <LI>parent task cancels at EXECUTE</LI>
      * <LI>child task completes at EXECUTE</LI>
-     * <LI>transaction rolled back</LI>
+     * <LI>transaction prepared</LI>
+     * <LI>transaction aborted</LI>
      * </UL>
      */
     @Test
     public void usecase4() {
         final BasicTransaction transaction = newTransaction();
-        final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>(signal);
+        final TestExecutable<Void> child1e = new TestExecutable<Void>();
         final TestRevertible child1r = new TestRevertible();
         // installing parent task
-        final TestExecutable<Void> parent0e = new TestExecutable<Void>(true, signal) {
+        final TestExecutable<Void> parent0e = new TestExecutable<Void>(true) {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child task
@@ -186,16 +193,20 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TestRevertible parent0r = new TestRevertible();
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
-        // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
-        rollback(transaction, rollbackListener);
-        signal.countDown();
-        rollbackListener.awaitCompletionUninterruptibly();
+        // preparing transaction
+        prepare(transaction);
         assertCalled(parent0e);
         assertNotCalled(parent0r);
-        if (child1e.wasCalled()) {
-            assertCalled(child1r);
-            assertCallOrder(parent0e, child1e, child1r);
-        }
+        assertCalled(child1e);
+        assertNotCalled(child1r);
+        assertCallOrder(parent0e, child1e);
+        // aborting transaction
+        assertTrue(canCommit(transaction));
+        abort(transaction);
+        assertCalled(parent0e);
+        assertNotCalled(parent0r);
+        assertCalled(child1e);
+        assertCalled(child1r);
+        assertCallOrder(parent0e, child1e, child1r);
     }
 }

@@ -25,7 +25,7 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that disables the registry.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class DisableRegistryTask implements Executable<Void> {
@@ -46,5 +46,5 @@ final class DisableRegistryTask implements Executable<Void> {
             context.complete();
         }
     }
-    
+
 }

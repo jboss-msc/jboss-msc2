@@ -40,45 +40,45 @@ public class OneFailingService_MissingDeps_ContainerShutdown_TestCase extends Ab
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ON_DEMAND mode), missing required dependency</LI>
+     * <LI>first failing service (ON_DEMAND mode), missing required dependency</LI>
      * </UL>
      */
     @Test
-    public void usecase1(){
+    public void usecase1() {
         assertNull(addService(firstSN, true, ON_DEMAND, secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (LAZY mode), missing required dependency</LI>
+     * <LI>first failing service (LAZY mode), missing required dependency</LI>
      * </UL>
      */
     @Test
-    public void usecase2(){
+    public void usecase2() {
         assertNull(addService(firstSN, true, LAZY, requiredFlag, secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ACTIVE mode), missing required dependency</LI>
+     * <LI>first failing service (ACTIVE mode), missing required dependency</LI>
      * </UL>
      */
     @Test
-    public void usecase3(){
+    public void usecase3() {
         assertNull(addService(firstSN, true, ACTIVE, secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ON_DEMAND mode), missing unrequired dependency</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (ON_DEMAND mode), missing unrequired dependency</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
-    public void usecase4(){
+    public void usecase4() {
         final TestService firstService = addService(firstSN, true, ON_DEMAND, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -88,12 +88,12 @@ public class OneFailingService_MissingDeps_ContainerShutdown_TestCase extends Ab
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (LAZY mode), missing unrequired dependency</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (LAZY mode), missing unrequired dependency</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
-    public void usecase5(){
+    public void usecase5() {
         final TestService firstService = addService(firstSN, true, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();
@@ -103,12 +103,12 @@ public class OneFailingService_MissingDeps_ContainerShutdown_TestCase extends Ab
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ACTIVE mode), missing unrequired dependency</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (ACTIVE mode), missing unrequired dependency</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
-    public void usecase6(){
+    public void usecase6() {
         final TestService firstService = addService(firstSN, true, ACTIVE, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
         shutdownContainer();

@@ -50,7 +50,8 @@ public final class CommittingListener implements Listener<PrepareResult<BasicTra
             try {
                 listener.awaitCompletion();
                 break;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 

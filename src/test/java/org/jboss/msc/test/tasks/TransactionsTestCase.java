@@ -89,7 +89,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
                 rollback(transactions[i]);
             }
         }
-        
+
     }
 
     @Test
@@ -127,7 +127,8 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         final BasicTransaction transaction = newTransaction();
         try {
             txnController.waitFor(transaction, transaction);
-        } catch (DeadlockException ignored) {}
+        } catch (DeadlockException ignored) {
+        }
         rollback(transaction);
     }
 
@@ -182,7 +183,8 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         executor.shutdown();
         try {
             executor.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         // assert test output
         final String testOutput = out.toString();
         final String[] expectedStartedTxnOrder = new String[deadlockSize];
@@ -281,7 +283,8 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         executor.shutdown();
         try {
             executor.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         // assert test output
         final String testOutput = out.toString();
         // The order in which transactions are executed is well defined.
@@ -484,7 +487,8 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
             if (endSignal != null) {
                 try {
                     return endSignal.await(50, TimeUnit.NANOSECONDS);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
             return false;
         }

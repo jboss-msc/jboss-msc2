@@ -44,7 +44,8 @@ import org.jboss.msc.txn.ServiceContext;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TestService implements ServiceStartExecutable<Void>, ServiceStartRevertible, ServiceStopExecutable, ServiceStopRevertible {
+public final class TestService implements ServiceStartExecutable<Void>, ServiceStartRevertible, ServiceStopExecutable,
+        ServiceStopRevertible {
     private CountDownLatch startLatch = new CountDownLatch(1);
     private CountDownLatch stopLatch = new CountDownLatch(1);
 
@@ -55,7 +56,8 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
 
-    public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart, final DependencyInfo<?>... dependencyInfos) {
+    public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart,
+            final DependencyInfo<?>... dependencyInfos) {
         this.serviceContext = serviceBuilder.getServiceContext();
         this.serviceName = serviceName;
         assertNotNull(serviceContext);
@@ -71,7 +73,7 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
         assertFalse(up.get() || failed.get());
         if (failToStart) {
             failed.set(true);
-            //context.addProblem(new UnsupportedOperationException());
+            // context.addProblem(new UnsupportedOperationException());
             context.fail();
         } else {
             start();
@@ -85,7 +87,8 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
             try {
                 startLatch.await();
                 break;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -94,7 +97,8 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
             try {
                 stopLatch.await();
                 break;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 

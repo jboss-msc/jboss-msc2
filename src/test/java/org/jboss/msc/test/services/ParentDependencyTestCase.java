@@ -57,7 +57,8 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     private static final ServiceName secondSN = ServiceName.of("second");
     private static final ServiceName thirdSN = ServiceName.of("third");
 
-    protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName parentDependency) {
+    protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName,
+            final ServiceMode serviceMode, final ServiceName parentDependency) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         try {
@@ -93,9 +94,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     *   <LI>attempt to remove parent before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI>attempt to remove parent before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -145,9 +146,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     *   <LI>attempt to remove parent before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI>attempt to remove parent before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -197,9 +198,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     *   <LI>attempt to remove parent before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI>attempt to remove parent before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -230,9 +231,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -282,9 +283,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -317,7 +318,8 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(thirdService.isUp());
 
         assertTrue(removeService(firstSN, firstService));
-        assertFalse(firstService.isUp());;
+        assertFalse(firstService.isUp());
+        ;
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
 
@@ -334,9 +336,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -367,9 +369,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -418,9 +420,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -470,9 +472,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -503,9 +505,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -554,9 +556,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -605,9 +607,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -624,7 +626,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-        
+
         // cannot add child service now
         IllegalStateException expected = null;
         try {
@@ -638,9 +640,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -689,9 +691,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -741,9 +743,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -754,7 +756,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final ServiceContext parentContext = firstService.getServiceContext();
         assertServiceContext(parentContext);
 
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY,firstSN);
+        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
         assertTrue(firstService.isUp());
         assertFalse(secondService.isUp());
         assertTrue(removeService(firstSN, firstService));
@@ -774,9 +776,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -824,9 +826,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -875,9 +877,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>parent removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -905,7 +907,9 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertNotNull(expected);
     }
 
-    @Ignore @Test // TODO fix this
+    @Ignore
+    @Test
+    // TODO fix this
     public void problemReport() {
         final TestService firstService = addService(firstSN, ACTIVE);
         final BasicTransaction transaction = txnController.create(defaultExecutor);

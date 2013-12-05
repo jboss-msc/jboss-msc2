@@ -26,17 +26,18 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that removes the service.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class RemoveServiceTask implements Executable<Void> {
-    
+
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction transaction;
     private final TestService service;
 
-    RemoveServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final TestService service, final Transaction transaction) {
+    RemoveServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final TestService service,
+            final Transaction transaction) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.service = service;
@@ -52,5 +53,5 @@ final class RemoveServiceTask implements Executable<Void> {
             context.complete();
         }
     }
-    
+
 }

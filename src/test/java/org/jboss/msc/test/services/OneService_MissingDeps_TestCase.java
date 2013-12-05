@@ -41,8 +41,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ON_DEMAND mode), with missing dependency on second service/LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ON_DEMAND mode), with missing dependency on second service/LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -53,8 +53,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (LAZY mode), with a missing dependency on second service</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (LAZY mode), with a missing dependency on second service</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -65,8 +65,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ACTIVE mode), with a missing dependency on second service</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ACTIVE mode), with a missing dependency on second service</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -77,8 +77,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ON_DEMAND mode), with missing dependency on unrequired second service/LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ON_DEMAND mode), with missing dependency on unrequired second service/LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -92,8 +92,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (LAZY mode), with a missing dependency on unrequired second service</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (LAZY mode), with a missing dependency on unrequired second service</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -107,8 +107,8 @@ public class OneService_MissingDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ACTIVE mode), with a missing dependency on unrequired second service</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ACTIVE mode), with a missing dependency on unrequired second service</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test

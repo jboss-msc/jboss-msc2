@@ -66,7 +66,7 @@ public abstract class AbstractTransactionTest {
     @After
     public void tearDown() {
         try {
-            for (BasicTransaction transaction: createdTransactions) {
+            for (BasicTransaction transaction : createdTransactions) {
                 assertTrue("Unterminated transaction", transaction.isTerminated());
             }
         } finally {
@@ -75,27 +75,31 @@ public abstract class AbstractTransactionTest {
         defaultExecutor.shutdown();
         try {
             defaultExecutor.awaitTermination(60, TimeUnit.SECONDS);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         assertTrue(defaultExecutor.getQueue().size() == 0);
     }
-    
+
     protected static ThreadPoolExecutor newExecutor(final int maximumPoolSize) {
         return newExecutor(maximumPoolSize, false);
     }
 
     protected static ThreadPoolExecutor newExecutor(final int maximumPoolSize, final boolean prestartCoreThreads) {
-        final ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L, TimeUnit.DAYS, new LinkedBlockingQueue<Runnable>());
+        final ThreadPoolExecutor executor = new ThreadPoolExecutor(maximumPoolSize, maximumPoolSize, 0L, TimeUnit.DAYS,
+                new LinkedBlockingQueue<Runnable>());
         if (prestartCoreThreads) {
             executor.prestartAllCoreThreads();
         }
         return executor;
     }
 
-    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e, final Revertible r, final TaskController<?>... dependencies) {
+    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e,
+            final Revertible r, final TaskController<?>... dependencies) {
         return txnController.newTask(transaction, e).addDependencies(dependencies).setRevertible(r).release();
     }
 
-    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Revertible r, final TaskController<?>... dependencies) {
+    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e, final Revertible r,
+            final TaskController<?>... dependencies) {
         return ctx.newTask(e).addDependencies(dependencies).setRevertible(r).release();
     }
 
@@ -110,7 +114,7 @@ public abstract class AbstractTransactionTest {
     protected static void commit(BasicTransaction transaction, Listener<CommitResult<BasicTransaction>> listener) {
         txnController.commit(transaction, listener);
     }
-    
+
     protected static void abort(BasicTransaction transaction, Listener<AbortResult<BasicTransaction>> listener) {
         txnController.abort(transaction, listener);
     }
@@ -155,7 +159,8 @@ public abstract class AbstractTransactionTest {
     protected static void assertCallOrder(final TestTask firstTask, final TestTask secondTask) {
         assertCalled(firstTask);
         assertCalled(secondTask);
-        assertTrue("Task " + firstTask + " have been called after " + secondTask, firstTask.getCallTime() <= secondTask.getCallTime());
+        assertTrue("Task " + firstTask + " have been called after " + secondTask,
+                firstTask.getCallTime() <= secondTask.getCallTime());
     }
 
     protected static void assertCallOrder(final TestTask firstTask, final TestTask secondTask, final TestTask... otherTasks) {

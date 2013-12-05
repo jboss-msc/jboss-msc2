@@ -41,7 +41,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ON_DEMAND mode), missing required dependency</LI>
+     * <LI>first failing service (ON_DEMAND mode), missing required dependency</LI>
      * </UL>
      */
     @Test
@@ -52,7 +52,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (LAZY mode), missing required dependency</LI>
+     * <LI>first failing service (LAZY mode), missing required dependency</LI>
      * </UL>
      */
     @Test
@@ -63,7 +63,7 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ACTIVE mode), missing required dependency</LI>
+     * <LI>first failing service (ACTIVE mode), missing required dependency</LI>
      * </UL>
      */
     @Test
@@ -74,8 +74,8 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ON_DEMAND mode), missing unrequired dependency</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first failing service (ON_DEMAND mode), missing unrequired dependency</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -89,23 +89,23 @@ public class OneFailingService_MissingDeps_TestCase extends AbstractServiceTest 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (LAZY mode), missing unrequired dependency</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first failing service (LAZY mode), missing unrequired dependency</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
     public void usecase5() {
         final TestService firstService = addService(firstSN, true, LAZY, unrequiredFlag, secondSN);
         assertFalse(firstService.isUp());
-        assertTrue( removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
     }
 
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ACTIVE mode), missing unrequired dependency</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first failing service (ACTIVE mode), missing unrequired dependency</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test

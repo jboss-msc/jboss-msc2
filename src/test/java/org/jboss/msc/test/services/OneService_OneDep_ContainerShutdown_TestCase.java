@@ -42,9 +42,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -62,9 +62,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -82,9 +82,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -102,9 +102,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -122,9 +122,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -142,9 +142,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -162,9 +162,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -181,9 +181,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -201,9 +201,9 @@ public class OneService_OneDep_ContainerShutdown_TestCase extends AbstractServic
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>container shutdown</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test

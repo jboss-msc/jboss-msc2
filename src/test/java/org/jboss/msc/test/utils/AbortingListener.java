@@ -26,8 +26,8 @@ import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.TransactionController;
 
 /**
- * Listener that aborts the transaction. It provides utility method {@link #awaitAbort()} to wait until transaction have
- * been aborted.
+ * Listener that aborts the transaction. It provides utility method {@link #awaitAbort()} to wait until transaction have been
+ * aborted.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
@@ -50,7 +50,8 @@ public final class AbortingListener implements Listener<PrepareResult<BasicTrans
             try {
                 listener.awaitCompletion();
                 break;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 

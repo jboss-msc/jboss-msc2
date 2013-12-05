@@ -85,7 +85,7 @@ public class TestExecutable<T> extends TestTask implements Executable<T> {
     }
 
     protected void executeInternal(final ExecuteContext<T> ctx) {
-        // initial implementation does nothing 
+        // initial implementation does nothing
     }
 
 }

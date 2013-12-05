@@ -47,7 +47,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add a service and rollback the transaction</LI>
+     * <LI>add a service and rollback the transaction</LI>
      * </UL>
      */
     @Test
@@ -75,8 +75,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add a service and its required dependency as part of same transaction</LI>
-     *   <LI>remove dependency: the transaction will automatically rollback</LI>
+     * <LI>add a service and its required dependency as part of same transaction</LI>
+     * <LI>remove dependency: the transaction will automatically rollback</LI>
      * </UL>
      */
     @Test
@@ -87,7 +87,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final BasicTransaction txn = newTransaction();
         try {
             // create service builder
-            final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(secondSN, DependencyFlag.REQUIRED));
+            final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(
+                    secondSN, DependencyFlag.REQUIRED));
             firstService = firstServiceBuilder.getService();
             final ServiceController firstServiceController = firstServiceBuilder.install();
             assertNotNull(firstServiceController);
@@ -124,8 +125,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add first service, ON_DEMAND</LI>
-     *   <LI>add second service, that depends on first services, rollback after first service has started</LI>
+     * <LI>add first service, ON_DEMAND</LI>
+     * <LI>add second service, that depends on first services, rollback after first service has started</LI>
      * </UL>
      */
     @Test
@@ -159,8 +160,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add first service, ON_DEMAND, and second service, that depends on first service</LI>
-     *   <LI>remove second service and roll it back</LI>
+     * <LI>add first service, ON_DEMAND, and second service, that depends on first service</LI>
+     * <LI>remove second service and roll it back</LI>
      * </UL>
      */
     @Test
@@ -191,8 +192,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add a service</LI>
-     *   <LI>disable service and rollback the transaction</LI>
+     * <LI>add a service</LI>
+     * <LI>disable service and rollback the transaction</LI>
      * </UL>
      */
     @Test
@@ -212,8 +213,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add a service</LI>
-     *   <LI>disable and enable service, then rollback the transaction</LI>
+     * <LI>add a service</LI>
+     * <LI>disable and enable service, then rollback the transaction</LI>
      * </UL>
      */
     @Test
@@ -234,9 +235,9 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>add a service</LI>
-     *   <LI>disable service</LI>
-     *   <LI>enable service and rollback the transaction</LI>
+     * <LI>add a service</LI>
+     * <LI>disable service</LI>
+     * <LI>enable service and rollback the transaction</LI>
      * </UL>
      */
     @Test

@@ -25,11 +25,11 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that removes the registry.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class RemoveRegistryTask implements Executable<Void> {
-    
+
     private final ServiceRegistry registry;
     private final Transaction txn;
 

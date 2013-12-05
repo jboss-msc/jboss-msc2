@@ -26,11 +26,11 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that enables the service.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class EnableServiceTask implements Executable<Void> {
-    
+
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction txn;

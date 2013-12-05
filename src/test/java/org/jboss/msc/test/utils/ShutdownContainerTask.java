@@ -25,11 +25,11 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that shuts down the container.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class ShutdownContainerTask implements Executable<Void> {
-    
+
     private final ServiceContainer container;
     private final Transaction transaction;
 

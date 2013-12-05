@@ -72,7 +72,8 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 try {
                     task5Created.await();
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                }
                 // installing task6
                 final TestExecutable<Void> e6 = new TestExecutable<Void>("6");
                 final TaskController<Void> task6Controller = newTask(ctx, e6, null, task5Controller);
@@ -98,7 +99,8 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
         // installing task 8
         try {
             task7Created.await();
-        } catch (Exception ignore) {}
+        } catch (Exception ignore) {
+        }
         final TestExecutable<Void> e8 = new TestExecutable<Void>("8");
         final TaskController<Void> task8Controller = newTask(transaction, e8, null, task7Controller);
         assertNotNull(task8Controller);

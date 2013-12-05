@@ -25,7 +25,7 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that enables the registry.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class EnableRegistryTask implements Executable<Void> {
@@ -46,5 +46,5 @@ final class EnableRegistryTask implements Executable<Void> {
             context.complete();
         }
     }
-    
+
 }

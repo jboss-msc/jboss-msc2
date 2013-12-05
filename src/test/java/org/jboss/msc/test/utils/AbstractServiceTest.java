@@ -44,14 +44,14 @@ import org.junit.Before;
 
 /**
  * Test base used for service test cases.
- *
+ * 
  * @author <a href="mailto:flavia.rainone@jboss.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public class AbstractServiceTest extends AbstractTransactionTest {
 
-    protected static final DependencyFlag[] requiredFlag = new DependencyFlag[] {DependencyFlag.REQUIRED};
-    protected static final DependencyFlag[] unrequiredFlag = new DependencyFlag[] {DependencyFlag.UNREQUIRED};
+    protected static final DependencyFlag[] requiredFlag = new DependencyFlag[] { DependencyFlag.REQUIRED };
+    protected static final DependencyFlag[] unrequiredFlag = new DependencyFlag[] { DependencyFlag.UNREQUIRED };
 
     protected volatile ServiceContainer serviceContainer;
     protected volatile ServiceRegistry serviceRegistry;
@@ -120,22 +120,25 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final BasicTransaction txn = newTransaction();
         try {
             serviceContainer.shutdown(txn);
-        } finally{
+        } finally {
             prepare(txn);
             commit(txn);
         }
         assertNoCriticalProblems(txn);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, new DependencyInfo[0]);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         // create service builder
-        final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
+        final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart,
+                serviceMode, dependencies);
         // install
         final ServiceController serviceController = serviceBuilder.install();
         assertNotNull(serviceController);
@@ -151,8 +154,11 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
-        // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be used for that)
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags,
+            final ServiceName... dependencies) {
+        // create dependency info array (the service contructor is responsible for adding dependencies, these objects will be
+        // used for that)
         DependencyInfo<?>[] dependencyInfos = new DependencyInfo<?>[dependencies.length];
         for (int i = 0; i < dependencies.length; i++) {
             dependencyInfos[i] = new DependencyInfo<Void>(dependencies[i], dependencyFlags);
@@ -164,18 +170,21 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final DependencyInfo<?>... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final DependencyInfo<?>... dependencies) {
         return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         // new transaction
         final BasicTransaction txn = newTransaction();
         TestService service = null;
-        final boolean committed; 
+        final boolean committed;
         try {
             // create service builder
-            final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
+            final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart,
+                    serviceMode, dependencies);
             // install
             final ServiceController serviceController = serviceBuilder.install();
             assertNotNull(serviceController);
@@ -194,31 +203,38 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final ServiceMode serviceMode, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart,
+            final ServiceMode serviceMode, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart,
+            final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, serviceMode, dependencyFlags, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode,
+            final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode, final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceName serviceName, final ServiceMode serviceMode,
+            final DependencyFlag[] dependencyFlags, final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, false, serviceMode, dependencyFlags, dependencies);
     }
 
@@ -226,11 +242,13 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         return addService(serviceRegistry, serviceName, false, null, dependencies);
     }
 
-    protected final TestService addService(final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) {
+    protected final TestService addService(final ServiceName serviceName, final boolean failToStart,
+            final ServiceName... dependencies) {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName, final TestService service) {
+    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
@@ -261,7 +279,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void enableService(final ServiceName serviceName) {
         enableService(serviceRegistry, serviceName);
     }
-    
+
     protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final BasicTransaction txn = newTransaction();
@@ -275,14 +293,14 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void disableService(final ServiceName serviceName) {
         enableService(serviceRegistry, serviceName);
     }
-    
+
     protected final TestService getService(final ServiceName serviceName) {
         return getService(serviceRegistry, serviceName);
     }
-    
+
     protected final TestService getService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         final ServiceController controller = serviceRegistry.getService(serviceName);
-        return (TestService) (controller != null ? controller.getService() : null); 
+        return (TestService) (controller != null ? controller.getService() : null);
     }
 
     protected void assertServiceContext(ServiceContext serviceContext) {
@@ -307,7 +325,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
                 expected = e;
             }
             assertNotNull(expected);
-            
+
             expected = null;
             try {
                 serviceContext.getReportableContext(outsiderTransaction);
@@ -351,7 +369,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
                 expected = e;
             }
             assertNotNull(expected);
-    
+
             expected = null;
             try {
                 serviceContext.addService(TestService.class, null, serviceName, transaction);
@@ -359,7 +377,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
                 expected = e;
             }
             assertNotNull(expected);
-    
+
             expected = null;
             try {
                 serviceContext.addService(serviceRegistry, null, transaction);
@@ -367,7 +385,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
                 expected = e;
             }
             assertNotNull(expected);
-    
+
             expected = null;
             try {
                 serviceContext.addService(TestService.class, serviceRegistry, null, transaction);

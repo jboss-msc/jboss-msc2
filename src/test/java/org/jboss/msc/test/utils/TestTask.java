@@ -25,11 +25,11 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Utility class that:
  * <UL>
- *   <LI>allows to associate latch with a task to await before continuing in processing</LI>
- *   <LI>allows to detect whether this task have been called</LI>
- *   <LI>provides time info when this task have been called</LI>
+ * <LI>allows to associate latch with a task to await before continuing in processing</LI>
+ * <LI>allows to detect whether this task have been called</LI>
+ * <LI>provides time info when this task have been called</LI>
  * </UL>
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public abstract class TestTask {

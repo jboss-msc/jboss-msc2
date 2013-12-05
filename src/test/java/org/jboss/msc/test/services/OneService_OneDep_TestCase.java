@@ -41,9 +41,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -61,11 +61,11 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
-     *   <LI>remove dependent before container is shut down</LI>
-     *   <LI>remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI>remove dependent before container is shut down</LI>
+     * <LI>remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -83,7 +83,7 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
         assertTrue(removeService(secondSN, secondService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-        //third attempt, finally remove first service
+        // third attempt, finally remove first service
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
@@ -92,9 +92,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on required <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on required <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -112,11 +112,11 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
-     *   <LI>dependent removed before container is shut down</LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI>dependent removed before container is shut down</LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -143,9 +143,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -163,9 +163,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -186,14 +186,15 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
         // third attempt: remove first service
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());}
+        assertFalse(secondService.isUp());
+    }
 
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -210,11 +211,11 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>atttempt to remove dependency before container is shut down</LI>
-     *   <LI>dependent removed before container is shut down</LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>atttempt to remove dependency before container is shut down</LI>
+     * <LI>dependent removed before container is shut down</LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -241,9 +242,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -261,9 +262,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -281,9 +282,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>remove dependency before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -302,9 +303,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -322,9 +323,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -342,9 +343,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -362,9 +363,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -378,13 +379,13 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
     }
-    
+
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -401,9 +402,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -421,9 +422,9 @@ public class OneService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test

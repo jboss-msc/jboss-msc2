@@ -129,8 +129,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
                 final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r,
-                        child0Controller, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
@@ -255,8 +254,7 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
                 final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r, child0Controller);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r,
-                        child0Controller, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };

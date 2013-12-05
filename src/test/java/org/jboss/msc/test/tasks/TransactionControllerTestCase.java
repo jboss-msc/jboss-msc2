@@ -29,7 +29,6 @@ import org.junit.Test;
 
 /**
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
  */
 public class TransactionControllerTestCase extends AbstractTransactionTest {
 
@@ -82,7 +81,9 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         expected = null;
         try {
             txnController.newTask(outsiderTransaction, new Executable<Void>() {
-                public void execute(ExecuteContext<Void> context) {}});
+                public void execute(ExecuteContext<Void> context) {
+                }
+            });
         } catch (SecurityException e) {
             expected = e;
         }

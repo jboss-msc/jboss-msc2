@@ -38,7 +38,7 @@ import org.junit.Test;
  * ManagementContext test case.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
+ * 
  */
 public class RegistryTestCase extends AbstractServiceTest {
     private static final ServiceName serviceAName = ServiceName.of("a", "different", "service", "name");
@@ -73,9 +73,12 @@ public class RegistryTestCase extends AbstractServiceTest {
         registry2 = serviceContainer.newRegistry();
         serviceD = addService(registry2, serviceDName);
         serviceE = addService(registry2, serviceEName, new DependencyInfo<TestService>(serviceDName, UNREQUIRED));
-        serviceF = addService(registry2, serviceFName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceDName, UNREQUIRED), new DependencyInfo<TestService>(serviceBName, registry1, UNREQUIRED));
-        serviceG = addService(registry2, serviceGName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceCName, registry1, UNREQUIRED));
-        serviceH = addService(registry2, serviceHName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceGName, UNREQUIRED));
+        serviceF = addService(registry2, serviceFName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceDName,
+                UNREQUIRED), new DependencyInfo<TestService>(serviceBName, registry1, UNREQUIRED));
+        serviceG = addService(registry2, serviceGName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceCName,
+                registry1, UNREQUIRED));
+        serviceH = addService(registry2, serviceHName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceGName,
+                UNREQUIRED));
         // registry 3, empty
         registry3 = serviceContainer.newRegistry();
         // all services are up
@@ -179,7 +182,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         // operation that will be ignored, services are already enabled
         BasicTransaction transaction = newTransaction();
         try {
-            
+
             controller.enable(transaction);
         } finally {
             prepare(transaction);
@@ -256,7 +259,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
         BasicTransaction transaction = newTransaction();
         try {
-            
+
             controller.disable(transaction);
         } finally {
             prepare(transaction);
@@ -403,7 +406,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         // oops, no longer empty
-        TestService serviceI = addService(registry3,  serviceIName);
+        TestService serviceI = addService(registry3, serviceIName);
         assertFalse(serviceI.isUp()); // as registry 3 is disabled, serviceI won't start
 
         transaction = newTransaction();
@@ -512,7 +515,7 @@ public class RegistryTestCase extends AbstractServiceTest {
                 expected = e;
             }
             assertNotNull(expected);
-    
+
             expected = null;
             try {
                 registry3.getRequiredService(serviceAName);

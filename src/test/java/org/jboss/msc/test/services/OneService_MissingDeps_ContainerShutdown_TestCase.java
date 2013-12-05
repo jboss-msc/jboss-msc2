@@ -40,8 +40,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ON_DEMAND mode), with a missing dependency on required second service </LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (ON_DEMAND mode), with a missing dependency on required second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -52,8 +52,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (LAZY mode), with a missing dependency on required second service</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (LAZY mode), with a missing dependency on required second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -64,8 +64,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ACTIVE mode), with a missing dependency on required second service</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (ACTIVE mode), with a missing dependency on required second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -76,8 +76,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ON_DEMAND mode), with an unrequired dependency on missing second service</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (ON_DEMAND mode), with an unrequired dependency on missing second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -91,8 +91,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (LAZY mode), with an unrequired dependency on missing second service</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (LAZY mode), with an unrequired dependency on missing second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -106,8 +106,8 @@ public class OneService_MissingDeps_ContainerShutdown_TestCase extends AbstractS
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ACTIVE mode), with an unrequired missing dependency on second service</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first service (ACTIVE mode), with an unrequired missing dependency on second service</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test

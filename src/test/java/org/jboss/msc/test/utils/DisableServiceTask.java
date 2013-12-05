@@ -26,11 +26,11 @@ import org.jboss.msc.txn.Transaction;
 
 /**
  * A task that disables the service.
- *
+ * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class DisableServiceTask implements Executable<Void> {
-    
+
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final Transaction txn;
@@ -49,5 +49,5 @@ final class DisableServiceTask implements Executable<Void> {
             context.complete();
         }
     }
-    
+
 }

@@ -28,14 +28,14 @@ import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.TransactionController;
 
 /**
- * A TestServiceBuilder allows building a TestService for more complex test scenarios, where the transaction
- * is provided by the test rather than being transparently created and committed during service installation.
+ * A TestServiceBuilder allows building a TestService for more complex test scenarios, where the transaction is provided by the
+ * test rather than being transparently created and committed during service installation.
  * 
- * For simple test scenarios, invoke {@link AbstractServiceTest#addService(ServiceName, ServiceName...)} or one of
- * its overloaded options.
+ * For simple test scenarios, invoke {@link AbstractServiceTest#addService(ServiceName, ServiceName...)} or one of its
+ * overloaded options.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
+ * 
  */
 public class TestServiceBuilder {
 
@@ -62,69 +62,83 @@ public class TestServiceBuilder {
         return dependencyInfos;
     }
 
-    public TestServiceBuilder (BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    public TestServiceBuilder(BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         this(txn, serviceRegistry, serviceName, failToStart, serviceMode, createDependencyInfos(dependencies));
     }
 
-    public TestServiceBuilder (BasicTransaction txn, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+            final ServiceMode serviceMode, final ServiceName... dependencies) {
         this(txn, registry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder (BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode, final ServiceName... dependencies) {
+    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
+            final ServiceName... dependencies) {
         this(txn, registry, serviceName, false, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder (BasicTransaction txn, final ServiceName serviceName, final boolean failToStart, final ServiceName... dependencies) {
+    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+            final ServiceName... dependencies) {
         this(txn, registry, serviceName, failToStart, null, dependencies);
     }
 
-    public TestServiceBuilder (BasicTransaction txn, final ServiceName serviceName, final ServiceName... dependencies) {
+    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final ServiceName... dependencies) {
         this(txn, registry, serviceName, false, null, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+            final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         this(txn, txnController.getServiceContext(), serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, ServiceContext serviceContext, final ServiceRegistry serviceRegistry, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, ServiceContext serviceContext, final ServiceRegistry serviceRegistry,
+            final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode,
+            final DependencyInfo<?>... dependencies) {
         // create service builder
         this.serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
-        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the resulting Dependency object)
+        // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the
+        // resulting Dependency object)
         this.service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);
         serviceBuilder.setService(service);
         // set mode
-        if (serviceMode != null) serviceBuilder.setMode(serviceMode);
+        if (serviceMode != null)
+            serviceBuilder.setMode(serviceMode);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+            final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
+            final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, false, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+            final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, failToStart, null, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final DependencyInfo<?>... dependencies) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName,
+            final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, false, null, dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+            final ServiceMode serviceMode) {
         this(txn, registry, serviceName, failToStart, serviceMode, no_dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode) {
         this(txn, registry, serviceName, false, serviceMode, no_dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart) {
         this(txn, registry, serviceName, failToStart, null, no_dependencies);
     }
 
-    public TestServiceBuilder (final BasicTransaction txn, final ServiceName serviceName) {
+    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName) {
         this(txn, registry, serviceName, false, null, no_dependencies);
     }
 

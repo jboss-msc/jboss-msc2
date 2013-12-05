@@ -284,7 +284,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                     continue;
                 }
                 case T_ACTIVE_to_ROLLBACK: {
-                    state = newState(STATE_ROLLBACK, state | FLAG_SEND_ROLLBACK_REQ);
+                    state = newState(STATE_ROLLBACK, state);
                     continue;
                 }
                 case T_PREPARING_to_PREPARED: {
@@ -459,7 +459,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
                 throw new InvalidTransactionStateException("Rollback already called");
             }
-            state |= FLAG_ROLLBACK_REQ;
+            state |= FLAG_ROLLBACK_REQ | FLAG_SEND_ROLLBACK_REQ;
             isRollbackRequested = true;
             rollbackListener = completionListener;
             state = transition(state);
@@ -563,13 +563,16 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private void doChildAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
+        final boolean cancelChild;
+        final TaskControllerImpl<?> childController;
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
                 throw new InvalidTransactionStateException("Transaction is not active");
             }
             if (userThread) state |= FLAG_USER_THREAD;
-            topLevelTasks.add((TaskControllerImpl<?>) child);
+            cancelChild = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);
+            topLevelTasks.add(childController = (TaskControllerImpl<?>) child);
             unfinishedChildren++;
             unvalidatedChildren++;
             unterminatedChildren++;
@@ -577,6 +580,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
+        if (cancelChild) {
+            childController.forceCancel();
+        }
     }
 
     void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {

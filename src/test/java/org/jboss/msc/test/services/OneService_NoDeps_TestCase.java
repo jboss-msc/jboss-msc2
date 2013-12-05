@@ -39,8 +39,8 @@ public class OneService_NoDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ON_DEMAND mode), no dependencies</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ON_DEMAND mode), no dependencies</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -54,8 +54,8 @@ public class OneService_NoDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (LAZY mode), no dependencies</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (LAZY mode), no dependencies</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -69,8 +69,8 @@ public class OneService_NoDeps_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI>first service (ACTIVE mode), no dependencies</LI>
-     *   <LI>service removed before container is shut down</LI>
+     * <LI>first service (ACTIVE mode), no dependencies</LI>
+     * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test

@@ -39,8 +39,8 @@ public class OneFailingService_NoDeps_ContainerShutdown_TestCase extends Abstrac
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ON_DEMAND mode), no dependencies</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (ON_DEMAND mode), no dependencies</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -56,8 +56,8 @@ public class OneFailingService_NoDeps_ContainerShutdown_TestCase extends Abstrac
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (LAZY mode), no dependencies</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (LAZY mode), no dependencies</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test
@@ -73,8 +73,8 @@ public class OneFailingService_NoDeps_ContainerShutdown_TestCase extends Abstrac
     /**
      * Usecase:
      * <UL>
-     *   <LI>first failing service (ACTIVE mode), no dependencies</LI>
-     *   <LI>container shutdown</LI>
+     * <LI>first failing service (ACTIVE mode), no dependencies</LI>
+     * <LI>container shutdown</LI>
      * </UL>
      */
     @Test

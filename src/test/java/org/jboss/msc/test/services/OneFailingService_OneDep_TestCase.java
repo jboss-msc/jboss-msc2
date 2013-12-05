@@ -41,9 +41,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -66,11 +66,11 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
-     *   <LI>dependent is removed before container is shut down</LI>
-     *   <LI>dependency is successfully removed</LI>
+     * <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
+     * <LI>dependent is removed before container is shut down</LI>
+     * <LI>dependency is successfully removed</LI>
      * </UL>
      */
     @Test
@@ -106,9 +106,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -144,9 +144,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -169,11 +169,11 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>attempt to remove dependency before container is shut down</LI>
-     *   <LI>dependent removed before container is shut down</LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>attempt to remove dependency before container is shut down</LI>
+     * <LI>dependent removed before container is shut down</LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -209,9 +209,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -234,9 +234,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -272,9 +272,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
@@ -297,9 +297,9 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
     /**
      * Usecase:
      * <UL>
-     *   <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
-     *   <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
-     *   <LI>dependency removed before container is shut down</LI>
+     * <LI><B>first failing service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI>dependency removed before container is shut down</LI>
      * </UL>
      */
     @Test
