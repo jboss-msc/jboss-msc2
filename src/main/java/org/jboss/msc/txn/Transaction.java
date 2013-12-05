@@ -727,5 +727,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         public void run() {
             executeTasks(state);
         }
+
+        @Override
+        public String toString() {
+            return Transaction.this.toString() + ".AsyncTask@" + System.identityHashCode(this);
+        }
     }
 }

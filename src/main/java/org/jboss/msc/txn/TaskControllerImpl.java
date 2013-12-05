@@ -1234,5 +1234,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         public void run() {
             executeTasks(state);
         }
+
+        @Override
+        public String toString() {
+            return TaskControllerImpl.this.toString() + ".AsyncTask@" + System.identityHashCode(this);
+        }
     }
 }
