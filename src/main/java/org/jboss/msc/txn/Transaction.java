@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -81,7 +82,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
     private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
-    private final List<TaskControllerImpl<?>> topLevelTasks = new ArrayList<TaskControllerImpl<?>>();
+    private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<TaskControllerImpl<?>>();
     private final ProblemReport problemReport = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
         public void childExecuted(final boolean userThread) {
