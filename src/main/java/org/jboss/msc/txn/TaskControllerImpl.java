@@ -669,15 +669,25 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private void renounceChildren(final boolean userThread) {
         assert !holdsLock(this);
         int state;
+        final int unfinishedChildren;
+        final int unvalidatedChildren;
+        final int unterminatedChildren;
+        final ArrayList<TaskControllerImpl<?>> children;
         synchronized (this) {
-            getTransaction().adoptGrandchildren(children, userThread, Math.max(unfinishedChildren, 0), Math.max(unvalidatedChildren, 0), Math.max(unterminatedChildren, 0));
+            unfinishedChildren = this.unfinishedChildren;
+            unvalidatedChildren = this.unvalidatedChildren;
+            unterminatedChildren = this.unterminatedChildren;
+            children = this.children;
             adopter = getTransaction().topParent;
-            for (final TaskControllerImpl<?> child : children) {
+            for (final TaskControllerImpl<?> child : this.children) {
                 child.parent.setDelegate(adopter);
             }
-            unfinishedChildren = 0;
-            unvalidatedChildren = 0;
-            unterminatedChildren = 0;
+            this.unfinishedChildren = 0;
+            this.unvalidatedChildren = 0;
+            this.unterminatedChildren = 0;
+        }
+        getTransaction().adoptGrandchildren(children, userThread, unfinishedChildren, unvalidatedChildren, unterminatedChildren);
+        synchronized (this) {
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
