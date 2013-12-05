@@ -30,7 +30,6 @@ import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.Revertible;
-import org.jboss.msc.txn.Validatable;
 
 /**
  * MSC2 logging utilities.
@@ -93,7 +92,7 @@ public interface MSCLogger {
 
     @LogMessage(level = ERROR)
     @Message(id = 13, value = "Validation of task \"%s\" caused an exception")
-    void taskValidationFailed(@Cause Throwable cause, Validatable task);
+    void taskValidationFailed(@Cause Throwable cause, Object task);
 
     @LogMessage(level = ERROR)
     @Message(id = 14, value = "Rollback of task \"%s\" caused an exception")

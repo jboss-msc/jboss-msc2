@@ -45,14 +45,6 @@ public interface TaskBuilder<T> {
     TaskBuilder<T> setExecutable(final Executable<T> executable);
 
     /**
-     * Set the validatable part of this task, or {@code null} to prevent the validation phase from running for this task.
-     *
-     * @param validatable the validatable part
-     * @return this task builder
-     */
-    TaskBuilder<T> setValidatable(final Validatable validatable);
-
-    /**
      * Set the revertible part of this task, or {@code null} if the task should not support rollback.
      *
      * @param revertible the revertible part

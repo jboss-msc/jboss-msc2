@@ -25,7 +25,7 @@ package org.jboss.msc.txn;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface Validatable {
+interface Validatable {
 
     /**
      * Perform validation.  Any problems should be reported via the {@code validateContext}.  When validation

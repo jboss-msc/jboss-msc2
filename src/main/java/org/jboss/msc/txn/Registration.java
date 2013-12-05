@@ -160,7 +160,7 @@ final class Registration extends TransactionalObject {
 
     void installDependenciesValidateTask(final Transaction transaction) {
         if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
-        transaction.newTask().setValidatable(new Validatable() {
+        ((TaskBuilderImpl<Void>)transaction.newTask()).setValidatable(new Validatable() {
             @Override
             public void validate(final ValidateContext context) {
                 try {
