@@ -318,6 +318,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
+        if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
+            for (TaskControllerImpl<?> task : topLevelTasks) {
+                task.childInitiateRollback(userThread);
+            }
+        }
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childInitiateValidate(userThread);
@@ -326,11 +331,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childInitiateCommit(userThread);
-            }
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
-            for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateRollback(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
@@ -582,15 +582,22 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
+        final boolean sendRollbackRequest;
         synchronized (this) {
             topLevelTasks.addAll(grandchildren);
             unfinishedChildren += unfinishedGreatGrandchildren;
             unvalidatedChildren += unvalidatedGreatGrandchildren;
             unterminatedChildren += unterminatedGreatGrandchildren;
             state = this.state;
+            sendRollbackRequest = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
+        }
+        if (sendRollbackRequest) {
+            for (final TaskControllerImpl<?> grandchild : grandchildren) {
+                grandchild.childInitiateRollback(userThread);
+            }
         }
         executeTasks(state);
     }
