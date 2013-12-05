@@ -152,6 +152,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private int unterminatedChildren;
     private int unterminatedDependents;
 
+    private boolean sendChildExecuted;
+    private boolean sendChildValidated;
+
     @SuppressWarnings("unchecked")
     private volatile T result = (T) NO_RESULT;
 
@@ -481,7 +484,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     continue;
                 }
                 case T_TERMINATE_WAIT_to_TERMINATED: {
-                    state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_TERMINATED);
+                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
+                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_TERMINATED | FLAG_SEND_CANCELLED);
+                    } else {
+                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_TERMINATED);
+                    }
                     continue;
                 }
 
@@ -489,7 +496,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 case T_NEW_to_TERMINATED: {
                     // not possible to go any farther
-                    return newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_CHILD_TERMINATED);
+                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
+                        return newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_CANCELLED);
+                    } else {
+                        return newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_CHILD_TERMINATED);
+                    }
                 }
                 case T_EXECUTE_WAIT_to_TERMINATE_WAIT: {
                     if (! dependents.isEmpty()) {
@@ -512,32 +523,35 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     }
                     continue;
                 }
-                case T_EXECUTE_DONE_to_ROLLBACK_WAIT: {
+                case T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
                     if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         if (! dependents.isEmpty()) {
                             cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_VALIDATE_DONE);
+                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
                         } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CHILD_VALIDATE_DONE);
+                            state = newState(STATE_ROLLBACK_WAIT, state);
                         }
                     }
                     if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
                         state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
                     }
+                    sendChildExecuted = true;
+                    sendChildValidated = true;
                     continue;
                 }
-                case T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
+                case T_EXECUTE_DONE_to_ROLLBACK_WAIT: {
                     if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         if (! dependents.isEmpty()) {
                             cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_VALIDATE_DONE);
+                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
                         } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CHILD_VALIDATE_DONE);
+                            state = newState(STATE_ROLLBACK_WAIT, state);
                         }
                     }
                     if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ | FLAG_SEND_CHILD_DONE);
+                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
                     }
+                    sendChildValidated = true;
                     continue;
                 }
                 case T_VALIDATE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
@@ -549,6 +563,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                             state = newState(STATE_ROLLBACK_WAIT, state);
                         }
                     }
+                    sendChildValidated = true;
                     continue;
                 }
                 case T_VALIDATE_DONE_to_ROLLBACK_WAIT: {
@@ -579,8 +594,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     } else {
                         state = newState(STATE_TERMINATE_WAIT, state);
                     }
-                    if (Bits.anyAreSet(state,  FLAG_CANCEL_REQ)) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCELLED);
+                    if (sendChildExecuted) {
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_DONE);
+                    }
+                    if (sendChildValidated) {
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_VALIDATE_DONE);
                     }
                     continue;
                 }
@@ -631,7 +649,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             parent.childTerminated(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
-            getTransaction().taskCancelled(userThread);
+            getTransaction().childCancelled(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_TERMINATED)) {
             for (TaskControllerImpl<?> dependency : dependencies) {
@@ -685,14 +703,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             this.unfinishedChildren = 0;
             this.unvalidatedChildren = 0;
             this.unterminatedChildren = 0;
-        }
-        getTransaction().adoptGrandchildren(children, userThread, unfinishedChildren, unvalidatedChildren, unterminatedChildren);
-        synchronized (this) {
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
+        getTransaction().adoptGrandchildren(children, userThread, unfinishedChildren, unvalidatedChildren, unterminatedChildren);
         executeTasks(state);
     }
 
@@ -712,15 +728,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            if (Bits.allAreSet(this.state, FLAG_CANCEL_REQ)) return; // idempotent
-            if (stateOf(this.state) == STATE_EXECUTE_DONE) {
-                getTransaction().taskForcedToCancel();
-            }
+            if (Bits.anyAreSet(this.state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) return; // idempotent
             state = this.state | FLAG_CANCEL_REQ;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
+        getTransaction().childCancelRequested(userThread);
         executeTasks(state);
     }
 
@@ -774,13 +788,19 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private void execCancelled() {
         assert ! holdsLock(this);
         int state;
+        final boolean newCancelRequest;
         synchronized (this) {
-            state = this.state | FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
+            state = this.state;
             if (stateOf(state) != STATE_EXECUTE) {
                 throw new IllegalStateException("Task may not be cancelled now");
             }
+            newCancelRequest = Bits.allAreClear(state, FLAG_CANCEL_REQ);
+            state |= FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
+        }
+        if (newCancelRequest) {
+            getTransaction().childCancelRequested(false);
         }
         executeTasks(state);
     }

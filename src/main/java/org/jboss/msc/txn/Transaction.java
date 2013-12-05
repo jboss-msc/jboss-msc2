@@ -116,6 +116,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     };
     private long endTime;
     private int state;
+    private int uncanceledChildren;
     private int unfinishedChildren;
     private int unvalidatedChildren;
     private int unterminatedChildren;
@@ -215,9 +216,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unfinishedChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
                     return T_ACTIVE_to_ROLLBACK;
-                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unfinishedChildren == 0) {
+                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
                     return T_ACTIVE_to_PREPARING;
                 } else {
                     return T_NONE;
@@ -261,9 +262,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             case STATE_COMMITTED: {
                 return T_NONE;
             }
-            default: {
-                throw new IllegalStateException();
-            }
+            default: throw new IllegalStateException();
         }
     }
 
@@ -523,17 +522,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void taskCancelled(final boolean userThread) {
-        doChildExecuted(userThread);
-    }
-
-    synchronized void taskForcedToCancel() {
-        if (stateOf(state) != STATE_ACTIVE) {
-            throw new InvalidTransactionStateException("Transaction is not active" + stateOf(state));
-        }
-        unfinishedChildren++;
-    }
-
     private void doChildValidated(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
@@ -583,6 +571,38 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         if (cancelChild) {
             childController.forceCancel();
         }
+    }
+
+    void childCancelRequested(final boolean userThread) {
+        assert ! holdsLock(this);
+        int state;
+        synchronized (this) {
+            state = this.state;
+            if (stateOf(state) != STATE_ACTIVE) {
+                throw new InvalidTransactionStateException("Transaction is not active: " + stateOf(state));
+            }
+            uncanceledChildren++;
+            if (userThread) state |= FLAG_USER_THREAD;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
+        }
+        executeTasks(state);
+    }
+
+    void childCancelled(final boolean userThread) {
+        assert ! holdsLock(this);
+        int state;
+        synchronized (this) {
+            state = this.state;
+            if (stateOf(state) != STATE_ACTIVE) {
+                throw new InvalidTransactionStateException("Transaction is not active: " + stateOf(state));
+            }
+            uncanceledChildren--;
+            if (userThread) state |= FLAG_USER_THREAD;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
+        }
+        executeTasks(state);
     }
 
     void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
