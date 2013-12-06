@@ -51,10 +51,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private static final int FLAG_DO_PREPARE_LISTENER = 1 << 6;
     private static final int FLAG_DO_COMMIT_LISTENER = 1 << 7;
     private static final int FLAG_DO_ROLLBACK_LISTENER = 1 << 8;
-    private static final int FLAG_SEND_VALIDATE_REQ = 1 << 9;
-    private static final int FLAG_SEND_COMMIT_REQ = 1 << 10;
-    private static final int FLAG_SEND_ROLLBACK_REQ = 1 << 11;
-    private static final int FLAG_CLEAN_UP = 1 << 12;
+    private static final int FLAG_SEND_CANCEL_REQ = 1 << 9;
+    private static final int FLAG_SEND_VALIDATE_REQ = 1 << 10;
+    private static final int FLAG_SEND_COMMIT_REQ = 1 << 11;
+    private static final int FLAG_SEND_ROLLBACK_REQ = 1 << 12;
+    private static final int FLAG_CLEAN_UP = 1 << 13;
     private static final int FLAG_USER_THREAD = 1 << 31;
 
     private static final int STATE_ACTIVE           = 0x0; // adding tasks and subtransactions; counts = # added
@@ -83,6 +84,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private final long startTime = System.nanoTime();
     private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<TaskControllerImpl<?>>();
+    private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
     private final ProblemReport problemReport = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
         public void childExecuted(final boolean userThread) {
@@ -98,7 +100,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
 
         public void childAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
-            doChildAdded(child, userThread);
+            doChildAdded((TaskControllerImpl<?>) child, userThread);
         }
 
         public Transaction getTransaction() {
@@ -317,6 +319,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
+        if (Bits.allAreSet(state, FLAG_SEND_CANCEL_REQ)) {
+            cachedChild.get().forceCancel();
+            cachedChild.remove();
+        }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childInitiateRollback(userThread);
@@ -548,19 +554,20 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    private void doChildAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
+    private void doChildAdded(final TaskControllerImpl<?> child, final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
-        final boolean cancelChild;
-        final TaskControllerImpl<?> childController;
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
                 throw new InvalidTransactionStateException("Transaction is not active");
             }
             if (userThread) state |= FLAG_USER_THREAD;
-            cancelChild = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);
-            topLevelTasks.add(childController = (TaskControllerImpl<?>) child);
+            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
+                cachedChild.set(child);
+                state |= FLAG_SEND_CANCEL_REQ;
+            }
+            topLevelTasks.add(child);
             unfinishedChildren++;
             unvalidatedChildren++;
             unterminatedChildren++;
@@ -568,9 +575,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
-        if (cancelChild) {
-            childController.forceCancel();
-        }
     }
 
     void childCancelRequested(final boolean userThread) {
