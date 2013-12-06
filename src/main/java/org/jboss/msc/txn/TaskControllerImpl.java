@@ -497,11 +497,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 case T_NEW_to_TERMINATED: {
                     // not possible to go any farther
-                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
-                        return newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_CANCELLED);
-                    } else {
-                        return newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE | FLAG_SEND_CHILD_TERMINATED);
-                    }
+                    return newState(STATE_TERMINATED, state);
                 }
                 case T_EXECUTE_WAIT_to_TERMINATE_WAIT: {
                     if (! dependents.isEmpty()) {
