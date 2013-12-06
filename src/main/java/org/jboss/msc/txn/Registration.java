@@ -18,6 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.TXN;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,6 +38,20 @@ final class Registration extends TransactionalObject {
 
     private static final AttachmentKey<Boolean> VALIDATE_TASK = AttachmentKey.create();
 
+    /**
+     * Indicates if registry is enabled
+     */
+    private static final int REGISTRY_ENABLED =       0x40000000;
+    /**
+     * Indicates if registration is removed (true only when registry is removed).
+     */
+    private static final int REMOVED  =      0x20000000;
+    /**
+     * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
+     * propagate a demand to the instance, if any.
+     */
+    private static final int DEMANDED_MASK = 0x1fffffff;
+
     /** The registration name */
     private final ServiceName serviceName;
     /**
@@ -47,10 +63,10 @@ final class Registration extends TransactionalObject {
      */
     private final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<DependencyImpl<?>>();
     /**
-     * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
-     * propagate a demand to the instance, if any.
+     * State.
      */
-    private int demandedByCount;
+    private int state;
+
 
     Registration(ServiceName serviceName) {
         this.serviceName = serviceName;
@@ -82,10 +98,18 @@ final class Registration extends TransactionalObject {
                 return false;
             }
             this.controller = serviceController;
-            demanded = demandedByCount > 0;
+            demanded = (state & DEMANDED_MASK) > 0;
         }
         if (demanded) {
             serviceController.demand(transaction, taskFactory);
+        }
+        if (Bits.anyAreSet(state, REMOVED)) {
+            throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
+        }
+        if (Bits.anyAreSet(state, REGISTRY_ENABLED)) {
+            serviceController.enableRegistry(transaction);
+        } else {
+            serviceController.disableRegistry(transaction);
         }
         return true;
     }
@@ -144,7 +168,7 @@ final class Registration extends TransactionalObject {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
-            if (++ demandedByCount > 1) {
+            if (((++ state) & DEMANDED_MASK) > 1) {
                 return;
             }
         }
@@ -158,12 +182,49 @@ final class Registration extends TransactionalObject {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
-            if (--demandedByCount > 0) {
+            if (((--state) & DEMANDED_MASK) > 0) {
                 return;
             }
         }
         if (controller != null) {
             controller.undemand(transaction, taskFactory);
+        }
+    }
+
+    void remove(Transaction transaction) {
+        lockWrite(transaction);
+        final ServiceControllerImpl<?> controller;
+        synchronized (this) {
+            controller = this.controller;
+            if (Bits.anyAreSet(state, REMOVED)) return;
+            state = state | REMOVED;
+        }
+        if (controller != null) {
+            controller.remove(transaction);
+        }
+    }
+
+    void disableRegistry(Transaction transaction) {
+        final ServiceControllerImpl<?> controller;
+        synchronized (this) {
+            if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
+            state = state & ~REGISTRY_ENABLED;
+            controller = this.controller;
+        }
+        if (controller != null) {
+            controller.disableRegistry(transaction);
+        }
+    }
+
+    void enableRegistry(Transaction transaction) {
+        final ServiceControllerImpl<?> controller;
+        synchronized (this) {
+            if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
+            state = state | REGISTRY_ENABLED;
+            controller = this.controller;
+        }
+        if (controller != null) {
+            controller.enableRegistry(transaction);
         }
     }
 
@@ -199,20 +260,20 @@ final class Registration extends TransactionalObject {
 
         private final ServiceControllerImpl<?> controller;
         private final Collection<DependencyImpl<?>> incomingDependencies;
-        private final int demandedByCount;
+        private final int state;
 
         // take snapshot
         public Snapshot() {
             controller = Registration.this.controller;
             incomingDependencies = new ArrayList<DependencyImpl<?>>(Registration.this.incomingDependencies.size());
             incomingDependencies.addAll(Registration.this.incomingDependencies);
-            demandedByCount = Registration.this.demandedByCount;
+            state = Registration.this.state;
         }
 
         // revert ServiceController state to what it was when snapshot was taken; invoked on rollback or abort
         public void apply() {
             Registration.this.controller = controller;
-            Registration.this.demandedByCount = demandedByCount;
+            Registration.this.state = state;
             Registration.this.incomingDependencies.clear();
             Registration.this.incomingDependencies.addAll(incomingDependencies);
         }

@@ -89,6 +89,8 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
+            } else if (Bits.anyAreSet(state, ENABLED)){
+                registration.enableRegistry(transaction);
             }
         }
         return registration;
@@ -117,21 +119,8 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
             }
             state = (byte) (state | REMOVED);
         }
-        final HashSet<ServiceControllerImpl<?>> done = new HashSet<ServiceControllerImpl<?>>();
         for (Registration registration : registry.values()) {
-            ServiceControllerImpl<?> serviceInstance = registration.getController();
-            if (serviceInstance != null && done.add(serviceInstance)) {
-                serviceInstance.remove(transaction, transaction.getTaskFactory());
-            }
-        }
-    }
-
-    synchronized void newServiceInstalled(ServiceControllerImpl<?> service, Transaction transaction) {
-        checkRemoved();
-        if (Bits.anyAreSet(state, ENABLED)) {
-            service.enableRegistry(transaction);
-        } else {
-            service.disableRegistry(transaction);
+            registration.remove(transaction);
         }
     }
 
@@ -147,10 +136,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
         state = (byte) (state & ~ENABLED);
         for (Registration registration: registry.values()) {
-            final ServiceControllerImpl<?> controller = registration.getController();
-            if (controller != null) {
-                controller.disableRegistry(transaction);
-            }
+            registration.disableRegistry(transaction);
         }
     }
 
@@ -166,10 +152,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         }
         state = (byte) (state | ENABLED);
         for (Registration registration: registry.values()) {
-            final ServiceControllerImpl<?> controller = registration.getController();
-            if (controller != null) {
-                controller.enableRegistry(transaction);
-            }
+            registration.enableRegistry(transaction);
         }
     }
 
@@ -185,7 +168,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
 
     private synchronized void checkRemoved() {
         if (Bits.anyAreSet(state, REMOVED)) {
-            throw new IllegalStateException("ServiceRegistry is removed");
+            throw TXN.removedServiceRegistry();
         }
     }
     

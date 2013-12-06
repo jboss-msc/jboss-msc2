@@ -236,7 +236,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         dependencies.values().toArray(dependenciesArray);
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
-        serviceController.install(registry, transaction);
+        serviceController.install(transaction);
         CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
         return serviceController;
     }

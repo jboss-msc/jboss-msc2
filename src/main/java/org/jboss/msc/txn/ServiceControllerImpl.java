@@ -141,10 +141,8 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      *
      * @param transaction the active transaction
      */
-    void install(ServiceRegistryImpl registry, Transaction transaction) {
+    void install(Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        // if registry is removed, get an exception right away
-        registry.newServiceInstalled(this, transaction);
         if (!primaryRegistration.setController(this, transaction)) {
             throw new DuplicateServiceException("Service " + primaryRegistration.getServiceName() + " is already installed");
         }

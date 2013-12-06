@@ -147,6 +147,9 @@ public interface MSCLogger {
     @Message(id = 106, value = "Service parameter implements ServiceStartExecutable: invoke ServiceBuilder.setService(ServiceStartExecutable) instead")
     IllegalArgumentException serviceParameterIsStartExecutable();
 
+    @Message (id = 107, value = "ServiceRegistry is removed")
+    IllegalStateException removedServiceRegistry();
+
     /*
      * Location nesting types.
      */
