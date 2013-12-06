@@ -231,19 +231,20 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_SEND_CHILD_VALIDATE_DONE = 1 << 16; // to parents
     private static final int FLAG_SEND_CHILD_TERMINATED    = 1 << 17; // to parents
     private static final int FLAG_SEND_TERMINATED          = 1 << 18; // to dependencies
-    private static final int FLAG_SEND_CANCELLED           = 1 << 19; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 20; // to transaction
-    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 21; // to children
-    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 22; // to children
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 23; // to dependents
+    private static final int FLAG_SEND_CANCEL_REQUESTED    = 1 << 19; // to transaction
+    private static final int FLAG_SEND_CANCELLED           = 1 << 20; // to transaction
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 21; // to transaction
+    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 22; // to children
+    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 23; // to children
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 24; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(13, 23);
+    private static final int SEND_FLAGS = Bits.intBitMask(13, 24);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 24;
-    private static final int FLAG_DO_VALIDATE = 1 << 25;
-    private static final int FLAG_DO_ROLLBACK = 1 << 26;
+    private static final int FLAG_DO_EXECUTE  = 1 << 25;
+    private static final int FLAG_DO_VALIDATE = 1 << 26;
+    private static final int FLAG_DO_ROLLBACK = 1 << 27;
 
-    private static final int DO_FLAGS = Bits.intBitMask(24, 26);
+    private static final int DO_FLAGS = Bits.intBitMask(25, 27);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -609,6 +610,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
+        if (Bits.allAreSet(state,  FLAG_SEND_CANCEL_REQUESTED)) {
+            getTransaction().childCancelRequested(userThread);
+        }
         if (Bits.allAreSet(state, FLAG_SEND_RENOUNCE_CHILDREN)) {
             renounceChildren(userThread);
         }
@@ -729,12 +733,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         int state;
         synchronized (this) {
             if (Bits.anyAreSet(this.state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) return; // idempotent
-            state = this.state | FLAG_CANCEL_REQ;
+            state = this.state | FLAG_CANCEL_REQ | FLAG_SEND_CANCEL_REQUESTED;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
-        getTransaction().childCancelRequested(userThread);
         executeTasks(state);
     }
 
@@ -788,19 +791,15 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private void execCancelled() {
         assert ! holdsLock(this);
         int state;
-        final boolean newCancelRequest;
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_EXECUTE) {
                 throw new IllegalStateException("Task may not be cancelled now");
             }
-            newCancelRequest = Bits.allAreClear(state, FLAG_CANCEL_REQ);
+            if (Bits.allAreClear(state, FLAG_CANCEL_REQ)) state |= FLAG_SEND_CANCEL_REQUESTED; 
             state |= FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
-        }
-        if (newCancelRequest) {
-            getTransaction().childCancelRequested(false);
         }
         executeTasks(state);
     }
