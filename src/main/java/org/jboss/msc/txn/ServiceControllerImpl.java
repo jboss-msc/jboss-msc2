@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 
@@ -141,23 +140,11 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
      *
      * @param transaction the active transaction
      */
-    void install(Transaction transaction) {
+    boolean install(Transaction transaction, TaskFactory taskFactory, ReportableContext reportableContext) {
         assert lock.isOwnedBy(transaction);
-        if (!primaryRegistration.setController(this, transaction)) {
-            throw new DuplicateServiceException("Service " + primaryRegistration.getServiceName() + " is already installed");
-        }
-        int installedAliases = 0; 
+        primaryRegistration.installService(this, transaction);
         for (Registration alias: aliasRegistrations) {
-            // attempt to install controller at alias
-            if (!alias.setController(this, transaction)) {
-                // first of all, uninstall controller from installed aliases
-                primaryRegistration.clearController(transaction);
-                for (int j = 0; j < installedAliases; j++) {
-                    aliasRegistrations[j].clearController(transaction);
-                }
-                throw new DuplicateServiceException("Service " + alias.getServiceName() + " is already installed");
-            }
-            installedAliases ++;
+            alias.installService(this, transaction);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -166,16 +153,17 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
-            demandDependencies(transaction, transaction.getTaskFactory());
+            demandDependencies(transaction, taskFactory);
         }
-        transactionalInfo.transition(transaction, transaction.getTaskFactory());
+        transactionalInfo.transition(transaction, taskFactory);
+        return true;
     }
 
     void reinstall(Transaction transaction) {
         assert lock.isOwnedBy(transaction);
-        primaryRegistration.resetController(this, transaction);
+        primaryRegistration.reinstallService(this, transaction);
         for (Registration alias: aliasRegistrations) {
-            alias.resetController(this, transaction);
+            alias.reinstallService(this, transaction);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -189,9 +177,9 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     void clear(Transaction transaction, TaskFactory taskFactory) {
-        primaryRegistration.clearController(transaction);
+        primaryRegistration.clearController(transaction, taskFactory);
         for (Registration registration: aliasRegistrations) {
-            registration.clearController(transaction);
+            registration.clearController(transaction, taskFactory);
         }
         final boolean undemand = isMode(MODE_ACTIVE);
         for (DependencyImpl<?> dependency: dependencies) {

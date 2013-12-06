@@ -27,6 +27,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.InvalidTransactionStateException;
@@ -207,6 +208,9 @@ public interface MSCLogger {
 
     @Message (id = 126, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
+
+    @Message (id = 127, value = "A service named %s is already installed")
+    DuplicateServiceException duplicateService(final ServiceName serviceName);
 
     /*
      * Location nesting types.

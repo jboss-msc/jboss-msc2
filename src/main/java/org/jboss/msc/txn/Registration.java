@@ -18,6 +18,7 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
 
 /**
@@ -47,10 +49,17 @@ final class Registration extends TransactionalObject {
      */
     private static final int REMOVED  =      0x20000000;
     /**
+     * Indicates this registration is under service installation process. During this process, controller is null
+     * (i.e., no demand/disable messages are forwarded to controller), but not other controller can start installation.
+     * @see #preinstallService(Transaction)
+     */
+    private static final int INSTALLATION_LOCKED = 0x10000000;
+    /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
      */
-    private static final int DEMANDED_MASK = 0x1fffffff;
+    private static final int DEMANDED_MASK = 0xfffffff;
+
 
     /** The registration name */
     private final ServiceName serviceName;
@@ -67,7 +76,6 @@ final class Registration extends TransactionalObject {
      */
     private int state;
 
-
     Registration(ServiceName serviceName) {
         this.serviceName = serviceName;
     }
@@ -80,24 +88,56 @@ final class Registration extends TransactionalObject {
         return controller;
     }
 
-    boolean resetController(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
+    /**
+     * Locks this registration for a {@link #installService(ServiceControllerImpl, Transaction) service installation},
+     * thus guaranteeing that not more than one service will be installed at the same registration.<br>
+     * If there is already a service installed, or if this registration is already locked for another service
+     * installation, throws a {@code DuplicateServiceException}.
+     * 
+     * @param transaction   the active transaction
+     * @throws DuplicateServiceException if there is a service installed at this registration
+     */
+    void preinstallService(final Transaction transaction) throws DuplicateServiceException {
+        lockWrite(transaction);
+        synchronized (this) {
+            if (controller != null || Bits.anyAreSet(state,  INSTALLATION_LOCKED)) {
+                throw SERVICE.duplicateService(serviceName);
+            }
+            state = state | INSTALLATION_LOCKED;
+        }
+    }
+
+    /**
+     * Completes a service installation. This method can only be called after {@link #preinstallService(Transaction)},
+     * to guarantee that only a single controller will be installed at this registration.
+     * 
+     * @param serviceController the controller
+     * @param transaction       the active transaction
+     */
+    void installService(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
+        installService(serviceController, transaction, transaction.getTaskFactory());
+    }
+
+    /**
+     * Reinstall the service into this registration (invoked on revert).
+     * 
+     * @param serviceController the controller
+     * @param transaction       the active transaction
+     */
+    void reinstallService(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
         assert lock.isOwnedBy(transaction);
         assert controller == null;
-        return setController(serviceController, transaction, null);
+        preinstallService(transaction);
+        installService(serviceController, transaction, null);
     }
 
-    boolean setController(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
-        return setController(serviceController, transaction, transaction.getTaskFactory());
-    }
-
-    private boolean setController(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final TaskFactory taskFactory) {
+    private void installService(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final TaskFactory taskFactory) {
         lockWrite(transaction);
         final boolean demanded;
         synchronized (this) {
-            if (this.controller != null) {
-                return false;
-            }
+            assert this.controller == null && Bits.anyAreSet(state,  INSTALLATION_LOCKED): "Installation not properly initiated, invoke preinstallService first.";
             this.controller = serviceController;
+            state = state & ~INSTALLATION_LOCKED;
             demanded = (state & DEMANDED_MASK) > 0;
         }
         if (demanded) {
@@ -111,12 +151,11 @@ final class Registration extends TransactionalObject {
         } else {
             serviceController.disableRegistry(transaction);
         }
-        return true;
     }
 
-    void clearController(final Transaction transaction) {
+    void clearController(final Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
-        installDependenciesValidateTask(transaction);
+        installDependenciesValidateTask(transaction, taskFactory);
         synchronized (this) {
             this.controller = null;
         }
@@ -124,7 +163,7 @@ final class Registration extends TransactionalObject {
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
         lockWrite(transaction);
-        installDependenciesValidateTask(transaction);
+        installDependenciesValidateTask(transaction, transaction.getTaskFactory());
         final TaskController<Boolean> startTask;
         final boolean up;
         synchronized (this) {
@@ -228,7 +267,10 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void installDependenciesValidateTask(final Transaction transaction) {
+    void installDependenciesValidateTask(final Transaction transaction, final TaskFactory taskFactory) {
+        if (taskFactory == null) {
+            return;
+        }
         if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
         ((TaskBuilderImpl<Void>)transaction.newTask()).setValidatable(new Validatable() {
             @Override

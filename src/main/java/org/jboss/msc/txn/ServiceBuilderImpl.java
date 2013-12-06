@@ -222,13 +222,15 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         }
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, name);
+        registration.preinstallService(transaction);
 
         // create alias registrations
         final ServiceName[] aliasArray = aliases.toArray(new ServiceName[aliases.size()]);
         final Registration[] aliasRegistrations = new Registration[aliasArray.length];
         int i = 0; 
         for (ServiceName alias: aliases) {
-            aliasRegistrations[i++] = registry.getOrCreateRegistration(transaction, alias);
+            aliasRegistrations[i] = registry.getOrCreateRegistration(transaction, alias);
+            aliasRegistrations[i++].preinstallService(transaction);
         }
 
         // create dependencies
@@ -236,7 +238,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         dependencies.values().toArray(dependenciesArray);
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
-        serviceController.install(transaction);
+        transaction.getTaskFactory().newTask(new ServiceInstallTask(serviceController, transaction)).release();
         CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
         return serviceController;
     }

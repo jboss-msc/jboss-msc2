@@ -19,6 +19,7 @@ package org.jboss.msc.test.services;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.service.DependencyFlag;
@@ -70,6 +71,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         rollback(txn);
         // check service is down
         assertFalse(firstService.isUp());
+        // check service is uninstalled
+        assertNull(serviceRegistry.getService(firstSN));
     }
 
     /**
