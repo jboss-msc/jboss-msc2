@@ -39,6 +39,8 @@ import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
+import org.jboss.msc.txn.Problem;
+import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
@@ -291,9 +293,25 @@ public abstract class AbstractTransactionTest {
     protected static void commit(final BasicTransaction transaction) {
         assertNotNull(transaction);
         final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
-        txnController.commit(transaction, commitListener);
+        try {
+            txnController.commit(transaction, commitListener);
+        } finally {
+            assertNoCriticalProblem(transaction);
+        }
         commitListener.awaitCompletionUninterruptibly();
         assertCommitted(transaction);
+    }
+
+    private static void assertNoCriticalProblem(final BasicTransaction txn) {
+        List<Problem> problems = txnController.getProblemReport(txn).getProblems();
+        for (final Problem problem : problems) {
+            if (problem.getSeverity() == Severity.CRITICAL) {
+                if (problem.getCause() != null) {
+                    problem.getCause().printStackTrace();
+                }
+                fail("Critical problem detected: " + problem.getMessage());
+            }
+        }
     }
 
     protected static void rollback(final BasicTransaction transaction) {

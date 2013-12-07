@@ -22,9 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
-
-import java.util.List;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceContainer;
@@ -34,8 +31,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.Problem;
-import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ServiceContext;
 import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.TransactionController;
@@ -85,7 +80,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
-        assertNoCriticalProblems(txn);
     }
 
     protected final void enableRegistry() {
@@ -97,7 +91,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
-        assertNoCriticalProblems(txn);
     }
 
     protected final void disableRegistry() {
@@ -109,7 +102,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
-        assertNoCriticalProblems(txn);
     }
 
     protected final void shutdownContainer() {
@@ -124,7 +116,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             prepare(txn);
             commit(txn);
         }
-        assertNoCriticalProblems(txn);
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
@@ -253,7 +244,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         final BasicTransaction txn = newTransaction();
         txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
         if (attemptToCommit(txn)) {
-            assertNoCriticalProblems(txn);
             assertNull(serviceRegistry.getService(serviceName));
             return true;
         } else {
@@ -272,7 +262,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
         prepare(txn);
         commit(txn);
-        assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));
     }
 
@@ -286,7 +275,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
         prepare(txn);
         commit(txn);
-        assertNoCriticalProblems(txn);
         assertNull(serviceRegistry.getService(serviceName));
     }
 
@@ -395,18 +383,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             assertNotNull(expected);
         } finally {
             txnController.rollback(transaction, null);
-        }
-    }
-
-    private void assertNoCriticalProblems(final BasicTransaction txn) {
-        List<Problem> problems = txnController.getProblemReport(txn).getProblems();
-        for (final Problem problem : problems) {
-            if (problem.getSeverity() == Severity.CRITICAL) {
-                if (problem.getCause() != null) {
-                    problem.getCause().printStackTrace();
-                }
-                fail("Critical problem detected: " + problem.getMessage());
-            }
         }
     }
 
