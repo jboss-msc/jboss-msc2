@@ -713,7 +713,6 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
     }
 
     private boolean isMode(final byte mode) {
-        assert holdsLock(this);
         return (state & MODE_MASK) == mode;
     }
 
