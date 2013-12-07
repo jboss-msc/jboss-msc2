@@ -399,11 +399,14 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (isRollbackRequested || stateOf(state) != STATE_ACTIVE) {
-                throw new InvalidTransactionStateException("Transaction must be in active state to prepare");
+            if (isRollbackRequested) {
+                throw MSCLogger.TXN.cannotPrepareRolledbackTxn();
+            }
+            if (stateOf(state) != STATE_ACTIVE) {
+                throw MSCLogger.TXN.cannotPrepareNonActiveTxn();
             }
             if (Bits.allAreSet(state, FLAG_PREPARE_REQ)) {
-                throw new InvalidTransactionStateException("Prepare already called");
+                throw MSCLogger.TXN.cannotPreparePreparedTxn();
             }
             state |= FLAG_PREPARE_REQ;
             isPrepareRequested = true;
@@ -419,11 +422,17 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (isRollbackRequested || stateOf(state) != STATE_PREPARED || !reportIsCommittable()) {
-                throw new InvalidTransactionStateException("Transaction must be in prepared state to commit");
+            if (isRollbackRequested) {
+                throw MSCLogger.TXN.cannotCommitRolledbackTxn();
+            }
+            if (stateOf(state) != STATE_PREPARED) {
+                throw MSCLogger.TXN.cannotCommitUnpreparedTxn();
+            }
+            if (!reportIsCommittable()) {
+                throw MSCLogger.TXN.cannotCommitProblematicTxn();
             }
             if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                throw new InvalidTransactionStateException("Commit already called");
+                throw MSCLogger.TXN.cannotCommitCommittedTxn();
             }
             state |= FLAG_COMMIT_REQ;
             commitListener = completionListener;
@@ -439,10 +448,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
             if (!isPrepareRequested || stateOf(state) != STATE_PREPARED) {
-                throw new InvalidTransactionStateException("Transaction must be in prepared state to abort");
+                throw MSCLogger.TXN.cannotAbortUnpreparedTxn();
             }
             if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                throw new InvalidTransactionStateException("Abort already called");
+                throw MSCLogger.TXN.cannotAbortAbortedTxn();
             }
             state |= FLAG_ROLLBACK_REQ;
             isRollbackRequested = true;
@@ -459,10 +468,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
             if (isPrepareRequested) {
-                throw new InvalidTransactionStateException("Transaction may not be prepared to rollback");
+                throw MSCLogger.TXN.cannotRollbackPreparedTxn();
             }
             if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                throw new InvalidTransactionStateException("Rollback already called");
+                throw MSCLogger.TXN.cannotRollbackRolledbackTxn();
             }
             state |= FLAG_ROLLBACK_REQ | FLAG_SEND_ROLLBACK_REQ;
             isRollbackRequested = true;
@@ -481,7 +490,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         synchronized (this) {
             if (stateOf(state) != STATE_PREPARED) {
-                throw new InvalidTransactionStateException("Transaction must be in prepared state to inspect commitable status");
+                throw MSCLogger.TXN.cannotInspectUnpreparedTxn();
             }
         }
         return reportIsCommittable();
@@ -560,7 +569,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
-                throw new InvalidTransactionStateException("Transaction is not active");
+                throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
             if (userThread) state |= FLAG_USER_THREAD;
             if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
@@ -583,7 +592,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
-                throw new InvalidTransactionStateException("Transaction is not active: " + stateOf(state));
+                throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
             uncanceledChildren++;
             if (userThread) state |= FLAG_USER_THREAD;
@@ -599,7 +608,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
-                throw new InvalidTransactionStateException("Transaction is not active: " + stateOf(state));
+                throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
             uncanceledChildren--;
             if (userThread) state |= FLAG_USER_THREAD;

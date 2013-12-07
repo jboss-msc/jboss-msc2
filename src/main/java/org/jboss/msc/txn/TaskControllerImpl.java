@@ -19,7 +19,6 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
-import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.ArrayList;
 
@@ -312,7 +311,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     public T getResult() throws IllegalStateException {
         final T result = this.result;
         if (result == NO_RESULT) {
-            throw new IllegalStateException("No result is available");
+            throw MSCLogger.TASK.noTaskResult();
         }
         return result;
     }
@@ -775,7 +774,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD | FLAG_EXECUTE_DONE;
             if (stateOf(state) != STATE_EXECUTE) {
-                throw new IllegalStateException("Task may not be completed now");
+                throw MSCLogger.TASK.taskCannotComplete();
             }
             this.result = result;
             state = transition(state);
@@ -790,7 +789,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         synchronized (this) {
             state = this.state;
             if (stateOf(state) != STATE_EXECUTE) {
-                throw new IllegalStateException("Task may not be cancelled now");
+                throw MSCLogger.TASK.taskCannotCancel();
             }
             if (Bits.allAreClear(state, FLAG_CANCEL_REQ)) state |= FLAG_SEND_CANCEL_REQUESTED; 
             state |= FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
@@ -806,7 +805,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD | FLAG_ROLLBACK_DONE;
             if (stateOf(state) != STATE_ROLLBACK) {
-                throw new IllegalStateException("Task may not be reverted now");
+                throw MSCLogger.TASK.taskCannotRollback();
             }
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -861,7 +860,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD | FLAG_VALIDATE_DONE;
             if (stateOf(state) != STATE_VALIDATE) {
-                throw new IllegalStateException("Task may not be completed now");
+                throw MSCLogger.TASK.taskCannotComplete();
             }
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -911,10 +910,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 @Override
                 public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
                     if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
+                        throw MSCLogger.TASK.methodParameterIsNull("lock");
                     }
                     if (listener == null) {
-                        throw TXN.methodParameterIsNull("listener");
+                        throw MSCLogger.TASK.methodParameterIsNull("listener");
                     }
                     lock.lockAsynchronously(getTransaction(), listener);
                 }
@@ -922,7 +921,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 @Override
                 public boolean tryLock(final TransactionalLock lock) {
                     if (lock == null) {
-                        throw TXN.methodParameterIsNull("lock");
+                        throw MSCLogger.TASK.methodParameterIsNull("lock");
                     }
                     return lock.tryLock(getTransaction());
                 }
@@ -1088,7 +1087,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     this.state = state & PERSISTENT_STATE;
                 } else {
                     if (userThread) {
-                        throw new IllegalStateException("Dependent may not be added at this point");
+                        throw MSCLogger.TASK.cannotAddDepToTask();
                     } else {
                         // todo log and ignore...
                         return;
@@ -1169,7 +1168,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 this.state = state & PERSISTENT_STATE;
             } else {
                 if (userThread) {
-                    throw new IllegalStateException("Dependent may not be added at this point");
+                    throw MSCLogger.TASK.cannotAddDepToTask();
                 } else {
                     // todo log and ignore...
                     return;
