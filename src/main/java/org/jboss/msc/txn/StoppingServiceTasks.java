@@ -92,7 +92,7 @@ final class StoppingServiceTasks {
      */
     static <T> TaskController<Void> createForFailedService(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
         // post stop task
-        return taskFactory.newTask(new SetServiceDownTask<T>(service, transaction, null)).release();
+        return taskFactory.newTask(new SetServiceDownTask<T>(service, transaction)).release();
     }
 
     /**
@@ -240,11 +240,20 @@ final class StoppingServiceTasks {
         private final Transaction transaction;
         private final ServiceControllerImpl<T> serviceController;
         private final T serviceValue;
+        private final boolean failed;
 
         private SetServiceDownTask(ServiceControllerImpl<T> serviceController, Transaction transaction, T serviceValue) {
             this.transaction = transaction;
             this.serviceController = serviceController;
             this.serviceValue = serviceValue;
+            this.failed = false;
+        }
+
+        private SetServiceDownTask(ServiceControllerImpl<T> serviceController, Transaction transaction) {
+            this.transaction = transaction;
+            this.serviceController = serviceController;
+            this.serviceValue = null;
+            this.failed = true;
         }
 
         @Override
@@ -272,6 +281,10 @@ final class StoppingServiceTasks {
         @Override
         public void rollback(RollbackContext context) {
             try {
+                if (failed) {
+                    serviceController.setTransition(ServiceControllerImpl.STATE_FAILED, transaction);
+                    return;
+                }
                 // notify dependent is up
                 for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
                     ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
