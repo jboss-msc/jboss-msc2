@@ -112,6 +112,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             return new TaskBuilderImpl<T>(Transaction.this, topParent, task);
         }
 
+        @SuppressWarnings("unchecked")
         public TaskBuilder<Void> newTask() throws IllegalStateException {
             return new TaskBuilderImpl<Void>(Transaction.this, topParent);
         }
@@ -740,14 +741,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
     final TaskFactory getTaskFactory() {
         return taskFactory;
-    }
-
-    final <T> TaskBuilder<T> newTask(final Executable<T> task) throws IllegalStateException {
-        return taskFactory.newTask(task);
-    }
-
-    final TaskBuilder<Void> newTask() throws IllegalStateException {
-        return taskFactory.newTask();
     }
 
     class AsyncTask implements Runnable {

@@ -272,7 +272,7 @@ final class Registration extends TransactionalObject {
             return;
         }
         if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
-        ((TaskBuilderImpl<Void>)transaction.newTask()).setValidatable(new Validatable() {
+        ((TaskBuilderImpl<Void>)transaction.getTaskFactory().<Void>newTask()).setValidatable(new Validatable() {
             @Override
             public void validate(final ValidateContext context) {
                 try {
