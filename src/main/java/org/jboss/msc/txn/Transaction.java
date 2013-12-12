@@ -763,7 +763,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
         @Override
         public String toString() {
-            return Transaction.this.toString() + ".AsyncTask@" + System.identityHashCode(this);
+            return Transaction.this + ".AsyncTask@" + System.identityHashCode(this);
         }
     }
 }

@@ -1251,7 +1251,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
         @Override
         public String toString() {
-            return TaskControllerImpl.this.toString() + ".AsyncTask@" + System.identityHashCode(this);
+            return TaskControllerImpl.this + ".AsyncTask@" + System.identityHashCode(this);
         }
     }
 }
