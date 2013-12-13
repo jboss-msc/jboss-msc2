@@ -33,9 +33,7 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public // << TODO Remove this
 final class ServiceContainerImpl implements ServiceContainer {
-
 
     private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
 
