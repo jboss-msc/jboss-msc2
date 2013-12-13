@@ -263,6 +263,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
+        transaction.ensureIsActive();
         lockWrite(transaction);
         synchronized(this) {
             if (!isServiceEnabled()) return;
@@ -281,6 +282,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
+        transaction.ensureIsActive();
         lockWrite(transaction);
         synchronized(this) {
             if (isServiceEnabled()) return;
@@ -322,17 +324,29 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
 
     @Override
     public void retry(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        transaction.ensureIsActive();
         lockWrite(transaction);
         transactionalInfo.retry(transaction);
     }
 
     @Override
     public void remove(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        transaction.ensureIsActive();
         this.remove(transaction, transaction.getTaskFactory());
     }
 
     @Override
     public void restart(Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        transaction.ensureIsActive();
         // TODO
     }
 

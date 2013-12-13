@@ -642,6 +642,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
+    void ensureIsActive() {
+        if (isPrepareRequested || isRollbackRequested) {
+            throw MSCLogger.TXN.inactiveTransaction();
+        }
+    }
+
     private void callPrepareListener(final int state) {
         final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
         synchronized (this) {

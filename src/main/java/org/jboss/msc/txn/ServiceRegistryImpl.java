@@ -113,6 +113,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
+        transaction.ensureIsActive();
         synchronized(this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -129,6 +130,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
+        transaction.ensureIsActive();
         checkRemoved();
         // idempotent
         if (!Bits.anyAreSet(state, ENABLED)) {
@@ -145,6 +147,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
+        transaction.ensureIsActive();
         checkRemoved();
         // idempotent
         if (Bits.anyAreSet(state, ENABLED)) {

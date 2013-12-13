@@ -50,6 +50,7 @@ final class ServiceContainerImpl implements ServiceContainer {
         if (txn == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("txn");
         }
+        txn.ensureIsActive();
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

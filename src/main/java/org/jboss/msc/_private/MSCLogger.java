@@ -212,6 +212,9 @@ public interface MSCLogger {
     @Message (id = 127, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
+    @Message (id = 128, value = "Cannot add new tasks to inactive transaction")
+    InvalidTransactionStateException inactiveTransaction();
+
     /*
      * Location nesting types.
      */
