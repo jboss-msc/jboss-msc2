@@ -21,6 +21,7 @@ import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;

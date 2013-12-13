@@ -21,6 +21,8 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.concurrent.Executor;
 
+import org.jboss.msc.service.ServiceContext;
+
 /**
  * A transaction controller, creates transactions and manages them.
  

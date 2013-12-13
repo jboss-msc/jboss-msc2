@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
@@ -32,7 +33,6 @@ import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.test.utils.TestServiceBuilder;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.ServiceContext;
 import org.junit.Test;
 
 /**

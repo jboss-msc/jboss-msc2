@@ -16,12 +16,10 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.txn;
+package org.jboss.msc.service;
 
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.txn.ReportableContext;
+import org.jboss.msc.txn.Transaction;
 
 /**
  * A service context can be used to add new tasks, and to create and remove services and registries.

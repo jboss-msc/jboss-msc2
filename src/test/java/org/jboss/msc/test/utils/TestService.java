@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.ServiceStartExecutable;
@@ -36,7 +37,6 @@ import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.RollbackContext;
-import org.jboss.msc.txn.ServiceContext;
 
 /**
  * Basic service for tests.

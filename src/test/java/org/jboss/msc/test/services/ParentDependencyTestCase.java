@@ -32,6 +32,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.test.utils.AbstractServiceTest;
@@ -41,7 +42,6 @@ import org.jboss.msc.txn.CommitResult;
 import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.ServiceContext;
 import org.junit.Ignore;
 import org.junit.Test;
 
