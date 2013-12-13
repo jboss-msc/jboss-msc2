@@ -22,8 +22,9 @@ package org.jboss.msc.txn;
  * An exception indicating that a transaction has deadlocked.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class TransactionDeadlockException extends RuntimeException {
+public class TransactionDeadlockException extends Exception {
     private static final long serialVersionUID = -2219639164354591824L;
 
     /**

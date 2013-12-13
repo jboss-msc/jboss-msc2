@@ -68,7 +68,7 @@ public final class TransactionalLock {
                                 lockAsynchronously(newOwner, listener);
                             }
                         });
-                    } catch (final DeadlockException e) {
+                    } catch (final TransactionDeadlockException e) {
                         safeCallLockListener(listener, e);
                     }
                     break;
@@ -102,7 +102,7 @@ public final class TransactionalLock {
         }
     }
     
-    private void safeCallLockListener(final LockListener listener, final DeadlockException e) {
+    private void safeCallLockListener(final LockListener listener, final TransactionDeadlockException e) {
         try {
             if (e == null) {
                 listener.lockAcquired();

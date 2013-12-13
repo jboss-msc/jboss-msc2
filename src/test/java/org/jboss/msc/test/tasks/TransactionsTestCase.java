@@ -31,7 +31,7 @@ import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.txn.AbortResult;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
-import org.jboss.msc.txn.DeadlockException;
+import org.jboss.msc.txn.TransactionDeadlockException;
 import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
 import org.jboss.msc.txn.RollbackResult;
@@ -127,7 +127,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         final BasicTransaction transaction = newTransaction();
         try {
             txnController.waitFor(transaction, transaction);
-        } catch (DeadlockException ignored) {
+        } catch (TransactionDeadlockException ignored) {
         }
         rollback(transaction);
     }
@@ -157,7 +157,7 @@ public final class TransactionsTestCase extends AbstractTransactionTest {
         do {
             for (int i = 0; i < deadlockSize; i++) {
                 if (tasks[i].isTerminated()) {
-                    assertTrue(tasks[i].getThrowable() instanceof DeadlockException);
+                    assertTrue(tasks[i].getThrowable() instanceof TransactionDeadlockException);
                     deadlockingTask = tasks[i];
                     deadlockDetected = true;
                     break;

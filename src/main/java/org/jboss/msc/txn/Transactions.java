@@ -85,7 +85,7 @@ final class Transactions {
      * @param listener the completion listener 
      * @throws DeadlockException if transactions dependency deadlock was detected
      */
-    static void waitFor(final Transaction dependent, final Transaction dependency, final TerminationListener listener) throws DeadlockException {
+    static void waitFor(final Transaction dependent, final Transaction dependency, final TerminationListener listener) throws TransactionDeadlockException {
         // detect self waits
         if (dependent == dependency) {
             Transaction.safeCallTerminateListener(listener);
@@ -112,7 +112,7 @@ final class Transactions {
                 try {
                     addDependency(dependentIndex, dependencyIndex);
                     checkDeadlock(dependentIndex, 0L);
-                } catch (final DeadlockException e) {
+                } catch (final TransactionDeadlockException e) {
                     removeDependency(dependentIndex, dependencyIndex);
                     throw e;
                 }
@@ -129,7 +129,7 @@ final class Transactions {
         }
     }
 
-    static void waitFor(final Transaction dependent, final Transaction dependency) throws DeadlockException {
+    static void waitFor(final Transaction dependent, final Transaction dependency) throws TransactionDeadlockException {
         final CountDownLatch signal = new CountDownLatch(1);
         final TerminationListener listener = new TerminationListener() {
             @Override
@@ -163,11 +163,11 @@ final class Transactions {
         txnDeps[dependentIndex] &= ~bit;
     }
 
-    private static void checkDeadlock(final int txnIndex, long visited) throws DeadlockException {
+    private static void checkDeadlock(final int txnIndex, long visited) throws TransactionDeadlockException {
         // check deadlock
         final long bit = 1L << txnIndex;
         if (Bits.allAreSet(visited, bit)) {
-            throw new DeadlockException();
+            throw new TransactionDeadlockException();
         }
         visited |= bit;
         // process transaction dependencies

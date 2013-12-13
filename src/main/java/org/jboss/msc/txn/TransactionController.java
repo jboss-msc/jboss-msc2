@@ -236,7 +236,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws DeadlockException if this wait would cause a deadlock
      * @throws SecurityException if transaction was not created by this controller
      */
-    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws DeadlockException, SecurityException {
+    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws TransactionDeadlockException, SecurityException {
         validateTransaction(transaction);
         validateTransaction(other);
         Transactions.waitFor(transaction, other);
