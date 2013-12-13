@@ -18,7 +18,6 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ServiceController;
 import org.jboss.msc.txn.Transaction;
 
 /**

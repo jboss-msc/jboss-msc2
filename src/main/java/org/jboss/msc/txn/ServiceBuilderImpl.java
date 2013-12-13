@@ -27,6 +27,7 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;

@@ -19,7 +19,6 @@
 package org.jboss.msc.service;
 
 import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.ServiceController;
 
 
 /**

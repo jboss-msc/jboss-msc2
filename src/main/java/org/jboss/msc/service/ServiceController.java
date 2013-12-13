@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.txn;
+package org.jboss.msc.service;
+
+import org.jboss.msc.txn.Transaction;
 
 
 /**

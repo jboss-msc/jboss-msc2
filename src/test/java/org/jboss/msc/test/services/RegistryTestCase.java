@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
@@ -30,7 +31,6 @@ import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.ServiceController;
 import org.junit.Before;
 import org.junit.Test;
 
