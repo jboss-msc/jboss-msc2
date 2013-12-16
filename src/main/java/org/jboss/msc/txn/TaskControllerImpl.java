@@ -620,7 +620,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
         if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_EXECUTED)) {
             for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.dependencyExecutionComplete(userThread);
+                dependent.dependencyExecuted(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
@@ -628,17 +628,17 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
             for (TaskChild child : children) {
-                child.childInitiateValidate(userThread);
+                child.childValidate(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskChild child : children) {
-                child.childInitiateRollback(userThread);
+                child.childRollback(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskChild child : children) {
-                child.childInitiateCommit(userThread);
+                child.childCommit(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATED)) {
@@ -1102,7 +1102,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
     }
 
-    public void dependencyExecutionComplete(final boolean userThread) {
+    public void dependencyExecuted(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -1115,7 +1115,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void childInitiateRollback(final boolean userThread) {
+    public void childRollback(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -1128,7 +1128,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void childInitiateValidate(final boolean userThread) {
+    public void childValidate(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -1140,7 +1140,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void childInitiateCommit(final boolean userThread) {
+    public void childCommit(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -1186,7 +1186,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
         }
         if (dependencyDone) {
-            dependent.dependencyExecutionComplete(userThread);
+            dependent.dependencyExecuted(userThread);
         } else if (dependencyCancelled) {
             dependent.forceCancel(userThread);
         }

@@ -326,17 +326,17 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateRollback(userThread);
+                task.childRollback(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateValidate(userThread);
+                task.childValidate(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateCommit(userThread);
+                task.childCommit(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
@@ -636,7 +636,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (sendRollbackRequest) {
             for (final TaskControllerImpl<?> grandchild : grandchildren) {
-                grandchild.childInitiateRollback(userThread);
+                grandchild.childRollback(userThread);
             }
         }
         executeTasks(state);
