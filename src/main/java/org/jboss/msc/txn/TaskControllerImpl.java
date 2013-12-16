@@ -145,8 +145,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private final ArrayList<TaskControllerImpl<?>> children = new ArrayList<>();
 
     private int state;
-    private int unfinishedDependencies;
-    private int unfinishedChildren;
+    private int unexecutedDependencies;
+    private int unexecutedChildren;
     private int unvalidatedChildren;
     private int unterminatedChildren;
     private int unterminatedDependents;
@@ -340,7 +340,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             case STATE_EXECUTE_WAIT: {
                 if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_WAIT_to_TERMINATE_WAIT;
-                } else if (unfinishedDependencies == 0) {
+                } else if (unexecutedDependencies == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
                 } else {
                     return T_NONE;
@@ -358,7 +358,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             case STATE_EXECUTE_CHILDREN_WAIT: {
                 if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT;
-                } else if (unfinishedChildren == 0) {
+                } else if (unexecutedChildren == 0) {
                     return T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE;
                 } else {
                     return T_NONE;
@@ -686,12 +686,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private void renounceChildren(final boolean userThread) {
         assert !holdsLock(this);
         int state;
-        final int unfinishedChildren;
+        final int unexecutedChildren;
         final int unvalidatedChildren;
         final int unterminatedChildren;
         final ArrayList<TaskControllerImpl<?>> children;
         synchronized (this) {
-            unfinishedChildren = this.unfinishedChildren;
+            unexecutedChildren = this.unexecutedChildren;
             unvalidatedChildren = this.unvalidatedChildren;
             unterminatedChildren = this.unterminatedChildren;
             children = this.children;
@@ -699,7 +699,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             for (final TaskControllerImpl<?> child : this.children) {
                 child.parent.setDelegate(adopter);
             }
-            this.unfinishedChildren = 0;
+            this.unexecutedChildren = 0;
             this.unvalidatedChildren = 0;
             this.unterminatedChildren = 0;
             state = this.state;
@@ -707,7 +707,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
-        getTransaction().adoptGrandchildren(children, userThread, unfinishedChildren, unvalidatedChildren, unterminatedChildren);
+        getTransaction().adoptGrandchildren(children, userThread, unexecutedChildren, unvalidatedChildren, unterminatedChildren);
         executeTasks(state);
     }
 
@@ -1006,7 +1006,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             if (this.adopter != null) {
                 adopter = this.adopter;
             } else {
-                unfinishedChildren--;
+                unexecutedChildren--;
                 state = this.state;
                 if (userThread) state |= FLAG_USER_THREAD;
                 state = transition(state);
@@ -1077,7 +1077,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             } else {
                 state = this.state;
                 if (stateIsIn(state, STATE_EXECUTE)) {
-                    unfinishedChildren++;
+                    unexecutedChildren++;
                     unvalidatedChildren++;
                     unterminatedChildren++;
                     children.add((TaskControllerImpl<?>) child);
@@ -1106,7 +1106,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            unfinishedDependencies--;
+            unexecutedDependencies--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -1197,7 +1197,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            unfinishedDependencies = dependencies.length;
+            unexecutedDependencies = dependencies.length;
         }
         try {
             parent.childAdded(this, true);

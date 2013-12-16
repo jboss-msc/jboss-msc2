@@ -119,8 +119,8 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     };
     private long endTime;
     private int state;
-    private int uncanceledChildren;
-    private int unfinishedChildren;
+    private int uncancelledChildren;
+    private int unexecutedChildren;
     private int unvalidatedChildren;
     private int unterminatedChildren;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
@@ -219,9 +219,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
                     return T_ACTIVE_to_ROLLBACK;
-                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
+                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
                     return T_ACTIVE_to_PREPARING;
                 } else {
                     return T_NONE;
@@ -531,7 +531,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         synchronized (this) {
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unfinishedChildren--;
+            unexecutedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -578,7 +578,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 state |= FLAG_SEND_CANCEL_REQ;
             }
             topLevelTasks.add(child);
-            unfinishedChildren++;
+            unexecutedChildren++;
             unvalidatedChildren++;
             unterminatedChildren++;
             state = transition(state);
@@ -595,7 +595,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
-            uncanceledChildren++;
+            uncancelledChildren++;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -611,7 +611,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
-            uncanceledChildren--;
+            uncancelledChildren--;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -619,13 +619,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
+    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
         final boolean sendRollbackRequest;
         synchronized (this) {
             topLevelTasks.addAll(grandchildren);
-            unfinishedChildren += unfinishedGreatGrandchildren;
+            unexecutedChildren += unexecutedGreatGrandchildren;
             unvalidatedChildren += unvalidatedGreatGrandchildren;
             unterminatedChildren += unterminatedGreatGrandchildren;
             state = this.state;
