@@ -45,39 +45,39 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         MSCLogger.ROOT.greeting(Version.getVersionString());
     }
 
-    private static final int FLAG_ROLLBACK_REQ = 1 << 3; // set if rollback of the current txn was requested
-    private static final int FLAG_PREPARE_REQ  = 1 << 4; // set if prepare of the current txn was requested
-    private static final int FLAG_COMMIT_REQ   = 1 << 5; // set if commit of the current txn was requested
-    private static final int FLAG_DO_PREPARE_LISTENER = 1 << 6;
-    private static final int FLAG_DO_COMMIT_LISTENER = 1 << 7;
+    private static final int FLAG_ROLLBACK_REQ         = 1 << 3; // set if rollback of the current txn was requested
+    private static final int FLAG_PREPARE_REQ          = 1 << 4; // set if prepare of the current txn was requested
+    private static final int FLAG_COMMIT_REQ           = 1 << 5; // set if commit of the current txn was requested
+    private static final int FLAG_DO_PREPARE_LISTENER  = 1 << 6;
+    private static final int FLAG_DO_COMMIT_LISTENER   = 1 << 7;
     private static final int FLAG_DO_ROLLBACK_LISTENER = 1 << 8;
-    private static final int FLAG_SEND_CANCEL_REQ = 1 << 9;
-    private static final int FLAG_SEND_VALIDATE_REQ = 1 << 10;
-    private static final int FLAG_SEND_COMMIT_REQ = 1 << 11;
-    private static final int FLAG_SEND_ROLLBACK_REQ = 1 << 12;
-    private static final int FLAG_CLEAN_UP = 1 << 13;
-    private static final int FLAG_USER_THREAD = 1 << 31;
+    private static final int FLAG_SEND_CANCEL_REQ      = 1 << 9;
+    private static final int FLAG_SEND_VALIDATE_REQ    = 1 << 10;
+    private static final int FLAG_SEND_COMMIT_REQ      = 1 << 11;
+    private static final int FLAG_SEND_ROLLBACK_REQ    = 1 << 12;
+    private static final int FLAG_CLEAN_UP             = 1 << 13;
+    private static final int FLAG_USER_THREAD          = 1 << 31;
 
-    private static final int STATE_ACTIVE           = 0x0; // adding tasks and subtransactions; counts = # added
-    private static final int STATE_PREPARING        = 0x1; // preparing all our tasks
-    private static final int STATE_PREPARED         = 0x2; // prepare finished, wait for commit/abort decision from user or parent
-    private static final int STATE_ROLLBACK         = 0x3; // rolling back all our tasks; count = # remaining
-    private static final int STATE_COMMITTING       = 0x4; // performing commit actions
-    private static final int STATE_ROLLED_BACK      = 0x5; // "dead" state
-    private static final int STATE_COMMITTED        = 0x6; // "success" state
-    private static final int STATE_MASK = 0x07;
+    private static final int STATE_ACTIVE      = 0x0; // adding tasks and subtransactions; counts = # added
+    private static final int STATE_PREPARING   = 0x1; // preparing all our tasks
+    private static final int STATE_PREPARED    = 0x2; // prepare finished, wait for commit/abort decision from user or parent
+    private static final int STATE_ROLLBACK    = 0x3; // rolling back all our tasks; count = # remaining
+    private static final int STATE_COMMITTING  = 0x4; // performing commit actions
+    private static final int STATE_ROLLED_BACK = 0x5; // "dead" state
+    private static final int STATE_COMMITTED   = 0x6; // "success" state
+    private static final int STATE_MASK        = 0x07;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER | FLAG_DO_ROLLBACK_LISTENER;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_ROLLBACK_REQ | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
 
-    private static final int T_NONE = 0;
-    private static final int T_ACTIVE_to_PREPARING  = 1;
-    private static final int T_ACTIVE_to_ROLLBACK   = 2;
-    private static final int T_PREPARING_to_PREPARED        = 3;
-    private static final int T_PREPARING_to_ROLLBACK = 4;
-    private static final int T_PREPARED_to_COMMITTING   = 5;
-    private static final int T_PREPARED_to_ROLLBACK     = 6;
-    private static final int T_ROLLBACK_to_ROLLED_BACK  = 7;
-    private static final int T_COMMITTING_to_COMMITTED  = 8;
+    private static final int T_NONE                    = 0;
+    private static final int T_ACTIVE_to_PREPARING     = 1;
+    private static final int T_ACTIVE_to_ROLLBACK      = 2;
+    private static final int T_PREPARING_to_PREPARED   = 3;
+    private static final int T_PREPARING_to_ROLLBACK   = 4;
+    private static final int T_PREPARED_to_COMMITTING  = 5;
+    private static final int T_PREPARED_to_ROLLBACK    = 6;
+    private static final int T_ROLLBACK_to_ROLLED_BACK = 7;
+    private static final int T_COMMITTING_to_COMMITTED = 8;
     final TransactionController controller;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
@@ -529,9 +529,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            unexecutedChildren--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unexecutedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -542,9 +542,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            unvalidatedChildren--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unvalidatedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -555,9 +555,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            unterminatedChildren--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unterminatedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
