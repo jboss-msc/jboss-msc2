@@ -224,18 +224,18 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_INSTALL_FAILED = 1 << 12;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_CHILD_DONE          = 1 << 13; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_DONE     = 1 << 14; // to dependents
-    private static final int FLAG_SEND_VALIDATE_REQ        = 1 << 15; // to children
-    private static final int FLAG_SEND_CHILD_VALIDATE_DONE = 1 << 16; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED    = 1 << 17; // to parents
-    private static final int FLAG_SEND_TERMINATED          = 1 << 18; // to dependencies
-    private static final int FLAG_SEND_CANCEL_REQUESTED    = 1 << 19; // to transaction
-    private static final int FLAG_SEND_CANCELLED           = 1 << 20; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN   = 1 << 21; // to transaction
-    private static final int FLAG_SEND_ROLLBACK_REQ        = 1 << 22; // to children
-    private static final int FLAG_SEND_COMMIT_REQ          = 1 << 23; // to children
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS   = 1 << 24; // to dependents
+    private static final int FLAG_SEND_VALIDATE_REQ         = 1 << 13; // to children
+    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 14; // to children
+    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 15; // to children
+    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 16; // to parents
+    private static final int FLAG_SEND_CHILD_VALIDATED      = 1 << 17; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 18; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 19; // to dependents
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 20; // to dependents
+    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 21; // to dependencies
+    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 22; // to transaction
+    private static final int FLAG_SEND_CANCELLED            = 1 << 23; // to transaction
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 24; // to transaction
 
     private static final int SEND_FLAGS = Bits.intBitMask(13, 24);
 
@@ -453,14 +453,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 case T_EXECUTE_to_EXECUTE_CHILDREN_WAIT: {
                     if (! dependents.isEmpty()) {
                         cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state | FLAG_SEND_DEPENDENCY_DONE);
+                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state | FLAG_SEND_DEPENDENCY_EXECUTED);
                     } else {
                         state = newState(STATE_EXECUTE_CHILDREN_WAIT, state);
                     }
                     continue;
                 }
                 case T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE: {
-                    state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_DONE);
+                    state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_EXECUTED);
                     continue;
                 }
                 case T_EXECUTE_DONE_to_VALIDATE: {
@@ -476,7 +476,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     continue;
                 }
                 case T_VALIDATE_CHILDREN_WAIT_to_VALIDATE_DONE: {
-                    state = newState(STATE_VALIDATE_DONE, state | FLAG_SEND_CHILD_VALIDATE_DONE);
+                    state = newState(STATE_VALIDATE_DONE, state | FLAG_SEND_CHILD_VALIDATED);
                     continue;
                 }
                 case T_VALIDATE_DONE_to_TERMINATE_WAIT: {
@@ -485,9 +485,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
                 case T_TERMINATE_WAIT_to_TERMINATED: {
                     if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
-                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_TERMINATED | FLAG_SEND_CANCELLED);
+                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_DEPENDENT_TERMINATED | FLAG_SEND_CANCELLED);
                     } else {
-                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_TERMINATED);
+                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_DEPENDENT_TERMINATED);
                     }
                     continue;
                 }
@@ -501,18 +501,18 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 case T_EXECUTE_WAIT_to_TERMINATE_WAIT: {
                     if (! dependents.isEmpty()) {
                         cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_EXECUTED | FLAG_SEND_CHILD_VALIDATED);
                     } else {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED | FLAG_SEND_CHILD_VALIDATED);
                     }
                     continue;
                 }
                 case T_EXECUTE_to_TERMINATE_WAIT: {
                     if (! dependents.isEmpty()) {
                         cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_EXECUTED | FLAG_SEND_CHILD_VALIDATED);
                     } else {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_DONE | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED | FLAG_SEND_CHILD_VALIDATED);
                     }
                     if (Bits.allAreSet(state, FLAG_CANCEL_REQ) && children.size() > 0) {
                         state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_RENOUNCE_CHILDREN);
@@ -591,10 +591,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                         state = newState(STATE_TERMINATE_WAIT, state);
                     }
                     if (sendChildExecuted) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED);
                     }
                     if (sendChildValidated) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_VALIDATE_DONE);
+                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_VALIDATED);
                     }
                     continue;
                 }
@@ -618,12 +618,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 dependent.forceCancel(userThread);
             }
         }
-        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_DONE)) {
+        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_EXECUTED)) {
             for (TaskControllerImpl<?> dependent : dependents) {
                 dependent.dependencyExecutionComplete(userThread);
             }
         }
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
             parent.childExecuted(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
@@ -641,7 +641,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 child.childInitiateCommit(userThread);
             }
         }
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATE_DONE)) {
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATED)) {
             parent.childValidated(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
@@ -650,7 +650,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
             getTransaction().childCancelled(userThread);
         }
-        if (Bits.allAreSet(state, FLAG_SEND_TERMINATED)) {
+        if (Bits.allAreSet(state, FLAG_SEND_DEPENDENT_TERMINATED)) {
             for (TaskControllerImpl<?> dependency : dependencies) {
                 dependency.dependentTerminated(userThread);
             }
