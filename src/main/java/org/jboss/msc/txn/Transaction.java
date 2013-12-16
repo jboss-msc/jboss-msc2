@@ -668,25 +668,20 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     private void callTerminateListeners(final int state) {
-        final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
-        final Listener<? super CommitResult<? extends Transaction>> commitListener;
         final Listener<? super AbortResult<? extends Transaction>> abortListener;
         final Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
         synchronized (this) {
             endTime = System.nanoTime();
-            prepareListener = this.prepareListener;
-            this.prepareListener = null;
-            commitListener = this.commitListener;
-            this.commitListener = null;
             abortListener = this.abortListener;
             this.abortListener = null;
             rollbackListener = this.rollbackListener;
             this.rollbackListener = null;
         }
-        callListeners(state, prepareListener, commitListener, abortListener, rollbackListener);
+        callListeners(state, null, null, abortListener, rollbackListener);
     }
 
-    private void callListeners(final int state, final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
+    private void callListeners(final int state,
+            final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
             final Listener<? super CommitResult<? extends Transaction>> commitListener,
             final Listener<? super AbortResult<? extends Transaction>> abortListener,
             final Listener<? super RollbackResult<? extends Transaction>> rollbackListener) {
