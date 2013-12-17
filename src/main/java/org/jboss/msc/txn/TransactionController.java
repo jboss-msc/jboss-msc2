@@ -241,7 +241,7 @@ public final class TransactionController extends SimpleAttachable {
     public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws TransactionDeadlockException, SecurityException {
         validateTransaction(transaction);
         validateTransaction(other);
-        Transactions.waitFor(transaction, other);
+        if (Transactions.waitFor(transaction, other)) throw new TransactionDeadlockException();
     }
 
     /**

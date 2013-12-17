@@ -32,8 +32,7 @@ public interface LockListener {
     
     /**
      * Called when transaction deadlock is detected.
-     * @param e caught deadlock exception
      */
-    void deadlockDetected(TransactionDeadlockException e);
+    void deadlockDetected();
 
 }

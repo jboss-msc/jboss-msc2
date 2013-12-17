@@ -79,17 +79,18 @@ final class Transactions {
     /**
      * Causes <code>dependent</code> transaction to wait for <code>dependency</code> transaction.
      * If some of the participating transactions have been terminated in the meantime wait will not happen.
+     * If wait setup was successful then registered termination listener is called when wait is finished.
      * 
      * @param dependent the dependent
      * @param dependency the dependency
-     * @param listener the completion listener 
-     * @throws DeadlockException if transactions dependency deadlock was detected
+     * @param listener the wait completion listener
+     * @returns <code>true</code> if deadlock was detected and wait setup was cancelled
      */
-    static void waitFor(final Transaction dependent, final Transaction dependency, final TerminationListener listener) throws TransactionDeadlockException {
+    static boolean waitForAsynchronously(final Transaction dependent, final Transaction dependency, final TerminationListener listener) {
         // detect self waits
         if (dependent == dependency) {
             Transaction.safeCallTerminateListener(listener);
-            return;
+            return false;
         }
         boolean staleTransactions = true;
         synchronized (Transactions.class) {
@@ -114,7 +115,7 @@ final class Transactions {
                     checkDeadlock(dependentIndex, 0L);
                 } catch (final TransactionDeadlockException e) {
                     removeDependency(dependentIndex, dependencyIndex);
-                    throw e;
+                    return true;
                 }
             }
         }
@@ -127,9 +128,20 @@ final class Transactions {
             dependency.addTerminationListener(oneShotCompletionListener);
             dependent.addTerminationListener(oneShotCompletionListener);
         }
+        return false;
     }
 
-    static void waitFor(final Transaction dependent, final Transaction dependency) throws TransactionDeadlockException {
+    /**
+     * Causes <code>dependent</code> transaction to wait for <code>dependency</code> transaction.
+     * If some of the participating transactions have been terminated in the meantime wait will not happen.
+     * If wait setup was successful then this method blocks current thread until wait is finished.
+     *
+     * @param dependent the dependent
+     * @param dependency the dependency
+     * @param listener the wait completion listener
+     * @returns <code>true</code> if deadlock was detected and wait setup was cancelled
+     */
+    static boolean waitFor(final Transaction dependent, final Transaction dependency) {
         final CountDownLatch signal = new CountDownLatch(1);
         final TerminationListener listener = new TerminationListener() {
             @Override
@@ -137,7 +149,7 @@ final class Transactions {
                 signal.countDown();
             }
         };
-        waitFor(dependent, dependency, listener);
+        if (waitForAsynchronously(dependent, dependency, listener)) return true;
         boolean interrupted = false;
         while (true) {
             try {
@@ -150,6 +162,7 @@ final class Transactions {
         if (interrupted) {
             Thread.currentThread().interrupt();
         }
+        return false;
     }
 
 
