@@ -147,9 +147,9 @@ final class Registration extends TransactionalObject {
             throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
         }
         if (Bits.anyAreSet(state, REGISTRY_ENABLED)) {
-            serviceController.enableRegistry(transaction);
+            serviceController.enableRegistry(transaction, taskFactory);
         } else {
-            serviceController.disableRegistry(transaction);
+            serviceController.disableRegistry(transaction, taskFactory);
         }
     }
 
@@ -243,7 +243,7 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void disableRegistry(Transaction transaction) {
+    void disableRegistry(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
@@ -251,11 +251,11 @@ final class Registration extends TransactionalObject {
             controller = this.controller;
         }
         if (controller != null) {
-            controller.disableRegistry(transaction);
+            controller.disableRegistry(transaction, taskFactory);
         }
     }
 
-    void enableRegistry(Transaction transaction) {
+    void enableRegistry(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
@@ -263,7 +263,7 @@ final class Registration extends TransactionalObject {
             controller = this.controller;
         }
         if (controller != null) {
-            controller.enableRegistry(transaction);
+            controller.enableRegistry(transaction, taskFactory);
         }
     }
 

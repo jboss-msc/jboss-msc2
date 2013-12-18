@@ -22,7 +22,6 @@ import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,7 +37,7 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class ServiceRegistryImpl extends TransactionalObject implements ServiceRegistry {
+final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistry {
 
     private static final byte ENABLED = 1 << 0x00;
     private static final byte REMOVED  = 1 << 0x01;
@@ -91,7 +90,7 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
             if (appearing != null) {
                 registration = appearing;
             } else if (Bits.anyAreSet(state, ENABLED)){
-                registration.enableRegistry(transaction);
+                registration.enableRegistry(transaction, transaction.getTaskFactory());
             }
         }
         return registration;
@@ -127,37 +126,45 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
     }
 
     @Override
-    public synchronized void disable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
+    public void disable(Transaction transaction) {
         checkRemoved();
-        // idempotent
-        if (!Bits.anyAreSet(state, ENABLED)) {
-            return;
+        super.disable(transaction);
+    }
+
+    boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
+        lockWrite(transaction);
+        synchronized (this) {
+            // idempotent
+            if (!Bits.anyAreSet(state, ENABLED)) {
+                return false;
+            }
+            state = (byte) (state & ~ENABLED);
         }
-        state = (byte) (state & ~ENABLED);
         for (Registration registration: registry.values()) {
-            registration.disableRegistry(transaction);
+            registration.disableRegistry(transaction, taskFactory);
         }
+        return true;
     }
 
     @Override
-    public synchronized void enable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
+    public void enable(Transaction transaction) {
         checkRemoved();
-        // idempotent
-        if (Bits.anyAreSet(state, ENABLED)) {
-            return;
+        super.enable(transaction);
+    }
+
+    boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
+        lockWrite(transaction);
+        synchronized (this) {
+            // idempotent
+            if (Bits.anyAreSet(state, ENABLED)) {
+                return false;
+            }
+            state = (byte) (state | ENABLED);
         }
-        state = (byte) (state | ENABLED);
         for (Registration registration: registry.values()) {
-            registration.enableRegistry(transaction);
+            registration.enableRegistry(transaction, taskFactory);
         }
+        return true;
     }
 
     @Override

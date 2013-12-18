@@ -38,7 +38,7 @@ import org.jboss.msc.service.ServiceName;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class ServiceControllerImpl<T> extends TransactionalObject implements ServiceController {
+final class ServiceControllerImpl<T> extends ServiceManager implements ServiceController {
 
     // controller modes
     static final byte MODE_ACTIVE      = (byte)ServiceMode.ACTIVE.ordinal();
@@ -257,40 +257,28 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         return null;
     }
 
-    /**
-     * Management operation for disabling a service. As a result, this service will stop if it is {@code UP}.
-     */
-    public void disable(final Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
+    @Override
+    public boolean doDisable(final Transaction transaction, final TaskFactory taskFactory) {
         lockWrite(transaction);
         synchronized(this) {
-            if (!isServiceEnabled()) return;
+            if (!isServiceEnabled()) return false;
             state &= ~SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return;
+            if (!isRegistryEnabled()) return true;
         }
-        transactionalInfo.transition(transaction, transaction.getTaskFactory());
+        transactionalInfo.transition(transaction, taskFactory);
+        return true;
     }
 
-    /**
-     * Management operation for enabling a service. The service may start as a result, according to its {@link
-     * ServiceMode mode} rules.
-     * <p> Services are enabled by default.
-     */
-    public void enable(final Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
+    @Override
+    public boolean doEnable(final Transaction transaction, final TaskFactory taskFactory) {
         lockWrite(transaction);
         synchronized(this) {
-            if (isServiceEnabled()) return;
+            if (isServiceEnabled()) return false;
             state |= SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return;
+            if (!isRegistryEnabled()) return true;
         }
-        transactionalInfo.transition(transaction, transaction.getTaskFactory());
+        transactionalInfo.transition(transaction, taskFactory);
+        return true;
     }
 
     private boolean isServiceEnabled() {
@@ -298,24 +286,24 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
         return Bits.allAreSet(state, SERVICE_ENABLED);
     }
 
-    void disableRegistry(Transaction transaction) {
+    void disableRegistry(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         synchronized (this) {
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction.getTaskFactory());
+        transactionalInfo.transition(transaction, taskFactory);
     }
 
-    void enableRegistry(Transaction transaction) {
+    void enableRegistry(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         synchronized (this) {
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, transaction.getTaskFactory());
+        transactionalInfo.transition(transaction, taskFactory);
     }
 
     private boolean isRegistryEnabled() {
@@ -597,8 +585,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                             break;
                         }
                         if (taskFactory == null) {
-                            // a null taskFactory means we are on revert
-                            throw new IllegalStateException("Cannot create task on revert");
+                            taskFactory = transaction.getTaskFactory();
                         }
                         transactionalState = STATE_STARTING;
                         startTask = StartingServiceTasks.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
@@ -622,8 +609,7 @@ final class ServiceControllerImpl<T> extends TransactionalObject implements Serv
                             break;
                         }
                         if (taskFactory == null) {
-                            // a null taskFactory means we are on revert
-                            throw new IllegalStateException("Cannot create task on revert");
+                            taskFactory = transaction.getTaskFactory();
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
