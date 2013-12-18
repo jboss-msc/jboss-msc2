@@ -230,7 +230,7 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void remove(Transaction transaction) {
+    void remove(Transaction transaction, TaskFactory taskFactory) {
         lockWrite(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
@@ -239,7 +239,14 @@ final class Registration extends TransactionalObject {
             state = state | REMOVED;
         }
         if (controller != null) {
-            controller.remove(transaction);
+            controller.remove(transaction, taskFactory);
+        }
+    }
+
+    void reinstall(Transaction transaction) {
+        assert lock.isOwnedBy(transaction);
+        synchronized (this) {
+            state = state & ~REMOVED;
         }
     }
 

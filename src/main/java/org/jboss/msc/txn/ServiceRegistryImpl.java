@@ -113,16 +113,14 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
-        transaction.ensureIsActive();
-        synchronized(this) {
+        synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
             }
-            state = (byte) (state | REMOVED);
         }
-        for (Registration registration : registry.values()) {
-            registration.remove(transaction);
-        }
+        lockWrite(transaction);
+        final RemoveTask removeTask = new RemoveTask(transaction);
+        transaction.getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
     }
 
     @Override
@@ -182,7 +180,52 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             throw TXN.removedServiceRegistry();
         }
     }
-    
+
+    private final class RemoveTask implements Executable<Void>, Revertible {
+
+        private final Transaction transaction;
+        private boolean removed;
+
+        public RemoveTask(final Transaction transaction) {
+            this.transaction = transaction;
+        }
+
+        @Override
+        public synchronized void execute(ExecuteContext<Void> context) {
+            try {
+                synchronized(ServiceRegistryImpl.this) {
+                    if (Bits.anyAreSet(state, REMOVED)) {
+                        return;
+                    }
+                    state = (byte) (state | REMOVED);
+                }
+                for (Registration registration : registry.values()) {
+                    registration.remove(transaction, (TaskFactory) context);
+                }
+                removed = true;
+            } finally {
+                context.complete();
+            }
+        }
+
+        @Override
+        public synchronized void rollback(RollbackContext context) {
+            try {
+                if (!removed ) {
+                    return;
+                }
+                synchronized (ServiceRegistryImpl.this) {
+                    state = (byte) (state & ~REMOVED);
+                }
+                for (Registration registration : registry.values()) {
+                    registration.reinstall(transaction);
+                }
+            } finally {
+                context.complete();
+            }
+        }
+    }
+
     private final class Snapshot {
         private final byte state;
         private final Map<ServiceName, Registration> registry;
