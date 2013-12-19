@@ -530,6 +530,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     @Override
     void writeUnlocked() {
+        // prevent hard to find bugs
+        assert transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED;
         state = (byte) (transactionalInfo.getState() & STATE_MASK | state & ~STATE_MASK);
         transactionalInfo = null;
     }
