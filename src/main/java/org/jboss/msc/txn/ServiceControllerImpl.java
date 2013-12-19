@@ -162,6 +162,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     void reinstall(Transaction transaction) {
         assert lock.isOwnedBy(transaction);
+        for (DependencyImpl<?> dependency: dependencies) {
+            dependency.setDependent(this, transaction);
+        }
         primaryRegistration.reinstallService(this, transaction);
         for (Registration alias: aliasRegistrations) {
             alias.reinstallService(this, transaction);
