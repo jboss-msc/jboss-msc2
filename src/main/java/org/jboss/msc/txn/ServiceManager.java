@@ -31,7 +31,7 @@ import org.jboss.msc.service.ServiceMode;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-abstract class ServiceManager extends TransactionalObject {
+abstract class ServiceManager {
 
     private static final int ENABLE = 0;
     private static final int DISABLE = 1;

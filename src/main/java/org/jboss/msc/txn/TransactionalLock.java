@@ -18,6 +18,7 @@
 
 package org.jboss.msc.txn;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.jboss.msc._private.MSCLogger;
@@ -33,16 +34,33 @@ import org.jboss.msc._private.MSCLogger;
  * with this lock that will be executed before the lock is freed.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 public final class TransactionalLock {
 
     private static final AtomicReferenceFieldUpdater<TransactionalLock, Transaction> ownerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Transaction.class, "owner");
     private volatile Transaction owner;
-    private static final AtomicReferenceFieldUpdater<TransactionalLock, Cleaner> cleanerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Cleaner.class, "cleaner");
-    private volatile Cleaner cleaner;
-    
-    TransactionalLock() {}
-    
+    private final Cleaner cleaner;
+
+    TransactionalLock() {
+        this(null);
+    }
+
+    TransactionalLock(Cleaner cleaner) {
+        this.cleaner = cleaner;
+    }
+
+    void lockSynchronously(final Transaction transaction) {
+        final CountDownLatch signal = new CountDownLatch(1);
+        lockAsynchronously(transaction, new LockListener() {
+            @Override
+            public void lockAcquired() {
+                signal.countDown();
+            }
+        });
+        try {signal.await();} catch (InterruptedException ignored) {}
+    }
+
     void lockAsynchronously(final Transaction newOwner, final LockListener listener) {
         Transaction previousOwner;
         while (true) {
@@ -51,24 +69,31 @@ public final class TransactionalLock {
                 if (ownerUpdater.compareAndSet(this, null, newOwner)) {
                     // lock successfully acquired
                     newOwner.addLock(this);
-                    safeCallLockAcquired(listener);
+                    safeCallLockListener(listener);
                     break;
                 }
             } else {
                 if (previousOwner == newOwner) {
                     // reentrant access
-                    safeCallLockAcquired(listener);
+                    safeCallLockListener(listener);
                     break;
                 } else {
                     // some transaction already owns the lock, registering termination listener
-                    final boolean deadlockDetected = Transactions.waitForAsynchronously(newOwner, previousOwner,
-                            new TerminationListener() {
-                                @Override
-                                public void transactionTerminated() {
-                                    lockAsynchronously(newOwner, listener);
-                                }
-                            });
-                    if (deadlockDetected) safeCallDeadlockDetected(listener); 
+                    final boolean deadlockDetected = Transactions.waitForAsynchronously(newOwner, previousOwner, new TerminationListener() {
+                            @Override
+                            public void transactionTerminated() {
+                                lockAsynchronously(newOwner, listener);
+                            }
+                        });
+                    if (deadlockDetected) {
+                        // TODO review this: isn't there a better way of adding this problem, specifically why do we need
+                        // a task controller, and how will that look like in the log?
+                        final TransactionDeadlockException e = new TransactionDeadlockException();
+                        final Problem problem = new Problem(e, null);
+                        newOwner.getTransactionReport().addProblem(problem);
+                        safeCallLockListener(listener);
+                        throw new RuntimeException(e);
+                    }
                     break;
                 }
             }
@@ -80,37 +105,22 @@ public final class TransactionalLock {
         newOwner.addLock(this);
         return true;
     }
-    
-    void setCleaner(final Cleaner cleaner) {
-        while (cleaner != null) if (cleanerUpdater.compareAndSet(this, null, cleaner)) return;
-    }
-    
-    @SuppressWarnings("finally")
+
     void unlock(final Transaction currentOwner, final boolean reverted) {
         if (!ownerUpdater.compareAndSet(this, currentOwner, null)) return;
         final Cleaner cleaner = this.cleaner;
         if (cleaner != null) {
             try {
-                cleaner.clean(reverted);
+                cleaner.clean();
             } catch (final Throwable t) {
                 MSCLogger.FAIL.lockCleanupFailed(t);
-            } finally {
-                while (true) if (cleanerUpdater.compareAndSet(this, cleaner, null)) return;
             }
         }
     }
-    
-    private void safeCallLockAcquired(final LockListener listener) {
+
+    private void safeCallLockListener(final LockListener listener) {
         try {
             listener.lockAcquired();
-        } catch (final Throwable t) {
-            MSCLogger.FAIL.lockListenerFailed(t);
-        }
-    }
-
-    private void safeCallDeadlockDetected(final LockListener listener) {
-        try {
-            listener.deadlockDetected();
         } catch (final Throwable t) {
             MSCLogger.FAIL.lockListenerFailed(t);
         }
@@ -119,9 +129,9 @@ public final class TransactionalLock {
     boolean isOwnedBy(final Transaction txn) {
         return owner == txn;
     }
-    
+
     static interface Cleaner {
-        void clean(boolean reverted);
+        void clean();
     }
 
 }

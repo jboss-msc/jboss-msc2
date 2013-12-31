@@ -21,8 +21,6 @@ package org.jboss.msc.txn;
 import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -36,7 +34,7 @@ import org.jboss.msc.service.ServiceName;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-final class Registration extends TransactionalObject {
+final class Registration {
 
     private static final AttachmentKey<Boolean> VALIDATE_TASK = AttachmentKey.create();
 
@@ -75,6 +73,10 @@ final class Registration extends TransactionalObject {
      * State.
      */
     private int state;
+    /**
+     * Transactional lock.
+     */
+    private TransactionalLock lock = new TransactionalLock();
 
     Registration(ServiceName serviceName) {
         this.serviceName = serviceName;
@@ -98,7 +100,7 @@ final class Registration extends TransactionalObject {
      * @throws DuplicateServiceException if there is a service installed at this registration
      */
     void preinstallService(final Transaction transaction) throws DuplicateServiceException {
-        lockWrite(transaction);
+        lock.lockSynchronously(transaction);
         synchronized (this) {
             if (controller != null || Bits.anyAreSet(state,  INSTALLATION_LOCKED)) {
                 throw SERVICE.duplicateService(serviceName);
@@ -132,7 +134,19 @@ final class Registration extends TransactionalObject {
     }
 
     private void installService(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final TaskFactory taskFactory) {
-        lockWrite(transaction);
+        if (lock.tryLock(transaction)) {
+            doInstallService(serviceController, transaction, taskFactory);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doInstallService(serviceController, transaction, taskFactory);
+                }
+            });
+        }
+    }
+
+    private void doInstallService(ServiceControllerImpl<?> serviceController, Transaction transaction, TaskFactory taskFactory) {
         final boolean demanded;
         synchronized (this) {
             assert this.controller == null && Bits.anyAreSet(state,  INSTALLATION_LOCKED): "Installation not properly initiated, invoke preinstallService first.";
@@ -153,8 +167,20 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void clearController(final Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+    void clearController(final Transaction transaction, final TaskFactory taskFactory) {
+        if (lock.tryLock(transaction)) {
+            doClearController(transaction, taskFactory);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doClearController(transaction, taskFactory);
+                }
+            });
+        }
+    }
+
+    private void doClearController(Transaction transaction, TaskFactory taskFactory) {
         installDependenciesValidateTask(transaction, taskFactory);
         synchronized (this) {
             this.controller = null;
@@ -162,7 +188,18 @@ final class Registration extends TransactionalObject {
     }
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
-        lockWrite(transaction);
+        if (lock.tryLock(transaction)) {
+            doAddIncomingDependency(transaction, dependency);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener(){
+                public void lockAcquired() {
+                    doAddIncomingDependency(transaction, dependency);
+                }
+            });
+        }
+    }
+
+    private void doAddIncomingDependency(Transaction transaction, DependencyImpl<?> dependency) {
         installDependenciesValidateTask(transaction, transaction.getTaskFactory());
         final TaskController<Boolean> startTask;
         final boolean up;
@@ -182,7 +219,19 @@ final class Registration extends TransactionalObject {
     }
 
     void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
-        lockWrite(transaction);
+        if (lock.tryLock(transaction)) {
+            doRemoveIncomingDependency(dependency);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doRemoveIncomingDependency(dependency);
+                }
+            });
+        }
+    }
+
+    private void doRemoveIncomingDependency(DependencyImpl<?> dependency) {
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
@@ -202,8 +251,20 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void addDemand(Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+    void addDemand(final Transaction transaction, final TaskFactory taskFactory) {
+        if (lock.tryLock(transaction)) {
+            doAddDemand(transaction, taskFactory);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doAddDemand(transaction, taskFactory);
+                }
+            });
+        }
+    }
+
+    void doAddDemand(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
@@ -216,8 +277,20 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void removeDemand(Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+    void removeDemand(final Transaction transaction, final TaskFactory taskFactory) {
+        if (lock.tryLock(transaction)) {
+            doRemoveDemand(transaction, taskFactory);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                 public void lockAcquired() {
+                    doRemoveDemand(transaction, taskFactory);
+                }});
+        }
+        
+    }
+
+    private void doRemoveDemand(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
@@ -230,8 +303,19 @@ final class Registration extends TransactionalObject {
         }
     }
 
-    void remove(Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+    void remove(final Transaction transaction, final TaskFactory taskFactory) {
+        if (lock.tryLock(transaction)) {
+            doRemove(transaction, taskFactory);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doRemove(transaction, taskFactory);
+                }});
+        }
+    }
+
+    private void doRemove(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             controller = this.controller;
@@ -293,38 +377,5 @@ final class Registration extends TransactionalObject {
                 }
             }
         }).release();
-    }
-
-    @Override
-    Object takeSnapshot() {
-        return new Snapshot();
-    }
-
-    @Override
-    void revert(final Object snapshot) {
-        ((Snapshot)snapshot).apply();
-    }
-
-    private final class Snapshot {
-
-        private final ServiceControllerImpl<?> controller;
-        private final Collection<DependencyImpl<?>> incomingDependencies;
-        private final int state;
-
-        // take snapshot
-        public Snapshot() {
-            controller = Registration.this.controller;
-            incomingDependencies = new ArrayList<DependencyImpl<?>>(Registration.this.incomingDependencies.size());
-            incomingDependencies.addAll(Registration.this.incomingDependencies);
-            state = Registration.this.state;
-        }
-
-        // revert ServiceController state to what it was when snapshot was taken; invoked on rollback or abort
-        public void apply() {
-            Registration.this.controller = controller;
-            Registration.this.state = state;
-            Registration.this.incomingDependencies.clear();
-            Registration.this.incomingDependencies.addAll(incomingDependencies);
-        }
     }
 }

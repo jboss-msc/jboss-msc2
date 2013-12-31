@@ -29,10 +29,10 @@ public interface LockListener {
      * Called when lock is successfully acquired.
      */
     void lockAcquired();
-    
-    /**
-     * Called when transaction deadlock is detected.
-     */
-    void deadlockDetected();
 
+    /*
+     * Called when deadlock is detected.
+     * @param e caught deadlock exception
+     *
+    void deadlockDetected(DeadlockException e) {}*/
 }

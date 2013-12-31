@@ -18,11 +18,8 @@
 
 package org.jboss.msc.txn;
 
-import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -46,6 +43,8 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<ServiceName, Registration>();
     // service registry state, which could be: enabled, disabled, or removed
     private byte state = ENABLED;
+    // transactional lock
+    private TransactionalLock lock = new TransactionalLock();
 
 
 
@@ -84,7 +83,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lockWrite(transaction);
+            lock.lockSynchronously(transaction);
             registration = new Registration(name);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
@@ -109,7 +108,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void remove(Transaction transaction) {
+    public void remove(final Transaction transaction) {
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
@@ -118,7 +117,18 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
                 return;
             }
         }
-        lockWrite(transaction);
+        if (lock.tryLock(transaction)) {
+            doRemove(transaction);
+        } else {
+            lock.lockAsynchronously(transaction, new LockListener() {
+
+                public void lockAcquired() {
+                    doRemove(transaction);
+                }});
+        }
+    }
+
+    private void doRemove(final Transaction transaction) {
         final RemoveTask removeTask = new RemoveTask(transaction);
         transaction.getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
     }
@@ -130,7 +140,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+        lock.lockSynchronously(transaction);
         synchronized (this) {
             // idempotent
             if (!Bits.anyAreSet(state, ENABLED)) {
@@ -151,7 +161,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
-        lockWrite(transaction);
+        lock.lockSynchronously(transaction);
         synchronized (this) {
             // idempotent
             if (Bits.anyAreSet(state, ENABLED)) {
@@ -163,16 +173,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             registration.enableRegistry(transaction, taskFactory);
         }
         return true;
-    }
-
-    @Override
-    Object takeSnapshot() {
-        return new Snapshot();
-    }
-
-    @Override
-    void revert(final Object snapshot) {
-        ((Snapshot)snapshot).apply();
     }
 
     private synchronized void checkRemoved() {
@@ -223,24 +223,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             } finally {
                 context.complete();
             }
-        }
-    }
-
-    private final class Snapshot {
-        private final byte state;
-        private final Map<ServiceName, Registration> registry;
-        
-        private Snapshot() {
-            assert holdsLock(ServiceRegistryImpl.this);
-            state = ServiceRegistryImpl.this.state;
-            registry = new HashMap<ServiceName, Registration>(ServiceRegistryImpl.this.registry);
-        }
-        
-        private void apply() {
-            assert holdsLock(ServiceRegistryImpl.this);
-            ServiceRegistryImpl.this.state = state;
-            ServiceRegistryImpl.this.registry.clear();
-            ServiceRegistryImpl.this.registry.putAll(registry);
         }
     }
 }
