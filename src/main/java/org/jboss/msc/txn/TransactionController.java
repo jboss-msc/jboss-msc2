@@ -132,14 +132,6 @@ public final class TransactionController extends SimpleAttachable {
     }
     
     /**
-     * Creates a new transaction aware lock. Only one transaction at a time can own the lock.
-     * @return new transaction aware lock
-     */
-    public TransactionalLock newTransactionalLock() {
-        return new TransactionalLock();
-    }
-
-    /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
      * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
      *

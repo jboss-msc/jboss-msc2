@@ -151,15 +151,6 @@ final class StoppingServiceTasks {
 
         public void execute(final ExecuteContext<Void> context) {
             ((ServiceStopExecutable)service).executeStop(new StopContext(){
-                @Override
-                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
-                    context.lockAsynchronously(lock, listener);
-                }
-
-                @Override
-                public boolean tryLock(TransactionalLock lock) {
-                    return context.tryLock(lock);
-                }
 
                 @Override
                 public void complete(Void result) {

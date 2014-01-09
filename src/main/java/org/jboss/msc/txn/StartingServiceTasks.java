@@ -230,15 +230,6 @@ final class StartingServiceTasks {
                 }
             }
             ((ServiceStartExecutable<T>) service).executeStart(new StartContext<T>() {
-                @Override
-                public void lockAsynchronously(TransactionalLock lock, LockListener listener) {
-                    context.lockAsynchronously(lock, listener);
-                }
-
-                @Override
-                public boolean tryLock(TransactionalLock lock) {
-                    return context.tryLock(lock);
-                }
 
                 @Override
                 public void complete(T result) {

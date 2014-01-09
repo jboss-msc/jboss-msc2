@@ -26,7 +26,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends CancellableContext, LockingContext, ReportableContext, SimpleWorkContext {
+public interface ExecuteContext<T> extends CancellableContext, ReportableContext, SimpleWorkContext {
 
     /**
      * Register the completion of this task with a value.  This method returns without blocking.

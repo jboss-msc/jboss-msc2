@@ -931,24 +931,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (exec != null) try {
             setClassLoader();
             final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
-                @Override
-                public void lockAsynchronously(final TransactionalLock lock, final LockListener listener) {
-                    if (lock == null) {
-                        throw MSCLogger.TASK.methodParameterIsNull("lock");
-                    }
-                    if (listener == null) {
-                        throw MSCLogger.TASK.methodParameterIsNull("listener");
-                    }
-                    lock.lockAsynchronously(getTransaction(), listener);
-                }
-
-                @Override
-                public boolean tryLock(final TransactionalLock lock) {
-                    if (lock == null) {
-                        throw MSCLogger.TASK.methodParameterIsNull("lock");
-                    }
-                    return lock.tryLock(getTransaction());
-                }
 
                 @Override
                 public void complete(final T result) {
