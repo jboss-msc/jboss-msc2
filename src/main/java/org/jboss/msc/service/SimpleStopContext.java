@@ -18,14 +18,13 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.SimpleExecuteContext;
 
 /**
- * Service start lifecycle context.
+ * Simple service stop lifecycle context.
  *
- * @param T the service value type
- * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface StartContext<T> extends SimpleStartContext<T>, ExecuteContext<T> {
+public interface SimpleStopContext extends SimpleExecuteContext<Void> {
 
 }

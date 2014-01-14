@@ -26,19 +26,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends CancellableContext, ReportableContext, SimpleWorkContext {
-
-    /**
-     * Register the completion of this task with a value.  This method returns without blocking.
-     *
-     * @param result the result of the task, or {@code null} if the execution type is {@link Void}
-     */
-    void complete(T result);
-
-    /**
-     * Register the completion of this task with a {@code null} value.  This method returns without blocking.
-     */
-    void complete();
+public interface ExecuteContext<T> extends SimpleExecuteContext<T>, CancellableContext, ReportableContext {
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary

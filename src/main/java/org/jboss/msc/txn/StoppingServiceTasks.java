@@ -22,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.msc.service.ServiceStopExecutable;
 import org.jboss.msc.service.ServiceStopRevertible;
+import org.jboss.msc.service.SimpleService;
+import org.jboss.msc.service.SimpleStartContext;
+import org.jboss.msc.service.SimpleStopContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
@@ -62,12 +65,19 @@ final class StoppingServiceTasks {
 
         // stop service
         final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask();
-        final StopServiceTask stopServiceTask = new StopServiceTask(serviceValue);
-        if (serviceValue instanceof ServiceStopExecutable) {
-            stopTaskBuilder.setExecutable (stopServiceTask);
-        }
-        if (serviceValue instanceof ServiceStopRevertible) {
+        final StopTask stopServiceTask;
+        if (serviceValue instanceof SimpleService) {
+            stopServiceTask = new StopSimpleServiceTask<T>(service, (SimpleService<T>) serviceValue, transaction);
+            stopTaskBuilder.setExecutable(stopServiceTask);
             stopTaskBuilder.setRevertible(stopServiceTask);
+        } else {
+            stopServiceTask = new StopServiceTask(serviceValue);
+            if (serviceValue instanceof ServiceStopExecutable) {
+                stopTaskBuilder.setExecutable (stopServiceTask);
+            }
+            if (serviceValue instanceof ServiceStopRevertible) {
+                stopTaskBuilder.setRevertible(stopServiceTask);
+            }
         }
         stopTaskBuilder.addDependencies(taskDependencies);
         stopTaskBuilder.addDependency(notifyDependentsTask);
@@ -135,13 +145,70 @@ final class StoppingServiceTasks {
         }
     }
 
+    static interface StopTask extends Executable<Void>, Revertible{};
+
     /**
      * Task that stops service.
      * 
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopServiceTask implements Executable<Void>, Revertible {
+    static class StopSimpleServiceTask<T> implements StopTask {
+
+        private final ServiceControllerImpl<T> serviceController;
+        private final SimpleService<T> service;
+        private final Transaction transaction;
+
+        StopSimpleServiceTask(final ServiceControllerImpl<T> serviceController, final SimpleService<T> service, final Transaction transaction) {
+            this.serviceController = serviceController;
+            this.service = service;
+            this.transaction = transaction;
+        }
+
+        public void execute(final ExecuteContext<Void> context) {
+            service.stop(new SimpleStopContext(){
+                @Override
+                public void complete(Void result) {
+                    context.complete(result);
+                }
+
+                @Override
+                public void complete() {
+                    context.complete();
+                }
+            });
+        }
+
+        @Override
+        public void rollback(final RollbackContext context) {
+            service.start(new SimpleStartContext<T>(){
+
+                @Override
+                public void complete(T result) {
+                    context.complete();
+                    serviceController.setValue(result);
+                }
+
+                @Override
+                public void complete() {
+                    context.complete();
+                }
+
+                @Override
+                public void fail() {
+                    context.complete();
+                    serviceController.setTransition(ServiceControllerImpl.STATE_FAILED, transaction);
+                }});
+        }
+    }
+
+    /**
+     * Task that stops service.
+     * 
+     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+     */
+    static class StopServiceTask implements StopTask {
 
         private final Object service;
 

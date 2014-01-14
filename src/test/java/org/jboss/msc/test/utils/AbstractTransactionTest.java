@@ -293,12 +293,9 @@ public abstract class AbstractTransactionTest {
     protected static void commit(final BasicTransaction transaction) {
         assertNotNull(transaction);
         final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
-        try {
-            txnController.commit(transaction, commitListener);
-        } finally {
-            assertNoCriticalProblem(transaction);
-        }
+        txnController.commit(transaction, commitListener);
         commitListener.awaitCompletionUninterruptibly();
+        assertNoCriticalProblem(transaction);
         assertCommitted(transaction);
     }
 

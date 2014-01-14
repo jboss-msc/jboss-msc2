@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceStartExecutable;
 import org.jboss.msc.service.ServiceStartRevertible;
+import org.jboss.msc.service.SimpleService;
+import org.jboss.msc.service.SimpleStartContext;
+import org.jboss.msc.service.SimpleStopContext;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.txn.Problem.Severity;
 
@@ -71,13 +74,20 @@ final class StartingServiceTasks {
 
         // start service task builder
         final Object service = serviceController.getService();
-        final StartServiceTask<T> startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks);
         final TaskBuilder<T> startBuilder = taskFactory.<T>newTask();
-        if (service instanceof ServiceStartExecutable) {
+        final StartTask<T> startServiceTask;
+        if (service instanceof SimpleService) {
+            startServiceTask = new StartSimpleServiceTask<T>(serviceController, transaction, dependencyStartTasks);
             startBuilder.setExecutable(startServiceTask);
-        }
-        if (service instanceof ServiceStartRevertible) {
             startBuilder.setRevertible(startServiceTask);
+        } else {
+            startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks);
+            if (service instanceof ServiceStartExecutable) {
+                startBuilder.setExecutable(startServiceTask);
+            }
+            if (service instanceof ServiceStartRevertible) {
+                startBuilder.setRevertible(startServiceTask);
+            }
         }
 
         final TaskController<T> start; 
@@ -193,11 +203,94 @@ final class StartingServiceTasks {
 
     /**
      * Task that starts service.
+     */
+    static interface StartTask<T> extends Executable<T>, Revertible{}
+
+    /**
+     * Task that starts service.
      * 
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartServiceTask<T> implements Executable<T>, Revertible {
+    static class StartSimpleServiceTask<T> implements StartTask<T> {
+
+        private final ServiceControllerImpl<T> serviceController;
+        protected final SimpleService<T> service;
+        private final Transaction transaction;
+        private boolean failed;
+        private final Collection<TaskController<Boolean>> dependencyStartTasks;
+
+        @SuppressWarnings("unchecked")
+        StartSimpleServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks) {
+            this.serviceController = serviceController;
+            this.service = (SimpleService<T>) serviceController.getService();
+            this.transaction = transaction;
+            this.dependencyStartTasks = dependencyStartTasks;
+        }
+
+        /**
+         * Perform the task.
+         *
+         * @param context
+         */
+        @Override
+        public void execute(final ExecuteContext<T> context) {
+            for (TaskController<Boolean> dependencyStartTask: dependencyStartTasks) {
+                if (!dependencyStartTask.getResult()) {
+                    failed = true;
+                    serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
+                    transaction.getAttachment(START_TASKS).remove(serviceController);
+                    context.cancelled();
+                    return;
+                }
+            }
+            service.start(new SimpleStartContext<T>() {
+                @Override
+                public void complete(T result) {
+                    context.complete(result);
+                }
+
+                @Override
+                public void complete() {
+                    context.complete();
+                }
+
+                @Override
+                public void fail() {
+                    transaction.getAttachment(StartingServiceTasks.FAILED_SERVICES).add(service);
+                    complete();
+                }
+            });
+        }
+
+        @Override
+        public void rollback(final RollbackContext context) {
+            if (failed) {
+                context.complete();
+            } else {
+                service.stop(new SimpleStopContext() {
+                    @Override
+                    public void complete(Void result) {
+                        context.complete();
+                    }
+
+                    @Override
+                    public void complete() {
+                        context.complete();
+                    }
+                });
+            }
+        }
+        
+    }
+
+    /**
+     * Task that starts service.
+     * 
+     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+     */
+    static class StartServiceTask<T> implements StartTask<T> {
 
         private final ServiceControllerImpl<T> serviceController;
         protected final Object service;
@@ -358,4 +451,6 @@ final class StartingServiceTasks {
             }
         }
     }
+
+    
 }

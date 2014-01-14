@@ -31,7 +31,6 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.test.utils.TestService.DependencyInfo;
 import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TransactionController;
 import org.junit.After;

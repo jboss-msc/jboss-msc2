@@ -15,22 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc.service;
+package org.jboss.msc.txn;
 
 /**
- * Executes service start.
+ * Context for a task that may succeed or fail which may also produce a consumable result.
  * 
- * @param T the service value type
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public interface ServiceStartExecutable<T> {
+public interface SimpleExecuteContext<T> extends SimpleWorkContext {
 
     /**
-     * Service start method, invoked on execution.
-     * 
-     * @param startContext start context
+     * Register the completion of this task with a value.  This method returns without blocking.
+     *
+     * @param result the result of the task, or {@code null} if the execution type is {@link Void}
      */
-    void executeStart(StartContext<T> startContext);
+    void complete(T result);
 
+    /**
+     * Register the completion of this task with a {@code null} value.  This method returns without blocking.
+     */
+    void complete();
 }
