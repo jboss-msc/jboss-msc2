@@ -194,28 +194,31 @@ public interface MSCLogger {
     @Message (id = 121, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotCancelChildOnInactiveTxn(final int state);
 
-    @Message (id = 122, value = "No result is available")
+    @Message (id = 122, value = "Cannot use transaction at this stage: the transaction is terminated.")
+    InvalidTransactionStateException txnTerminated();
+
+    @Message (id = 123, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message (id = 123, value = "Task may not be completed now")
+    @Message (id = 124, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message (id = 124, value = "Task may not be cancelled now")
+    @Message (id = 125, value = "Task may not be cancelled now")
     IllegalStateException taskCannotCancel();
 
-    @Message (id = 125, value = "Task may not be reverted now")
+    @Message (id = 126, value = "Task may not be reverted now")
     IllegalStateException taskCannotRollback();
 
-    @Message (id = 126, value = "Dependent may not be added at this point")
+    @Message (id = 127, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
 
-    @Message (id = 127, value = "A service named %s is already installed")
+    @Message (id = 128, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message (id = 128, value = "Cannot add new tasks to inactive transaction")
+    @Message (id = 129, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message (id = 129, value = "Cannot add new tasks with revertible component to inactive transaction")
+    @Message (id = 130, value = "Cannot add new tasks with revertible component to inactive transaction")
     InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
 
     /*

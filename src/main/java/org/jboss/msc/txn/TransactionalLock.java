@@ -51,6 +51,9 @@ public final class TransactionalLock {
     }
 
     void lockSynchronously(final Transaction transaction) {
+        if (transaction.isTerminated()) {
+            throw MSCLogger.TXN.txnTerminated();
+        }
         final CountDownLatch signal = new CountDownLatch(1);
         lockAsynchronously(transaction, new LockListener() {
             @Override
@@ -62,6 +65,9 @@ public final class TransactionalLock {
     }
 
     void lockAsynchronously(final Transaction newOwner, final LockListener listener) {
+        if (newOwner.isTerminated()) {
+            throw MSCLogger.TXN.txnTerminated();
+        }
         Transaction previousOwner;
         while (true) {
             previousOwner = owner;
@@ -101,6 +107,9 @@ public final class TransactionalLock {
     }
 
     boolean tryLock(final Transaction newOwner) {
+        if (newOwner.isTerminated()) {
+            throw MSCLogger.TXN.txnTerminated();
+        }
         if (!ownerUpdater.compareAndSet(this, null, newOwner)) return false;
         newOwner.addLock(this);
         return true;
