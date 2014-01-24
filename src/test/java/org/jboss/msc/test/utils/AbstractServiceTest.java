@@ -313,14 +313,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
                 expected = e;
             }
             assertNotNull(expected);
-
-            expected = null;
-            try {
-                serviceContext.getReportableContext(outsiderTransaction);
-            } catch (IllegalArgumentException e) {
-                expected = e;
-            }
-
         } finally {
             outsiderController.rollback(outsiderTransaction, null);
         }
@@ -340,13 +332,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             expected = e;
         }
         assertNotNull(expected);
-
-        expected = null;
-        try {
-            serviceContext.getReportableContext(null);
-        } catch (IllegalArgumentException e) {
-            expected = e;
-        }
 
         final BasicTransaction transaction = newTransaction();
         try {

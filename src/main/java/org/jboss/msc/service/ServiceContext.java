@@ -18,7 +18,6 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ReportableContext;
 import org.jboss.msc.txn.Transaction;
 
 /**
@@ -82,12 +81,5 @@ public interface ServiceContext {
      * @return the builder for the service
      */
     ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction);
-
-    /**
-     * Returns the {@code transaction} reportable context.
-     * 
-     * @param transaction the transaction
-     */
-    ReportableContext getReportableContext(Transaction transaction);
 
 }

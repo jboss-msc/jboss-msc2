@@ -906,21 +906,4 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         }
         assertNotNull(expected);
     }
-
-    @Ignore
-    @Test
-    // TODO fix this
-    public void problemReport() {
-        final TestService firstService = addService(firstSN, ACTIVE);
-        final BasicTransaction transaction = txnController.create(defaultExecutor);
-        final ServiceContext serviceContext = firstService.getServiceContext();
-        assertServiceContext(serviceContext);
-
-        final ReportableContext reportableContext = serviceContext.getReportableContext(transaction);
-        assertNotNull(reportableContext);
-
-        reportableContext.addProblem(Severity.ERROR, "test error");
-        final CompletionListener<CommitResult<BasicTransaction>> listener = new CompletionListener<>();
-        txnController.commit(transaction, listener);
-    }
 }

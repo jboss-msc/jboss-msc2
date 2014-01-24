@@ -92,45 +92,6 @@ class ServiceContextImpl implements ServiceContext {
         throw new RuntimeException("not implemented");
     }
 
-
-    @Override
-    public ReportableContext getReportableContext(Transaction transaction) {
-        validateTransaction(transaction);
-        final ProblemReport problemReport = transaction.getTransactionReport();
-        return new ReportableContext() {
-
-            @Override
-            public void addProblem(Problem reason) {
-                problemReport.addProblem(reason);
-            }
-
-            @Override
-            public void addProblem(Severity severity, String message) {
-                problemReport.addProblem(new Problem(severity, message));
-            }
-
-            @Override
-            public void addProblem(Severity severity, String message, Throwable cause) {
-                problemReport.addProblem(new Problem(severity, message, cause));
-            }
-
-            @Override
-            public void addProblem(String message, Throwable cause) {
-                problemReport.addProblem(new Problem(message, cause));
-            }
-
-            @Override
-            public void addProblem(String message) {
-                problemReport.addProblem(new Problem(message));
-            }
-
-            @Override
-            public void addProblem(Throwable cause) {
-                problemReport.addProblem(new Problem(cause));
-            }
-        };
-    }
-
     /**
      * Validates {@code transaction} is a {@code TransactionImpl} created by the same transaction
      * controller that is associated with this context.
