@@ -250,6 +250,9 @@ public final class TransactionController extends SimpleAttachable {
      * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
      */
     public boolean owns(final Transaction transaction) {
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
         return this == transaction.getController();
     }
 
