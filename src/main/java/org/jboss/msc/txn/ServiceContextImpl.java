@@ -96,7 +96,7 @@ class ServiceContextImpl implements ServiceContext {
     @Override
     public ReportableContext getReportableContext(Transaction transaction) {
         validateTransaction(transaction);
-        final ProblemReport problemReport = transaction.getProblemReport();
+        final ProblemReport problemReport = transaction.getTransactionReport();
         return new ReportableContext() {
 
             @Override

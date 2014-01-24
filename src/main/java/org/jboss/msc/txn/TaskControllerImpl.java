@@ -814,7 +814,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void validate() {
-        final ProblemReport problemReport = getTransaction().getProblemReport();
+        final ProblemReport problemReport = getTransaction().getTransactionReport();
         final Validatable validatable = this.validatable;
         if (validatable != null) try {
             setClassLoader();
@@ -886,12 +886,36 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void rollback() {
+        final ProblemReport problemReport = getTransaction().getRollbackReport();
         final Revertible rev = revertible;
         if (rev != null) try {
             setClassLoader();
             rev.rollback(new RollbackContext() {
                 public void complete() {
                     rollbackComplete();
+                }
+                public void addProblem(final Problem reason) {
+                    problemReport.addProblem(reason);
+                }
+
+                public void addProblem(final Problem.Severity severity, final String message) {
+                    addProblem(new Problem(severity, message));
+                }
+
+                public void addProblem(final Problem.Severity severity, final String message, final Throwable cause) {
+                    addProblem(new Problem(severity, message, cause));
+                }
+
+                public void addProblem(final String message, final Throwable cause) {
+                    addProblem(new Problem(message, cause));
+                }
+
+                public void addProblem(final String message) {
+                    addProblem(new Problem(message));
+                }
+
+                public void addProblem(final Throwable cause) {
+                    addProblem(new Problem(cause));
                 }
             });
         } catch (Throwable t) {
@@ -902,7 +926,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void execute() {
-        final ProblemReport problemReport = getTransaction().getProblemReport();
+        final ProblemReport problemReport = getTransaction().getTransactionReport();
         final Executable<T> exec = executable;
         if (exec != null) try {
             setClassLoader();

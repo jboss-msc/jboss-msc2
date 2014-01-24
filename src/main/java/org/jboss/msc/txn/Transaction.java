@@ -85,7 +85,8 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<TaskControllerImpl<?>>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
-    private final ProblemReport problemReport = new ProblemReport();
+    private final ProblemReport transactionReport = new ProblemReport();
+    private final ProblemReport rollbackReport = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
         public void childExecuted(final boolean userThread) {
             doChildExecuted(userThread);
@@ -204,8 +205,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return taskExecutor;
     }
 
-    public final ProblemReport getProblemReport() {
-        return problemReport;
+    public final ProblemReport getTransactionReport() {
+        return transactionReport;
+    }
+
+    public final ProblemReport getRollbackReport() {
+        return rollbackReport;
     }
 
     /**
@@ -498,7 +503,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     private boolean reportIsCommittable() {
-        return problemReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
+        return transactionReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
     protected void finalize() {

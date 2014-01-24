@@ -303,7 +303,7 @@ public abstract class AbstractTransactionTest {
     }
 
     private static void assertNoCriticalProblem(final BasicTransaction txn) {
-        List<Problem> problems = txnController.getProblemReport(txn).getProblems();
+        List<Problem> problems = txnController.getTransactionReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {
                 if (problem.getCause() != null) {

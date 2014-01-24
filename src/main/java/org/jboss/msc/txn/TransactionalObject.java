@@ -56,7 +56,7 @@ abstract class TransactionalObject {
             @Override
             public void deadlockDetected() {
                 final Problem problem = new Problem(new TransactionDeadlockException());
-                transaction.getProblemReport().addProblem(problem);
+                transaction.getTransactionReport().addProblem(problem);
                 // TODO: we should return and stop processing completely
                 signal.countDown();
             }
