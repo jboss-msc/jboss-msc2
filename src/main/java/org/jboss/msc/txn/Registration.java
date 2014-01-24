@@ -53,10 +53,16 @@ final class Registration {
      */
     private static final int INSTALLATION_LOCKED = 0x10000000;
     /**
+     * Indicates this registration is under service installation process. During this process, controller is null
+     * (i.e., no demand/disable messages are forwarded to controller), but not other controller can start installation.
+     * @see #preinstallService(Transaction)
+     */
+    private static final int UP = 0x8000000;
+    /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
      */
-    private static final int DEMANDED_MASK = 0xfffffff;
+    private static final int DEMANDED_MASK = 0x7ffffff;
 
 
     /** The registration name */
@@ -205,13 +211,8 @@ final class Registration {
         final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
-            if (controller == null) {
-                up = false;
-                startTask = null;
-            } else {
-                startTask = controller.getStartTask(transaction);
-                up = startTask != null || controller.getState() == ServiceControllerImpl.STATE_UP;
-            }
+            up = Bits.anyAreSet(state,  UP);
+            startTask = up? controller.getStartTask(transaction): null;
         }
         if (up) {
             dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
@@ -237,16 +238,22 @@ final class Registration {
     }
 
     void serviceUp(final Transaction transaction, final TaskFactory taskFactory, final TaskController<Boolean> startTask) {
-        for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            incomingDependency.dependencyUp(transaction, taskFactory, startTask);
+        synchronized (this) {
+            state = state | UP;
+            for (DependencyImpl<?> incomingDependency: incomingDependencies) {
+                incomingDependency.dependencyUp(transaction, taskFactory, startTask);
+            }
         }
     }
 
     void serviceDown(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
-        for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-            final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
-            if (task != null) {
-                tasks.add(task);
+        synchronized (this) {
+            state = state & ~UP;
+            for (DependencyImpl<?> incomingDependency: incomingDependencies) {
+                final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
+                if (task != null) {
+                    tasks.add(task);
+                }
             }
         }
     }
