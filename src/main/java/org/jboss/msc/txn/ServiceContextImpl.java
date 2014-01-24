@@ -106,27 +106,27 @@ class ServiceContextImpl implements ServiceContext {
 
             @Override
             public void addProblem(Severity severity, String message) {
-                problemReport.addProblem(new Problem(null, message, severity));
+                problemReport.addProblem(new Problem(severity, message));
             }
 
             @Override
             public void addProblem(Severity severity, String message, Throwable cause) {
-                problemReport.addProblem(new Problem(null,  message, cause, severity));
+                problemReport.addProblem(new Problem(severity, message, cause));
             }
 
             @Override
             public void addProblem(String message, Throwable cause) {
-                problemReport.addProblem(new Problem(null, message, cause));
+                problemReport.addProblem(new Problem(message, cause));
             }
 
             @Override
             public void addProblem(String message) {
-                problemReport.addProblem(new Problem(null, message));
+                problemReport.addProblem(new Problem(message));
             }
 
             @Override
             public void addProblem(Throwable cause) {
-                problemReport.addProblem(new Problem(null, cause));
+                problemReport.addProblem(new Problem(cause));
             }
         };
     }

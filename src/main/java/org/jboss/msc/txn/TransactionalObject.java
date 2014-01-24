@@ -55,9 +55,7 @@ abstract class TransactionalObject {
 
             @Override
             public void deadlockDetected() {
-                // TODO review this: isn't there a better way of adding this problem, specifically why do we need
-                // a task controller, and how will that look like in the log?
-                final Problem problem = new Problem(null, new TransactionDeadlockException());
+                final Problem problem = new Problem(new TransactionDeadlockException());
                 transaction.getProblemReport().addProblem(problem);
                 // TODO: we should return and stop processing completely
                 signal.countDown();

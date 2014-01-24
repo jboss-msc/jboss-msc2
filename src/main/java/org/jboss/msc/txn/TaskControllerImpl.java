@@ -824,23 +824,23 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
 
                 public void addProblem(final Problem.Severity severity, final String message) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, severity));
+                    addProblem(new Problem(severity, message));
                 }
 
                 public void addProblem(final Problem.Severity severity, final String message, final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, cause, severity));
+                    addProblem(new Problem(severity, message, cause));
                 }
 
                 public void addProblem(final String message, final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, cause));
+                    addProblem(new Problem(message, cause));
                 }
 
                 public void addProblem(final String message) {
-                    addProblem(new Problem(TaskControllerImpl.this, message));
+                    addProblem(new Problem(message));
                 }
 
                 public void addProblem(final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, cause));
+                    addProblem(new Problem(cause));
                 }
 
                 public void complete() {
@@ -955,27 +955,27 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 @Override
                 public void addProblem(final Problem.Severity severity, final String message) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, severity));
+                    addProblem(new Problem(severity, message));
                 }
 
                 @Override
                 public void addProblem(final Problem.Severity severity, final String message, final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, cause, severity));
+                    addProblem(new Problem(severity, message, cause));
                 }
 
                 @Override
                 public void addProblem(final String message, final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, message, cause));
+                    addProblem(new Problem(message, cause));
                 }
 
                 @Override
                 public void addProblem(final String message) {
-                    addProblem(new Problem(TaskControllerImpl.this, message));
+                    addProblem(new Problem(message));
                 }
 
                 @Override
                 public void addProblem(final Throwable cause) {
-                    addProblem(new Problem(TaskControllerImpl.this, cause));
+                    addProblem(new Problem(cause));
                 }
 
                 @Override
@@ -991,7 +991,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             exec.execute(new ExecuteContextImpl());
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);
-            problemReport.addProblem(new Problem(this, t, Problem.Severity.CRITICAL));
+            problemReport.addProblem(new Problem(Problem.Severity.CRITICAL, t));
         } finally {
             unsetClassLoader();
         }
