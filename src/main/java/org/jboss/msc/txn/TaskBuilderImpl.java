@@ -99,18 +99,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     }
 
     /**
-     * todo - doc
-     *
-     * @param task
-     * @return this task builder
-     */
-    public TaskBuilderImpl<T> setTraits(final Object task) {
-        if (task instanceof Revertible) revertible = (Revertible) task;
-        if (task instanceof Validatable) validatable = (Validatable) task;
-        return this;
-    }
-
-    /**
      * Set the class loader to use for this task.
      *
      * @param classLoader the class loader
