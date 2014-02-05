@@ -25,4 +25,22 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface RollbackContext extends ReportableContext, SimpleWorkContext {
+    /**
+     * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
+     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
+     *
+     * @param task the task
+     * @param <R> the result value type (may be {@link Void})
+     * @return the builder for the task
+     * @throws IllegalStateException if this context is not accepting new tasks
+     */
+    <R> TaskBuilder<R> newTask(Executable<R> task) throws IllegalStateException;
+
+    /**
+     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
+     *
+     * @return the builder for the task
+     * @throws IllegalStateException if this context is not accepting new tasks
+     */
+    TaskBuilder<Void> newTask() throws IllegalStateException;
 }

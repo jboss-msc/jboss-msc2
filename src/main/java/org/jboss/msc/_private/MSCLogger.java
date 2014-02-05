@@ -215,6 +215,9 @@ public interface MSCLogger {
     @Message (id = 128, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
+    @Message (id = 129, value = "Cannot add new tasks with revertible component to inactive transaction")
+    InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
+
     /*
      * Location nesting types.
      */

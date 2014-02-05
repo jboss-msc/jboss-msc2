@@ -647,6 +647,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
+    boolean isActive() {
+        assert ! holdsLock(this);
+        synchronized (this) {
+            return stateOf(state) == STATE_ACTIVE;
+        }
+    }
+
     void ensureIsActive() {
         if (isPrepareRequested || isRollbackRequested) {
             throw MSCLogger.TXN.inactiveTransaction();

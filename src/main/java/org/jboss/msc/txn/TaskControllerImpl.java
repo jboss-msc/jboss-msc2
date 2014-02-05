@@ -21,6 +21,8 @@ package org.jboss.msc.txn;
 import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jboss.msc._private.MSCLogger;
 
@@ -142,7 +144,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private final Validatable validatable;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
-    private final ArrayList<TaskControllerImpl<?>> children = new ArrayList<>();
+    private final List<TaskControllerImpl<?>> children = new CopyOnWriteArrayList<>();
 
     private int state;
     private int unexecutedDependencies;
@@ -158,6 +160,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private volatile T result = (T) NO_RESULT;
 
     private static final ThreadLocal<TaskControllerImpl<?>[]> cachedDependents = new ThreadLocal<>();
+    private static final ThreadLocal<TaskChild> cachedChild = new ThreadLocal<>();
 
     private static final int STATE_MASK        = 0xF;
 
@@ -626,9 +629,15 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
             parent.childExecuted(userThread);
         }
+        final TaskChild cachedChild = this.cachedChild.get();
+        this.cachedChild.remove();
         if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
-            for (TaskChild child : children) {
-                child.childValidate(userThread);
+            if (cachedChild != null) {
+                cachedChild.childValidate(userThread);
+            } else {
+                for (TaskChild child : children) {
+                    child.childValidate(userThread);
+                }
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
@@ -637,8 +646,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
-            for (TaskChild child : children) {
-                child.childCommit(userThread);
+            if (cachedChild != null) {
+                cachedChild.childCommit(userThread);
+            } else {
+                for (TaskChild child : children) {
+                    child.childCommit(userThread);
+                }
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_VALIDATED)) {
@@ -689,7 +702,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         final int unexecutedChildren;
         final int unvalidatedChildren;
         final int unterminatedChildren;
-        final ArrayList<TaskControllerImpl<?>> children;
+        final List<TaskControllerImpl<?>> children;
         synchronized (this) {
             unexecutedChildren = this.unexecutedChildren;
             unvalidatedChildren = this.unvalidatedChildren;
@@ -761,6 +774,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static boolean stateIsIn(int state, int sid1) {
         final int sid = stateOf(state);
         return sid == sid1;
+    }
+
+    private static boolean stateIsIn(int state, int sid1, int sid2) {
+        final int sid = stateOf(state);
+        return sid == sid1 || sid == sid2;
     }
 
     private static boolean stateIsIn(int state, int sid1, int sid2, int sid3, int sid4, int sid5, int sid6) {
@@ -916,6 +934,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 public void addProblem(final Throwable cause) {
                     addProblem(new Problem(cause));
+                }
+
+                public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
+                    return new TaskBuilderImpl<N>(getTransaction(), TaskControllerImpl.this, task);
+                }
+
+                public TaskBuilder<Void> newTask() throws IllegalStateException {
+                    return new TaskBuilderImpl<Void>(getTransaction(), TaskControllerImpl.this);
                 }
             });
         } catch (Throwable t) {
@@ -1082,13 +1108,23 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 adopter = this.adopter;
             } else {
                 state = this.state;
-                if (stateIsIn(state, STATE_EXECUTE)) {
+                if (stateIsIn(state, STATE_EXECUTE, STATE_ROLLBACK)) {
                     unexecutedChildren++;
                     unvalidatedChildren++;
                     unterminatedChildren++;
                     children.add((TaskControllerImpl<?>) child);
-                    if (userThread)
-                        state |= FLAG_USER_THREAD;
+                    if (userThread) state |= FLAG_USER_THREAD;
+                    if (stateIsIn(state, STATE_ROLLBACK)) {
+                        cachedChild.set(child);
+                        // TODO: The following line is ugly hack to support child tasks creation during rollback phase.
+                        // TODO: We're setting flags SEND_VALIDATE_REQ & SEND_COMMIT_REQ instead of expected
+                        // TODO: SEND_VALIDATE_REQ & SEND_ROLLBACK_REQ because if we'd setup SEND_ROLLBACK_REQ
+                        // TODO: on newly installed child task, it would be terminated before execution because
+                        // TODO: tasks in EXECUTE_WAIT state move to TERMINATE_WAIT state if ROLLBACK_REQ flag is set.
+                        // TODO: Anyway it doesn't matter if such child task created during parent revert phase is
+                        // TODO: committed or rolled back because it cannot have Revertible component.
+                        state |= FLAG_SEND_VALIDATE_REQ | FLAG_SEND_COMMIT_REQ;
+                    }
                     state = transition(state);
                     this.state = state & PERSISTENT_STATE;
                 } else {
