@@ -384,7 +384,7 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void idempotenteRollback() {
+    public void idempotentRollback() {
         final BasicTransaction txn1 = newTransaction();
         final SimpleTestService secondService;
         final ServiceController secondServiceController;
