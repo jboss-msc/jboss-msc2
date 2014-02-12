@@ -187,7 +187,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param context       the service context
      * @param startTask     the dependency start task
      */
-    void dependencyUp(Transaction transaction, TaskFactory taskFactory, TaskController<Boolean> startTask) {
+    void dependencyUp(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
         dependent.dependencySatisfied(transaction, taskFactory, startTask);
     }
 

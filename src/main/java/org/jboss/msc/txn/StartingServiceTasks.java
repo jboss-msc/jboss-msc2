@@ -18,11 +18,8 @@
 package org.jboss.msc.txn;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceStartExecutable;
 import org.jboss.msc.service.ServiceStartRevertible;
 import org.jboss.msc.service.SimpleService;
@@ -48,16 +45,6 @@ final class StartingServiceTasks {
 
     });
 
-    // keep track of services that have failed to start at current transaction
-    static final AttachmentKey<Set<Object>> FAILED_SERVICES = AttachmentKey.<Set<Object>>create(new Factory<Set<Object>>() {
-        @Override
-        public Set<Object> create() {
-            return new HashSet<Object>();
-        }
-    });
-
-
-
     /**
      * Creates starting service tasks. When all created tasks finish execution, {@code service} will enter {@code UP}
      * state.
@@ -69,54 +56,55 @@ final class StartingServiceTasks {
      * @return                   the final task to be executed. Can be used for creating tasks that depend on the
      *                           conclusion of starting transition.
      */
-    static <T> TaskController<Boolean> create(ServiceControllerImpl<T> serviceController,
-            Collection<TaskController<Boolean>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
+            Collection<TaskController<?>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
+        // revert starting services, i.e., service that have not been started because start task has been cancelled
+        final TaskController<Void> revertStartTask = taskFactory.<Void>newTask().
+                setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
+        
         // start service task builder
         final Object service = serviceController.getService();
-        final TaskBuilder<T> startBuilder = taskFactory.<T>newTask();
+        final TaskBuilder<T> startTaskBuilder = taskFactory.<T>newTask();
         final StartTask<T> startServiceTask;
         if (service instanceof SimpleService) {
-            startServiceTask = new StartSimpleServiceTask<T>(serviceController, transaction, dependencyStartTasks);
-            startBuilder.setExecutable(startServiceTask);
-            startBuilder.setRevertible(startServiceTask);
+            startServiceTask = new StartSimpleServiceTask<T>(serviceController, transaction);
+            startTaskBuilder.setExecutable(startServiceTask);
+            startTaskBuilder.setRevertible(startServiceTask);
         } else {
-            startServiceTask = new StartServiceTask<T>(serviceController, transaction, dependencyStartTasks);
+            startServiceTask = new StartServiceTask<T>(serviceController, transaction);
             if (service instanceof ServiceStartExecutable) {
-                startBuilder.setExecutable(startServiceTask);
+                startTaskBuilder.setExecutable(startServiceTask);
             }
             if (service instanceof ServiceStartRevertible) {
-                startBuilder.setRevertible(startServiceTask);
+                startTaskBuilder.setRevertible(startServiceTask);
             }
         }
+        if (taskDependency != null) {
+            startTaskBuilder.addDependency(taskDependency);
+        }
+        startTaskBuilder.addDependencies(dependencyStartTasks);
 
-        final TaskController<T> start; 
+        final TaskController<T> start;
+        final TaskController<Void> notifyDependentStart;
 
-        if (hasDependencies(serviceController)) {
-            // notify dependent is starting to dependencies
-            final TaskBuilder<Void> notifyDependentStartBuilder = taskFactory.newTask(new NotifyDependentStartTask(transaction, serviceController));
-            if (taskDependency != null) {
-                notifyDependentStartBuilder.addDependency(taskDependency);
-            }
-            notifyDependentStartBuilder.addDependencies(dependencyStartTasks);
-            final TaskController<Void> notifyDependentStart = notifyDependentStartBuilder.release();
-            startBuilder.addDependency(notifyDependentStart);
-            transaction.getAttachment(START_TASKS).put(serviceController, notifyDependentStart);
-
+        // notify dependencies that this dependent is about to start
+        if (serviceController.getDependencies().length > 0) {
+            notifyDependentStart = taskFactory.newTask(new NotifyDependentStartTask(transaction, serviceController)).
+                    addDependency(revertStartTask).release();
+            startTaskBuilder.addDependency(notifyDependentStart);
             // start service
-            start = startBuilder.release();
+            start = startTaskBuilder.release();
 
         } else {
-            if (taskDependency != null) {
-                startBuilder.addDependency(taskDependency);
-            }
-
+            startTaskBuilder.addDependency(revertStartTask);
             // start service
-            start = startBuilder.release();
-            transaction.getAttachment(START_TASKS).put(serviceController, start);
+            start = startTaskBuilder.release();
         }
+        transaction.getAttachment(START_TASKS).put(serviceController, revertStartTask);
+        serviceController.notifyServiceStarting(transaction, taskFactory, start);
 
-        return taskFactory.newTask(new SetServiceUpTask<T>(serviceController, start, transaction)).addDependency(start).release();
+        return start;
     }
 
     /**
@@ -130,8 +118,8 @@ final class StartingServiceTasks {
      * @return                   the final task to be executed. Can be used for creating tasks that depend on the
      *                           conclusion of starting transition.
      */
-    static <T> TaskController<Boolean> create(ServiceControllerImpl<T> serviceController,
-            Collection<TaskController<Boolean>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
+            Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
 
         return create(serviceController, dependencyStartTasks, (TaskController<Void>) null, transaction, taskFactory);
     }
@@ -154,8 +142,30 @@ final class StartingServiceTasks {
         return false;
     }
 
-    private static boolean hasDependencies(ServiceControllerImpl<?> service) {
-        return service.getDependencies().length > 0;
+    /**
+     * Revertible task, whose goal is to revert starting services back to DOWN state on rollback.
+     */
+    private static class RevertStartingServiceTask implements Revertible {
+
+        private final Transaction transaction;
+        private final ServiceControllerImpl<?> serviceController;
+
+        public RevertStartingServiceTask(Transaction transaction, ServiceControllerImpl<?> serviceController) {
+            this.transaction = transaction;
+            this.serviceController = serviceController;
+        }
+
+        @Override
+        public void rollback(RollbackContext context) {
+            try {
+                // revert only services that have not started
+                if (serviceController.revertStarting(transaction)) {
+                    serviceController.notifyServiceDown(transaction);
+                }
+            } finally {
+                context.complete();
+            }
+        }
     }
 
     /**
@@ -217,15 +227,12 @@ final class StartingServiceTasks {
         private final ServiceControllerImpl<T> serviceController;
         protected final SimpleService<T> service;
         private final Transaction transaction;
-        private boolean failed;
-        private final Collection<TaskController<Boolean>> dependencyStartTasks;
 
         @SuppressWarnings("unchecked")
-        StartSimpleServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks) {
+        StartSimpleServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
             this.serviceController = serviceController;
             this.service = (SimpleService<T>) serviceController.getService();
             this.transaction = transaction;
-            this.dependencyStartTasks = dependencyStartTasks;
         }
 
         /**
@@ -235,53 +242,46 @@ final class StartingServiceTasks {
          */
         @Override
         public void execute(final ExecuteContext<T> context) {
-            for (TaskController<Boolean> dependencyStartTask: dependencyStartTasks) {
-                if (!dependencyStartTask.getResult()) {
-                    failed = true;
-                    serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
-                    transaction.getAttachment(START_TASKS).remove(serviceController);
-                    context.cancelled();
-                    return;
-                }
-            }
             service.start(new SimpleStartContext<T>() {
                 @Override
                 public void complete(T result) {
+                    serviceController.setServiceUp(result, transaction, (TaskFactory) context);
                     context.complete(result);
                 }
 
                 @Override
                 public void complete() {
+                    serviceController.setServiceUp(null, transaction, (TaskFactory) context);
                     context.complete();
                 }
 
                 @Override
                 public void fail() {
-                    transaction.getAttachment(StartingServiceTasks.FAILED_SERVICES).add(service);
-                    complete();
+                    serviceController.setServiceFailed(transaction);
+                    serviceController.notifyServiceFailed(transaction, (TaskFactory) context);
+                    context.complete();
                 }
             });
         }
 
         @Override
         public void rollback(final RollbackContext context) {
-            if (failed) {
-                context.complete();
-            } else {
-                service.stop(new SimpleStopContext() {
-                    @Override
-                    public void complete(Void result) {
-                        context.complete();
-                    }
+            service.stop(new SimpleStopContext() {
+                @Override
+                public void complete(Void result) {
+                    serviceController.setServiceDown(transaction);
+                    serviceController.notifyServiceDown(transaction);
+                    context.complete();
+                }
 
-                    @Override
-                    public void complete() {
-                        context.complete();
-                    }
-                });
-            }
+                @Override
+                public void complete() {
+                    serviceController.setServiceDown(transaction);
+                    serviceController.notifyServiceDown(transaction);
+                    context.complete();
+                }
+            });
         }
-        
     }
 
     /**
@@ -295,14 +295,12 @@ final class StartingServiceTasks {
         private final ServiceControllerImpl<T> serviceController;
         protected final Object service;
         private final Transaction transaction;
-        private boolean failed;
-        private final Collection<TaskController<Boolean>> dependencyStartTasks;
+        private boolean cancelled;
 
-        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final Collection<TaskController<Boolean>> dependencyStartTasks) {
+        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction/*, final Collection<TaskController<Boolean>> dependencyStartTasks*/) {
             this.serviceController = serviceController;
             this.service = serviceController.getService();
             this.transaction = transaction;
-            this.dependencyStartTasks = dependencyStartTasks;
         }
 
         /**
@@ -313,24 +311,17 @@ final class StartingServiceTasks {
         @SuppressWarnings("unchecked")
         @Override
         public void execute(final ExecuteContext<T> context) {
-            for (TaskController<Boolean> dependencyStartTask: dependencyStartTasks) {
-                if (!dependencyStartTask.getResult()) {
-                    failed = true;
-                    serviceController.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
-                    transaction.getAttachment(START_TASKS).remove(serviceController);
-                    context.cancelled();
-                    return;
-                }
-            }
             ((ServiceStartExecutable<T>) service).executeStart(new StartContext<T>() {
 
                 @Override
                 public void complete(T result) {
+                    serviceController.setServiceUp(result, transaction, (TaskFactory) context);
                     context.complete(result);
                 }
 
                 @Override
                 public void complete() {
+                    serviceController.setServiceUp(null, transaction, (TaskFactory) context);
                     context.complete();
                 }
 
@@ -387,70 +378,23 @@ final class StartingServiceTasks {
 
                 @Override
                 public void fail() {
-                    transaction.getAttachment(StartingServiceTasks.FAILED_SERVICES).add(service);
-                    complete();
+                    serviceController.setServiceFailed(transaction);
+                    serviceController.notifyServiceFailed(transaction, (TaskFactory) context);
+                    context.complete();
                 }
             });
         }
 
         @Override
         public void rollback(RollbackContext context) {
-            if (failed) {
+            if (cancelled) {
                 context.complete();
             } else {
+                serviceController.setServiceDown(transaction);
+                serviceController.notifyServiceDown(transaction);
                 ((ServiceStartRevertible) service).rollbackStart(context);
             }
         }
     }
 
-
-    /**
-     * Task that sets service at UP state, and performs service value injection.
-     */
-    private static class SetServiceUpTask<T> implements Executable<Boolean>, Revertible {
-
-        private final ServiceControllerImpl<T> service;
-        private final TaskController<T> serviceStartTask;
-        private final Transaction transaction;
-
-        private SetServiceUpTask (ServiceControllerImpl<T> service, TaskController<T> serviceStartTask, Transaction transaction) {
-            this.service = service;
-            this.serviceStartTask = serviceStartTask;
-            this.transaction = transaction;
-        }
-
-        @Override
-        public void execute(ExecuteContext<Boolean> context) {
-            assert context instanceof TaskFactory;
-            boolean serviceUp = false;
-            try {
-                T result = serviceStartTask.getResult();
-                // service failed
-                if (result == null && transaction.getAttachment(FAILED_SERVICES).contains(service.getService())) {
-                    MSCLogger.FAIL.startFailed(service.getServiceName());
-                    service.setTransition(ServiceControllerImpl.STATE_FAILED, transaction);
-                } else {
-                    service.setValue(result);
-                    service.setTransition(ServiceControllerImpl.STATE_UP, transaction);
-                    serviceUp = true;
-                    service.notifyServiceUp(transaction, (TaskFactory) context);
-                }
-            } finally {
-                context.complete(serviceUp);
-            }
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            try {
-                service.setValue(null);
-                service.notifyServiceDown(transaction);
-                service.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
-            } finally {
-                context.complete();
-            }
-        }
-    }
-
-    
 }

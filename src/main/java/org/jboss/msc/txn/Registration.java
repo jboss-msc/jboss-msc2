@@ -53,16 +53,18 @@ final class Registration {
      */
     private static final int INSTALLATION_LOCKED = 0x10000000;
     /**
-     * Indicates this registration is under service installation process. During this process, controller is null
-     * (i.e., no demand/disable messages are forwarded to controller), but not other controller can start installation.
-     * @see #preinstallService(Transaction)
+     * Indicates this registration is scheduled to start or up.
      */
     private static final int UP = 0x8000000;
+    /** 
+     * Indicates this registration has failed to start.
+     */
+    private static final int FAILED = 0x4000000;
     /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
      */
-    private static final int DEMANDED_MASK = 0x7ffffff;
+    private static final int DEMANDED_MASK = 0x3ffffff;
 
 
     /** The registration name */
@@ -207,15 +209,15 @@ final class Registration {
 
     private void doAddIncomingDependency(Transaction transaction, DependencyImpl<?> dependency) {
         installDependenciesValidateTask(transaction, transaction.getTaskFactory());
-        final TaskController<Boolean> startTask;
+        final TaskController<?> startTask;
         final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
             up = Bits.anyAreSet(state,  UP);
             startTask = up? controller.getStartTask(transaction): null;
-        }
-        if (up) {
-            dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
+            if (up) {
+                dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
+            }
         }
     }
 
@@ -237,8 +239,12 @@ final class Registration {
         incomingDependencies.remove(dependency);
     }
 
-    void serviceUp(final Transaction transaction, final TaskFactory taskFactory, final TaskController<Boolean> startTask) {
+    void serviceStarting(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> startTask) {
         synchronized (this) {
+            // handle out of order notifications
+            if (Bits.anyAreSet(state, FAILED)) {
+                return;
+            }
             state = state | UP;
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyUp(transaction, taskFactory, startTask);
@@ -246,9 +252,25 @@ final class Registration {
         }
     }
 
-    void serviceDown(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+    void serviceFailed(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
         synchronized (this) {
-            state = state & ~UP;
+            state = state | FAILED;
+            // handle out of order notifications
+            if (Bits.anyAreSet(state, UP)) {
+                state = state & ~UP;
+                for (DependencyImpl<?> incomingDependency: incomingDependencies) {
+                    final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
+                    if (task != null) {
+                        tasks.add(task);
+                    }
+                }
+            }
+        }
+    }
+
+    void serviceStopping(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+        synchronized (this) {
+            state = state & ~(UP | FAILED);
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
                 final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
                 if (task != null) {
