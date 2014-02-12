@@ -20,6 +20,7 @@ package org.jboss.msc.test.services;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.jboss.msc.service.DependencyFlag;
@@ -129,6 +130,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     public void revertServiceRemoval2() {
         final TestService firstService, secondService;
         final ServiceController secondServiceController;
+        final ServiceController firstServiceController;
 
         // new transaction
         final BasicTransaction txn = newTransaction();
@@ -136,7 +138,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
             // create service builder
             final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(secondSN, DependencyFlag.UNREQUIRED));
             firstService = firstServiceBuilder.getService();
-            final ServiceController firstServiceController = firstServiceBuilder.install();
+            firstServiceController = firstServiceBuilder.install();
             assertNotNull(firstServiceController);
             // install missing unrequired dependency
             final TestServiceBuilder secondServiceBuilder = new TestServiceBuilder(txn, secondSN);
@@ -151,6 +153,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
             prepare(txn);
             commit(txn);
         }
+        assertSame(firstServiceController, serviceRegistry.getRequiredService(firstSN));
+        assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
         // atempt to remove second service, transaction will rollback
         final BasicTransaction txn2 = newTransaction();
@@ -160,6 +164,9 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         } finally {
             rollback(txn2);
         }
+        assertTrue(secondService.isUp());
+        assertTrue(firstService.isUp());
+        assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
         final BasicTransaction txn3 = newTransaction();
         try {
@@ -168,6 +175,10 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
             prepare(txn3);
             commit(txn3);
         }
+        assertFalse(secondService.isUp());
+        assertFalse(firstService.isUp());
+        assertSame(firstServiceController, serviceRegistry.getRequiredService(firstSN));
+        assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
         final BasicTransaction txn4 = newTransaction();
         try {
@@ -180,8 +191,8 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         // check both services are up
         assertTrue(secondService.isUp());
         assertTrue(firstService.isUp());
-        serviceRegistry.getRequiredService(firstSN);
-        serviceRegistry.getRequiredService(secondSN);
+        assertSame(firstServiceController, serviceRegistry.getRequiredService(firstSN));
+        assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
     }
 
     /**
