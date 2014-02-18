@@ -17,19 +17,19 @@
  */
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.RollbackContext;
 
 /**
- * Reverts service stop.
+ * Reverts service stop, providing a new service value.
  * 
+ * @param T the service value type
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface ServiceStopRevertible {
+public interface ServiceStopRevertible<T> {
 
     /**
      * Service rollback stop method.
      * 
-     * @param rollbackContext rollback context
+     * @param startContext start context
      */
-    void rollbackStop(RollbackContext rollbackContext);
+    void rollbackStop(StartContext<T> startContext);
 }

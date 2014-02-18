@@ -354,7 +354,7 @@ final class StartingServiceTasks {
             } else {
                 serviceController.setServiceDown(transaction);
                 serviceController.notifyServiceDown(transaction);
-                ((ServiceStartRevertible) service).rollbackStart(context);
+                ((ServiceStartRevertible) service).rollbackStart(createStopContext(serviceController, transaction, context));
             }
         }
     }

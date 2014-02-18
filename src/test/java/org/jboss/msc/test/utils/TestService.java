@@ -34,7 +34,6 @@ import org.jboss.msc.service.ServiceStopExecutable;
 import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.txn.RollbackContext;
 
 /**
  * Basic service for tests.
@@ -43,7 +42,7 @@ import org.jboss.msc.txn.RollbackContext;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public final class TestService implements ServiceStartExecutable<Void>, ServiceStartRevertible, ServiceStopExecutable,
-        ServiceStopRevertible {
+        ServiceStopRevertible<Void> {
     private CountDownLatch startLatch = new CountDownLatch(1);
     private CountDownLatch stopLatch = new CountDownLatch(1);
 
@@ -121,9 +120,9 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
     }
 
     @Override
-    public void rollbackStart(RollbackContext rollbackContext) {
+    public void rollbackStart(StopContext stopContext) {
         stop();
-        rollbackContext.complete();
+        stopContext.complete();
     }
 
     @Override
@@ -134,9 +133,9 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
     }
 
     @Override
-    public void rollbackStop(RollbackContext rollbackContext) {
+    public void rollbackStop(StartContext<Void> startContext) {
         start();
-        rollbackContext.complete();
+        startContext.complete();
     }
 
     private void start() {

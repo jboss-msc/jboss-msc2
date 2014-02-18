@@ -17,7 +17,6 @@
  */
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.RollbackContext;
 
 /**
  * Reverts service start.
@@ -30,7 +29,7 @@ public interface ServiceStartRevertible {
     /**
      * Service rollback start method.
      * 
-     * @param rollbackContext rollback context
+     * @param stopContext stop context
      */
-    void rollbackStart(RollbackContext rollbackContext);
+    void rollbackStart(StopContext stopContext);
 }

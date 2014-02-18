@@ -325,56 +325,10 @@ final class StoppingServiceTasks {
             ((ServiceStopExecutable)service).executeStop(createStopContext(serviceController, transaction, context));
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public void rollback(final RollbackContext context) {
-            ((ServiceStopRevertible) service).rollbackStop(new RollbackContext() {
-
-                @Override
-                public void complete() {
-                    serviceController.setServiceUp(serviceValue, transaction, null);
-                    serviceController.notifyServiceUp(transaction);
-                    context.complete();
-                }
-
-                @Override
-                public void addProblem(Problem reason) {
-                    context.addProblem(reason);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message) {
-                    context.addProblem(severity, message);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message, Throwable cause) {
-                    context.addProblem(severity, message, cause);
-                }
-
-                @Override
-                public void addProblem(String message, Throwable cause) {
-                    context.addProblem(message, cause);
-                }
-
-                @Override
-                public void addProblem(String message) {
-                    context.addProblem(message);
-                }
-
-                @Override
-                public void addProblem(Throwable cause) {
-                    context.addProblem(cause);
-                }
-
-                @Override
-                public <R> TaskBuilder<R> newTask(Executable<R> task) throws IllegalStateException {
-                    return context.newTask(task);
-                }
-
-                @Override
-                public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return context.newTask();
-                }});
+            ((ServiceStopRevertible<T>) service).rollbackStop(createStartContext(serviceController, transaction, context));
         }
     }
 
