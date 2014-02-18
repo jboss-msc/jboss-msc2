@@ -64,20 +64,11 @@ final class StartingServiceTasks {
         
         // start service task builder
         final Object service = serviceController.getService();
-        final TaskBuilder<T> startTaskBuilder = taskFactory.<T>newTask();
-        final StartTask<T> startServiceTask;
+        final TaskBuilder<T> startTaskBuilder;
         if (service instanceof SimpleService) {
-            startServiceTask = new StartSimpleServiceTask<T>(serviceController, transaction);
-            startTaskBuilder.setExecutable(startServiceTask);
-            startTaskBuilder.setRevertible(startServiceTask);
+            startTaskBuilder = taskFactory.newTask(new StartSimpleServiceTask<T>(serviceController, transaction));
         } else {
-            startServiceTask = new StartServiceTask<T>(serviceController, transaction);
-            if (service instanceof ServiceStartExecutable) {
-                startTaskBuilder.setExecutable(startServiceTask);
-            }
-            if (service instanceof ServiceStartRevertible) {
-                startTaskBuilder.setRevertible(startServiceTask);
-            }
+            startTaskBuilder =  taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
         }
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
@@ -279,16 +270,11 @@ final class StartingServiceTasks {
 
     /**
      * Task that starts service.
-     */
-    private static interface StartTask<T> extends Executable<T>, Revertible{}
-
-    /**
-     * Task that starts service.
      * 
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    private static class StartSimpleServiceTask<T> implements StartTask<T> {
+    private static class StartSimpleServiceTask<T> implements Executable<T>, Revertible {
 
         private final ServiceControllerImpl<T> serviceController;
         protected final SimpleService<T> service;
@@ -323,12 +309,11 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    private static class StartServiceTask<T> implements StartTask<T> {
+    private static class StartServiceTask<T> implements Executable<T>, Revertible {
 
         private final ServiceControllerImpl<T> serviceController;
         protected final Object service;
         private final Transaction transaction;
-        private boolean cancelled;
 
         StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction/*, final Collection<TaskController<Boolean>> dependencyStartTasks*/) {
             this.serviceController = serviceController;
@@ -344,17 +329,28 @@ final class StartingServiceTasks {
         @SuppressWarnings("unchecked")
         @Override
         public void execute(final ExecuteContext<T> context) {
-            ((ServiceStartExecutable<T>) service).executeStart(createStartContext(serviceController, transaction, context));
+            if (service instanceof ServiceStartExecutable) {
+                ((ServiceStartExecutable<T>) service).executeStart(createStartContext(serviceController, transaction, context));
+            } else {
+                try {
+                    serviceController.setServiceUp(null, transaction, (TaskFactory) context);
+                } finally {
+                    context.complete();
+                }
+            }
         }
 
         @Override
         public void rollback(RollbackContext context) {
-            if (cancelled) {
-                context.complete();
-            } else {
-                serviceController.setServiceDown(transaction);
-                serviceController.notifyServiceDown(transaction);
+            if (service instanceof ServiceStartRevertible) {
                 ((ServiceStartRevertible) service).rollbackStart(createStopContext(serviceController, transaction, context));
+            } else {
+                try {
+                    serviceController.setServiceDown(transaction);
+                    serviceController.notifyServiceDown(transaction);
+                } finally {
+                    context.complete();
+                }
             }
         }
     }

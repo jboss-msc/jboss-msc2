@@ -65,20 +65,11 @@ final class StoppingServiceTasks {
                 .setRevertible(new RevertStoppingServiceTask(serviceController, transaction)).release();
 
         // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.<Void>newTask();
-        final StopTask stopServiceTask;
+        final TaskBuilder<Void> stopTaskBuilder;
         if (service instanceof SimpleService) {
-            stopServiceTask = new StopSimpleServiceTask<T>(serviceController, (SimpleService<T>) service, transaction);
-            stopTaskBuilder.setExecutable(stopServiceTask);
-            stopTaskBuilder.setRevertible(stopServiceTask);
+            stopTaskBuilder = taskFactory.newTask(new StopSimpleServiceTask<T>(serviceController, (SimpleService<T>) service, transaction));
         } else {
-            stopServiceTask = new StopServiceTask<T>(serviceController, service, transaction, serviceController.getValue());
-            if (service instanceof ServiceStopExecutable) {
-                stopTaskBuilder.setExecutable (stopServiceTask);
-            }
-            if (service instanceof ServiceStopRevertible) {
-                stopTaskBuilder.setRevertible(stopServiceTask);
-            }
+            stopTaskBuilder = taskFactory.newTask(new StopServiceTask<T>(serviceController, service, transaction, serviceController.getValue()));
         }
         stopTaskBuilder.addDependency(revertStoppingTask).addDependencies(dependentStopTasks);
         final TaskController<Void> stop = stopTaskBuilder.release();
@@ -271,15 +262,13 @@ final class StoppingServiceTasks {
         }
     }
 
-    private static interface StopTask extends Executable<Void>, Revertible{};
-
     /**
      * Task that stops service.
      * 
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    private static class StopSimpleServiceTask<T> implements StopTask {
+    private static class StopSimpleServiceTask<T> implements Executable<Void>, Revertible {
 
         private final ServiceControllerImpl<T> serviceController;
         private final SimpleService<T> service;
@@ -307,7 +296,7 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    private static class StopServiceTask<T> implements StopTask {
+    private static class StopServiceTask<T> implements Executable<Void>, Revertible {
 
         private final Transaction transaction;
         private final Object service;
@@ -322,13 +311,30 @@ final class StoppingServiceTasks {
         }
 
         public void execute(final ExecuteContext<Void> context) {
-            ((ServiceStopExecutable)service).executeStop(createStopContext(serviceController, transaction, context));
+            if (service instanceof ServiceStopExecutable) {
+                ((ServiceStopExecutable)service).executeStop(createStopContext(serviceController, transaction, context));
+            } else {
+                try {
+                    serviceController.setServiceDown(transaction);
+                } finally {
+                    context.complete();
+                }
+            }
         }
 
         @SuppressWarnings("unchecked")
         @Override
         public void rollback(final RollbackContext context) {
-            ((ServiceStopRevertible<T>) service).rollbackStop(createStartContext(serviceController, transaction, context));
+            if (service instanceof ServiceStopRevertible) {
+                ((ServiceStopRevertible<T>) service).rollbackStop(createStartContext(serviceController, transaction, context));
+            } else {
+                try {
+                    serviceController.setServiceUp(serviceValue, transaction, null);
+                    serviceController.notifyServiceUp(transaction);
+                } finally {
+                    context.complete();
+                }
+            }
         }
     }
 
