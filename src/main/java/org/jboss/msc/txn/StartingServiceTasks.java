@@ -280,7 +280,7 @@ final class StartingServiceTasks {
     /**
      * Task that starts service.
      */
-    static interface StartTask<T> extends Executable<T>, Revertible{}
+    private static interface StartTask<T> extends Executable<T>, Revertible{}
 
     /**
      * Task that starts service.
@@ -288,7 +288,7 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartSimpleServiceTask<T> implements StartTask<T> {
+    private static class StartSimpleServiceTask<T> implements StartTask<T> {
 
         private final ServiceControllerImpl<T> serviceController;
         protected final SimpleService<T> service;
@@ -323,7 +323,7 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StartServiceTask<T> implements StartTask<T> {
+    private static class StartServiceTask<T> implements StartTask<T> {
 
         private final ServiceControllerImpl<T> serviceController;
         protected final Object service;

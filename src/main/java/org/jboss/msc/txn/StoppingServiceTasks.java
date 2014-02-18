@@ -35,7 +35,7 @@ import org.jboss.msc.txn.Problem.Severity;
  */
 final class StoppingServiceTasks {
 
-    static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
+    private static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
 
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
@@ -271,7 +271,7 @@ final class StoppingServiceTasks {
         }
     }
 
-    static interface StopTask extends Executable<Void>, Revertible{};
+    private static interface StopTask extends Executable<Void>, Revertible{};
 
     /**
      * Task that stops service.
@@ -279,7 +279,7 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopSimpleServiceTask<T> implements StopTask {
+    private static class StopSimpleServiceTask<T> implements StopTask {
 
         private final ServiceControllerImpl<T> serviceController;
         private final SimpleService<T> service;
@@ -307,7 +307,7 @@ final class StoppingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    static class StopServiceTask<T> implements StopTask {
+    private static class StopServiceTask<T> implements StopTask {
 
         private final Transaction transaction;
         private final Object service;
