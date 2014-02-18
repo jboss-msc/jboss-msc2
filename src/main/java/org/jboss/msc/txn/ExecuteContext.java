@@ -19,14 +19,14 @@
 package org.jboss.msc.txn;
 
 /**
- * Context for a task that may succeed or fail which may also produce a consumable result.
+ * Context for a task that may also create new tasks.
  *
  * @param <T> the result type of the associated task
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends SimpleExecuteContext<T>, CancellableContext, ReportableContext {
+public interface ExecuteContext<T> extends WorkContext<T> {
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary

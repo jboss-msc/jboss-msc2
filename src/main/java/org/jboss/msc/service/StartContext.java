@@ -18,7 +18,7 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.WorkContext;
 
 /**
  * Service start lifecycle context.
@@ -26,6 +26,10 @@ import org.jboss.msc.txn.ExecuteContext;
  * @param T the service value type
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StartContext<T> extends SimpleStartContext<T>, ExecuteContext<T> {
+public interface StartContext<T> extends WorkContext<T> {
 
+    /**
+     * Marking completion of this service start failed.
+     */
+    void fail();
 }

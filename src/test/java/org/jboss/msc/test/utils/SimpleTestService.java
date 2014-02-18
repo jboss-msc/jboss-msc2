@@ -26,11 +26,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.SimpleService;
-import org.jboss.msc.service.SimpleStartContext;
-import org.jboss.msc.service.SimpleStopContext;
-import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.StartContext;
+import org.jboss.msc.service.StopContext;
 
 /**
  * Basic simple service for tests.
@@ -62,7 +62,7 @@ public final class SimpleTestService implements SimpleService<Void> {
     }
 
     @Override
-    public void start(final SimpleStartContext<Void> context) {
+    public void start(final StartContext<Void> context) {
         assertFalse(up.get() || failed.get());
         if (failToStart) {
             failed.set(true);
@@ -115,7 +115,7 @@ public final class SimpleTestService implements SimpleService<Void> {
         return serviceName.toString();
     }
 
-    public void stop(SimpleStopContext stopContext) {
+    public void stop(StopContext stopContext) {
         assertTrue(up.get() || failed.get());
         up.set(false);
         failed.set(false);

@@ -23,8 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.jboss.msc.service.ServiceStopExecutable;
 import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.SimpleService;
-import org.jboss.msc.service.SimpleStartContext;
-import org.jboss.msc.service.SimpleStopContext;
+import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
@@ -87,7 +86,6 @@ final class StoppingServiceTasks {
         // revertStoppingTask is the one that needs to be cancelled if service has to revert stop
         transaction.getAttachment(STOP_TASKS).put(serviceController, revertStoppingTask);
 
-
         return stop;
     }
 
@@ -122,6 +120,128 @@ final class StoppingServiceTasks {
             return true;
         }
         return false;
+    }
+
+    private static StopContext createStopContext(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final ExecuteContext<Void> context) {
+        return new StopContext() {
+            @Override
+            public void complete(Void result) {
+                serviceController.setServiceDown(transaction);
+                context.complete();
+            }
+
+            @Override
+            public void complete() {
+                serviceController.setServiceDown(transaction);
+                context.complete();
+            }
+
+            @Override
+            public boolean isCancelRequested() {
+                return context.isCancelRequested();
+            }
+
+            @Override
+            public void cancelled() {
+                context.cancelled();
+            }
+
+            @Override
+            public void addProblem(Problem reason) {
+                context.addProblem(reason);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message) {
+                context.addProblem(severity, message);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message, Throwable cause) {
+                context.addProblem(severity, message, cause);
+            }
+
+            @Override
+            public void addProblem(String message, Throwable cause) {
+                context.addProblem(message, cause);
+            }
+
+            @Override
+            public void addProblem(String message) {
+                context.addProblem(message);
+            }
+
+            @Override
+            public void addProblem(Throwable cause) {
+                context.addProblem(cause);
+            }
+        };
+    }
+
+    private static <T> StartContext<T> createStartContext(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final RollbackContext context) {
+        return new StartContext<T>(){
+
+            @Override
+            public void complete(T result) {
+                serviceController.setServiceUp(result, transaction, null);
+                serviceController.notifyServiceUp(transaction);
+                context.complete();
+            }
+
+            @Override
+            public void complete() {
+                serviceController.setServiceUp(null, transaction, null);
+                serviceController.notifyServiceUp(transaction);
+                context.complete();
+            }
+
+            @Override
+            public void fail() {
+                serviceController.setServiceFailed(transaction);
+                serviceController.notifyServiceFailed(transaction, null);
+                context.complete();
+            }
+
+            @Override
+            public boolean isCancelRequested() {
+                return false;
+            }
+
+            @Override
+            public void cancelled() {
+                // do nothing
+            }
+
+            @Override
+            public void addProblem(Problem reason) {
+                context.addProblem(reason);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message) {
+                context.addProblem(severity, message);
+            }
+
+            @Override
+            public void addProblem(Severity severity, String message, Throwable cause) {
+                context.addProblem(severity, message, cause);
+            }
+
+            @Override
+            public void addProblem(String message, Throwable cause) {
+                context.addProblem(message, cause);
+            }
+
+            @Override
+            public void addProblem(String message) {
+                context.addProblem(message);
+            }
+
+            @Override
+            public void addProblem(Throwable cause) {
+                context.addProblem(cause);
+            }
+        };
     }
 
     /**
@@ -172,45 +292,12 @@ final class StoppingServiceTasks {
         }
 
         public void execute(final ExecuteContext<Void> context) {
-            service.stop(new SimpleStopContext(){
-                @Override
-                public void complete(Void result) {
-                    serviceController.setServiceDown(transaction);
-                    context.complete(result);
-                }
-
-                @Override
-                public void complete() {
-                    serviceController.setServiceDown(transaction);
-                    context.complete();
-                }
-            });
+            service.stop(createStopContext(serviceController, transaction, context));
         }
 
         @Override
         public void rollback(final RollbackContext context) {
-            service.start(new SimpleStartContext<T>(){
-
-                @Override
-                public void complete(T result) {
-                    serviceController.setServiceUp(result, transaction, null);
-                    serviceController.notifyServiceUp(transaction);
-                    context.complete();
-                }
-
-                @Override
-                public void complete() {
-                    serviceController.setServiceUp(null, transaction, null);
-                    serviceController.notifyServiceUp(transaction);
-                    context.complete();
-                }
-
-                @Override
-                public void fail() {
-                    serviceController.setServiceFailed(transaction);
-                    serviceController.notifyServiceFailed(transaction, null);
-                    context.complete();
-                }});
+            service.start(createStartContext(serviceController, transaction, context));
         }
     }
 
@@ -235,71 +322,7 @@ final class StoppingServiceTasks {
         }
 
         public void execute(final ExecuteContext<Void> context) {
-            ((ServiceStopExecutable)service).executeStop(new StopContext(){
-
-                @Override
-                public void complete(Void result) {
-                    serviceController.setServiceDown(transaction);
-                    context.complete(result);
-                }
-
-                @Override
-                public void complete() {
-                    serviceController.setServiceDown(transaction);
-                    context.complete();
-                }
-
-                @Override
-                public void addProblem(Problem reason) {
-                    context.addProblem(reason);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message) {
-                    context.addProblem(severity, message);
-                }
-
-                @Override
-                public void addProblem(Severity severity, String message, Throwable cause) {
-                    context.addProblem(severity, message, cause);
-                }
-
-                @Override
-                public void addProblem(String message, Throwable cause) {
-                    context.addProblem(message, cause);
-                }
-
-                @Override
-                public void addProblem(String message) {
-                    context.addProblem(message);
-                }
-
-                @Override
-                public void addProblem(Throwable cause) {
-                    context.addProblem(cause);
-                }
-
-                @Override
-                public boolean isCancelRequested() {
-                    return context.isCancelRequested();
-                }
-
-                @Override
-                public void cancelled() {
-                    context.cancelled();
-                }
-
-                @SuppressWarnings("hiding")
-                @Override
-                public <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
-                    return context.newTask(task);
-                }
-
-                @Override
-                public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return context.newTask();
-                }
-            });
+            ((ServiceStopExecutable)service).executeStop(createStopContext(serviceController, transaction, context));
         }
 
         @Override

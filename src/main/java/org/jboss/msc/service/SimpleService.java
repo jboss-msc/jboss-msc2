@@ -18,8 +18,8 @@
 package org.jboss.msc.service;
 
 /**
- * Simple service interface: implemented by services that do not need to perform advanced operations on start/stop, such
- * as task creation.
+ * Simple service interface: implemented by services that do need to implement both start and stop, and that don't
+ * need to take special actions on transaction rollback.
  * <p>
  * Service implementors will have start invoked both on execution phase (when the service is being started) and during
  * rollback (when a stop is being reverted). The same is valid for stop: it could be invoked during both execution
@@ -40,7 +40,7 @@ public interface SimpleService<T> {
      * 
      * @param startContext the start context
      */
-    public void start(SimpleStartContext<T> startContext);
+    public void start(StartContext<T> startContext);
 
     /**
      * Service stop method, invoked on execution and rollback (when needed to revert a previous start).
@@ -51,5 +51,5 @@ public interface SimpleService<T> {
      * 
      * @param stopContext
      */
-    public void stop(SimpleStopContext stopContext);
+    public void stop(StopContext stopContext);
 }

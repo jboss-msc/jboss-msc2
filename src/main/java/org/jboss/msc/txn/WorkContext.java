@@ -1,7 +1,7 @@
 /*
  * JBoss, Home of Professional Open Source
  *
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,15 @@
  */
 package org.jboss.msc.txn;
 
+
+
 /**
- * Context for a task that may succeed or fail which may also produce a consumable result.
- * 
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * Context for a task.
  *
+ * @param <T> the result type of the associated task
+ * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface SimpleExecuteContext<T> extends SimpleWorkContext {
+public interface WorkContext<T> extends CancellableContext, ReportableContext, SimpleWorkContext {
 
     /**
      * Register the completion of this task with a value.  This method returns without blocking.
