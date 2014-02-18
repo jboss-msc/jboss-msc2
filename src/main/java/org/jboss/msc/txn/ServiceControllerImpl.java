@@ -431,7 +431,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         if (propagate) {
             demandDependencies(transaction, taskFactory);
         }
-        transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction, taskFactory);
     }
 
     /**
@@ -478,7 +478,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         if (propagate) {
             undemandDependencies(transaction, taskFactory);
         }
-        transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction, taskFactory);
     }
 
     /**
@@ -534,7 +534,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                return null;
             }
         }
-        return transition(transaction, taskFactory);
+        return transactionalInfo.transition(transaction, taskFactory);
     }
 
     /* Transition related methods */
@@ -622,11 +622,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return true;
         }
         return false;
-    }
-
-    private TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
-        assert lock.isOwnedBy(transaction);
-        return transactionalInfo.transition(transaction, taskFactory);
     }
 
     private synchronized void initTransactionalInfo() {
