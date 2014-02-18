@@ -128,16 +128,6 @@ final class StoppingServiceTasks {
             }
 
             @Override
-            public boolean isCancelRequested() {
-                return context.isCancelRequested();
-            }
-
-            @Override
-            public void cancelled() {
-                context.cancelled();
-            }
-
-            @Override
             public void addProblem(Problem reason) {
                 context.addProblem(reason);
             }
@@ -191,16 +181,6 @@ final class StoppingServiceTasks {
                 serviceController.setServiceFailed(transaction);
                 serviceController.notifyServiceFailed(transaction, null);
                 context.complete();
-            }
-
-            @Override
-            public boolean isCancelRequested() {
-                return false;
-            }
-
-            @Override
-            public void cancelled() {
-                // do nothing
             }
 
             @Override

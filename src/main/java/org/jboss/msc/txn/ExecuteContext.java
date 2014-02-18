@@ -26,7 +26,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends WorkContext<T> {
+public interface ExecuteContext<T> extends WorkContext<T>, CancellableContext {
 
     /**
      * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary

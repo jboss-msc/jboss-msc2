@@ -25,7 +25,7 @@ package org.jboss.msc.txn;
  * @param <T> the result type of the associated task
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface WorkContext<T> extends CancellableContext, ReportableContext, SimpleWorkContext {
+public interface WorkContext<T> extends ReportableContext, SimpleWorkContext {
 
     /**
      * Register the completion of this task with a value.  This method returns without blocking.
