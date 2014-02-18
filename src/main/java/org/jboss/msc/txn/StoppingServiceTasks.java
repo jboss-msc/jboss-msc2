@@ -164,14 +164,14 @@ final class StoppingServiceTasks {
 
             @Override
             public void complete(T result) {
-                serviceController.setServiceUp(result, transaction, null);
+                serviceController.setServiceUp(result, transaction);
                 serviceController.notifyServiceUp(transaction);
                 context.complete();
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceUp(null, transaction, null);
+                serviceController.setServiceUp(null, transaction);
                 serviceController.notifyServiceUp(transaction);
                 context.complete();
             }
@@ -309,7 +309,7 @@ final class StoppingServiceTasks {
                 ((ServiceStopRevertible<T>) service).rollbackStop(createStartContext(serviceController, transaction, context));
             } else {
                 try {
-                    serviceController.setServiceUp(serviceValue, transaction, null);
+                    serviceController.setServiceUp(serviceValue, transaction);
                     serviceController.notifyServiceUp(transaction);
                 } finally {
                     context.complete();

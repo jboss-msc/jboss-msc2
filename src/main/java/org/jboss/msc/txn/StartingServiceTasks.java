@@ -125,13 +125,13 @@ final class StartingServiceTasks {
         return new StartContext<T>() {
             @Override
             public void complete(T result) {
-                serviceController.setServiceUp(result, transaction, (TaskFactory) context);
+                serviceController.setServiceUp(result, transaction);
                 context.complete(result);
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceUp(null, transaction, (TaskFactory) context);
+                serviceController.setServiceUp(null, transaction);
                 context.complete();
             }
 
@@ -313,7 +313,7 @@ final class StartingServiceTasks {
                 ((ServiceStartExecutable<T>) service).executeStart(createStartContext(serviceController, transaction, context));
             } else {
                 try {
-                    serviceController.setServiceUp(null, transaction, (TaskFactory) context);
+                    serviceController.setServiceUp(null, transaction);
                 } finally {
                     context.complete();
                 }

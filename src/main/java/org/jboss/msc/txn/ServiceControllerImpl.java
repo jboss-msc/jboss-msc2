@@ -534,17 +534,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     /* Transition related methods */
 
-    void setServiceUp(T result, Transaction transaction, TaskFactory taskFactory) {
+    void setServiceUp(T result, Transaction transaction) {
         assert lock.isOwnedBy(transaction);
         setValue(result);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction);
-    }
-
-    void setServiceUp(Transaction transaction) {
-        assert lock.isOwnedBy(transaction);
-        if (transactionalInfo.getTransition(transaction) == ServiceControllerImpl.STATE_FAILED) {
-            return;
-        }
         transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction);
     }
 
