@@ -232,13 +232,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     /**
-     * Gets the current service controller state.
-     */
-    synchronized int getState() {
-        return getState(state);
-    }
-
-    /**
      * Gets the current service controller state inside {@code transaction} context.
      * 
      * @param transaction the transaction
@@ -392,8 +385,10 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     TaskController<Void> remove(Transaction transaction, TaskFactory taskFactory) {
         // idempotent
-        if (getState() == STATE_REMOVED) {
-            return null;
+        synchronized (this) {
+            if (getState(state) == STATE_REMOVED) {
+                return null;
+            }
         }
         lock.lockSynchronously(transaction);
         initTransactionalInfo();
