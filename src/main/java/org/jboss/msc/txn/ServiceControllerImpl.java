@@ -93,12 +93,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     private int demandedByCount;
     /**
-     * The number of dependents that are currently running. The deployment will
-     * not execute the {@code stop()} method (and subsequently leave the
-     * {@link State#STOPPING} state) until all running dependents (and listeners) are stopped.
-     */
-    private int runningDependents;
-    /**
      * Transactional lock.
      */
     private TransactionalLock lock = new TransactionalLock(this);
@@ -260,7 +254,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return (state & STATE_MASK);
     }
 
-     TaskController<?> getStartTask(final Transaction transaction) {
+    TaskController<?> getStartTask(final Transaction transaction) {
         if (transactionalInfo != null && lock.isOwnedBy(transaction)) {
             return transactionalInfo.startTask;
         }
@@ -505,62 +499,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     synchronized boolean isUpDemanded() {
         return demandedByCount > 0;
-    }
-
-    /**
-     * Notifies that a incoming dependency has started.
-     * 
-     * @param transaction the active transaction
-     */
-    void dependentStarted(Transaction transaction) {
-        if (lock.tryLock(transaction)) {
-            doDependentStarted();
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doDependentStarted();
-                }
-            });
-        }
-    }
-
-    private synchronized void doDependentStarted() {
-        initTransactionalInfo();
-        runningDependents++;
-    }
-
-    /**
-     * Notifies that a incoming dependency has stopped.
-     * 
-     * @param transaction the active transaction
-     * @param taskFactory the task factory
-     */
-    void dependentStopped(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doDependentStopped(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doDependentStopped(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    void doDependentStopped(Transaction transaction, TaskFactory taskFactory) {
-        initTransactionalInfo();
-        synchronized (this) {
-            if (--runningDependents > 0 || taskFactory == null) {
-                return;
-            }
-        }
-        transition(transaction, taskFactory);
-    }
-
-    void dependentStopped(Transaction transaction) {
-        dependentStopped(transaction, null);
     }
 
     public ServiceName getServiceName() {

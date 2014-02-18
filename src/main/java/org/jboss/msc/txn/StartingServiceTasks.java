@@ -84,23 +84,10 @@ final class StartingServiceTasks {
             startTaskBuilder.addDependency(taskDependency);
         }
         startTaskBuilder.addDependencies(dependencyStartTasks);
+        startTaskBuilder.addDependency(revertStartTask);
 
-        final TaskController<T> start;
-        final TaskController<Void> notifyDependentStart;
-
-        // notify dependencies that this dependent is about to start
-        if (serviceController.getDependencies().length > 0) {
-            notifyDependentStart = taskFactory.newTask(new NotifyDependentStartTask(transaction, serviceController)).
-                    addDependency(revertStartTask).release();
-            startTaskBuilder.addDependency(notifyDependentStart);
-            // start service
-            start = startTaskBuilder.release();
-
-        } else {
-            startTaskBuilder.addDependency(revertStartTask);
-            // start service
-            start = startTaskBuilder.release();
-        }
+        // start service
+        final TaskController<T> start = startTaskBuilder.release();
         transaction.getAttachment(START_TASKS).put(serviceController, revertStartTask);
         serviceController.notifyServiceStarting(transaction, taskFactory, start);
 
@@ -161,49 +148,6 @@ final class StartingServiceTasks {
                 // revert only services that have not started
                 if (serviceController.revertStarting(transaction)) {
                     serviceController.notifyServiceDown(transaction);
-                }
-            } finally {
-                context.complete();
-            }
-        }
-    }
-
-    /**
-     * Task that notifies dependencies that a dependent service is about to start
-     */
-    private static class NotifyDependentStartTask implements Executable<Void>, Revertible {
-
-        private final Transaction transaction;
-        private final ServiceControllerImpl<?> serviceController;
-
-        public NotifyDependentStartTask(Transaction transaction, ServiceControllerImpl<?> serviceController) {
-            this.transaction = transaction;
-            this.serviceController = serviceController;
-        }
-
-        @Override
-        public void execute(ExecuteContext<Void> context) {
-            assert context instanceof TaskFactory;
-            try {
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStarted(transaction);
-                    }
-                }
-            } finally {
-                context.complete();
-            }
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            try {
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStopped(transaction);
-                    }
                 }
             } finally {
                 context.complete();

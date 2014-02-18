@@ -87,10 +87,6 @@ final class StoppingServiceTasks {
         // revertStoppingTask is the one that needs to be cancelled if service has to revert stop
         transaction.getAttachment(STOP_TASKS).put(serviceController, revertStoppingTask);
 
-        // notify dependent stop
-        if (serviceController.getDependencies().length > 0) {
-            taskFactory.newTask(new NotifyDependentStopTask(transaction, serviceController)).addDependency(stop).release();
-        }
 
         return stop;
     }
@@ -381,14 +377,6 @@ final class StoppingServiceTasks {
             assert context instanceof TaskFactory;
             try {
                 serviceController.setServiceDown(transaction);
-
-                // notify dependent is stopped
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStopped(transaction, (TaskFactory)context);
-                    }
-                }
             } finally {
                 context.complete();
             }
@@ -398,56 +386,6 @@ final class StoppingServiceTasks {
         public void rollback(RollbackContext context) {
             try {
                 serviceController.setServiceFailed(transaction);
-                // notify dependent is up
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStarted(transaction);
-                    }
-                }
-            } finally {
-                context.complete();
-            }
-        }
-    }
-
-    /**
-     * Task that notifies dependencies that a dependent service is about to start
-     */
-    private static class NotifyDependentStopTask implements Executable<Void>, Revertible {
-
-        private final Transaction transaction;
-        private final ServiceControllerImpl<?> serviceController;
-
-        public NotifyDependentStopTask(Transaction transaction, ServiceControllerImpl<?> serviceController) {
-            this.transaction = transaction;
-            this.serviceController = serviceController;
-        }
-
-        @Override
-        public void execute(ExecuteContext<Void> context) {
-            assert context instanceof TaskFactory;
-            try {
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStopped(transaction);
-                    }
-                }
-            } finally {
-                context.complete();
-            }
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            try {
-                for (DependencyImpl<?> dependency: serviceController.getDependencies()) {
-                    ServiceControllerImpl<?> dependencyController = dependency.getDependencyRegistration().getController();
-                    if (dependencyController != null) {
-                        dependencyController.dependentStarted(transaction);
-                    }
-                }
             } finally {
                 context.complete();
             }
