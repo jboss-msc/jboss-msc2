@@ -29,36 +29,36 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.DependencyInfo;
-import org.jboss.msc.test.utils.SimpleTestService;
+import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.txn.BasicTransaction;
 import org.junit.Test;
 
 /**
- * Test for {@code SimpleService}.
+ * Test for {@code Service}.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class SimpleServiceTestCase extends AbstractServiceTest {
+public class ServiceTestCase extends AbstractServiceTest {
 
-    private static final ServiceName firstSN = ServiceName.of("first", "simple", "service");
+    private static final ServiceName firstSN = ServiceName.of("first");
     private static final ServiceName secondSN = ServiceName.of("second");
 
     @Test
-    public void installAndRemoveSimpleService() {
+    public void installAndRemoveService() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService simpleService;
+        final TestService service;
         final ServiceController firstServiceController;
         try {
             ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn1);
-            simpleService = new SimpleTestService(firstSN, serviceBuilder, false);
-            serviceBuilder.setService(simpleService);
+            service = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(service);
             firstServiceController = serviceBuilder.install();
         } finally {
             prepare(txn1);
             commit(txn1);
         }
-        assertTrue(simpleService.isUp());
+        assertTrue(service.isUp());
         assertNotNull(firstServiceController);
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
@@ -69,25 +69,25 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
             prepare(txn2);
             commit(txn2);
         }
-        assertFalse(simpleService.isUp());
+        assertFalse(service.isUp());
         assertNull(serviceRegistry.getService(firstSN));
     }
 
     @Test
-    public void installAndRemoveSimpleServiceDependent() {
+    public void installAndRemoveServiceDependent() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService firstService;
-        final SimpleTestService secondService;
+        final TestService firstService;
+        final TestService secondService;
         final ServiceController firstServiceController;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceController = secondServiceBuilder.install();
 
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn1);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
         } finally {
@@ -116,13 +116,13 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void installAndRemoveSimpleServiceDependentMultipleTxns() {
+    public void installAndRemoveServiceDependentMultipleTxns() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService secondService;
+        final TestService secondService;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceController = secondServiceBuilder.install();
         } finally {
@@ -134,11 +134,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
         final BasicTransaction txn2 = newTransaction();
-        final SimpleTestService firstService;
+        final TestService firstService;
         final ServiceController firstServiceController;
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn2);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
         } finally {
@@ -173,13 +173,13 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void abortSimpleServiceDependent() {
+    public void abortServiceDependent() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService secondService;
+        final TestService secondService;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceBuilder.setMode(ServiceMode.ON_DEMAND);
             secondServiceController = secondServiceBuilder.install();
@@ -192,11 +192,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
         final BasicTransaction txn2 = newTransaction();
-        final SimpleTestService firstService;
+        final TestService firstService;
         final ServiceController firstServiceController;
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn2);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
             prepare(txn2);
@@ -231,13 +231,13 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void abortSimpleServiceDependent2() {
+    public void abortServiceDependent2() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService secondService;
+        final TestService secondService;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceBuilder.setMode(ServiceMode.ON_DEMAND);
             secondServiceController = secondServiceBuilder.install();
@@ -250,11 +250,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
         final BasicTransaction txn2 = newTransaction();
-        final SimpleTestService firstService;
+        final TestService firstService;
         final ServiceController firstServiceController;
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn2);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
             prepare(txn2);
@@ -289,13 +289,13 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     }
 
     @Test
-    public void rollbackSimpleServiceDependent() {
+    public void rollbackServiceDependent() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService secondService;
+        final TestService secondService;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceBuilder.setMode(ServiceMode.LAZY);
             secondServiceController = secondServiceBuilder.install();
@@ -308,11 +308,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
         final BasicTransaction txn2 = newTransaction();
-        SimpleTestService firstService;
+        TestService firstService;
         ServiceController firstServiceController;
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn2);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
             firstService.waitStart();
@@ -328,7 +328,7 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         final BasicTransaction txn3 = newTransaction();
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn3);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
         } finally {
@@ -386,11 +386,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
     @Test
     public void idempotentRollback() {
         final BasicTransaction txn1 = newTransaction();
-        final SimpleTestService secondService;
+        final TestService secondService;
         final ServiceController secondServiceController;
         try {
             final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, secondSN, txn1);
-            secondService = new SimpleTestService(secondSN, secondServiceBuilder, false);
+            secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceBuilder.setMode(ServiceMode.LAZY);
             secondServiceController = secondServiceBuilder.install();
@@ -403,11 +403,11 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
         final BasicTransaction txn2 = newTransaction();
-        SimpleTestService firstService;
+        TestService firstService;
         ServiceController firstServiceController;
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn2);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
             firstService.waitStart();
@@ -423,7 +423,7 @@ public class SimpleServiceTestCase extends AbstractServiceTest {
         final BasicTransaction txn3 = newTransaction();
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn3);
-            firstService = new SimpleTestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
+            firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
         } finally {

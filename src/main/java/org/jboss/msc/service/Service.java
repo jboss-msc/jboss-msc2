@@ -18,23 +18,22 @@
 package org.jboss.msc.service;
 
 /**
- * Simple service interface: implemented by services that do need to implement both start and stop, and that don't
- * need to take special actions on transaction rollback.
+ * Service interface providing both start and stop methods to implementors.
  * <p>
  * Service implementors will have start invoked both on execution phase (when the service is being started) and during
  * rollback (when a stop is being reverted). The same is valid for stop: it could be invoked during both execution
  * and rollback stages of active transaction.
  * 
- * @param T the service value type
+ * @param <T> the service value type
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface SimpleService<T> {
+public interface Service<T> {
 
     /**
      * Service start  method, invoked on execution and rollback (when needed to revert a previous stop).
      * <p>
-     * Implementors must invoke {@link SimpleStartContext#complete(Object) startContext.complete(T)} upon completion.
+     * Implementors must invoke {@link StartContext#complete(Object) startContext.complete(T)} upon completion.
      * <p>
      * Also, this method cannot be implemented asynchronously.
      * 
@@ -45,11 +44,12 @@ public interface SimpleService<T> {
     /**
      * Service stop method, invoked on execution and rollback (when needed to revert a previous start).
      * <p>
-     * Implementors must invoke {@link SimpleStopContext#complete() stopContext.complete()} upon completion.
+     * Implementors must invoke {@link StopContext#complete() stopContext.complete()} upon completion.
      * <p>
      * Also, this method cannot be implemented asynchronously.
      * 
      * @param stopContext
      */
     public void stop(StopContext stopContext);
+
 }

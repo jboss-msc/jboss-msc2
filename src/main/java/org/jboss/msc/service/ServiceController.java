@@ -25,8 +25,10 @@ import org.jboss.msc.txn.Transaction;
  * A controller for a single service instance.
  *
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * @param <T> service type
  */
-public interface ServiceController {
+public interface ServiceController<T> {
 
     /**
      * Disables a service, causing this service to stop if it is {@code UP}.
@@ -69,6 +71,6 @@ public interface ServiceController {
      * Gets associated service.
      * @return service
      */
-    public Object getService();
+    public Service<T> getService();
 
 }

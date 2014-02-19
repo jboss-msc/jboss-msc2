@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceMode;
@@ -33,7 +34,7 @@ import org.jboss.msc.service.ServiceName;
 /**
  * A service controller implementation.
  *
- * @param <S> the service type
+ * @param <T> the service type
  * 
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
@@ -63,7 +64,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     /**
      * The service itself.
      */
-    private final Object service;
+    private final Service<T> service;
     /**
      * The primary registration of this service.
      */
@@ -113,7 +114,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      * @param dependencies        the service dependencies
      * @param transaction         the active transaction
      */
-    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Object service,
+    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Service<T> service,
             final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final Transaction transaction) {
         this.service = service;
         setMode(mode);
@@ -219,7 +220,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     /**
      * Gets the service.
      */
-    public Object getService() {
+    public Service<T> getService() {
         return service;
     }
 

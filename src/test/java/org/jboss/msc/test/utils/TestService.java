@@ -25,13 +25,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.msc.service.Dependency;
+import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceStartExecutable;
-import org.jboss.msc.service.ServiceStartRevertible;
-import org.jboss.msc.service.ServiceStopExecutable;
-import org.jboss.msc.service.ServiceStopRevertible;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 
@@ -41,8 +38,7 @@ import org.jboss.msc.service.StopContext;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class TestService implements ServiceStartExecutable<Void>, ServiceStartRevertible, ServiceStopExecutable,
-        ServiceStopRevertible<Void> {
+public final class TestService implements Service<Void> {
     private CountDownLatch startLatch = new CountDownLatch(1);
     private CountDownLatch stopLatch = new CountDownLatch(1);
 
@@ -66,14 +62,14 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
     }
 
     @Override
-    public void executeStart(final StartContext<Void> context) {
+    public void start(final StartContext<Void> context) {
         assertFalse(up.get() || failed.get());
         if (failToStart) {
             failed.set(true);
             // context.addProblem(new UnsupportedOperationException());
             context.fail();
         } else {
-            start();
+            up.set(true);
             context.complete();
         }
         startLatch.countDown();
@@ -120,31 +116,11 @@ public final class TestService implements ServiceStartExecutable<Void>, ServiceS
     }
 
     @Override
-    public void rollbackStart(StopContext stopContext) {
-        stop();
-        stopContext.complete();
-    }
-
-    @Override
-    public void executeStop(StopContext stopContext) {
-        stop();
-        stopContext.complete();
-        stopLatch.countDown();
-    }
-
-    @Override
-    public void rollbackStop(StartContext<Void> startContext) {
-        start();
-        startContext.complete();
-    }
-
-    private void start() {
-        up.set(true);
-    }
-
-    private void stop() {
+    public void stop(StopContext stopContext) {
         assertTrue(up.get() || failed.get());
         up.set(false);
         failed.set(false);
+        stopContext.complete();
+        stopLatch.countDown();
     }
 }

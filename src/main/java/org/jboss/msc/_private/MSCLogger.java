@@ -146,79 +146,76 @@ public interface MSCLogger {
     @Message(id = 105, value = "Parameter %s is invalid")
     IllegalArgumentException methodParameterIsInvalid(final String parameterName);
 
-    @Message(id = 106, value = "Service parameter implements ServiceStartExecutable: invoke ServiceBuilder.setService(ServiceStartExecutable) instead")
-    IllegalArgumentException serviceParameterIsStartExecutable();
-
-    @Message (id = 107, value = "ServiceRegistry is removed")
+    @Message (id = 106, value = "ServiceRegistry is removed")
     IllegalStateException removedServiceRegistry();
 
-    @Message (id = 108, value = "Transaction cannot prepare: rollback requested")
+    @Message (id = 107, value = "Transaction cannot prepare: rollback requested")
     InvalidTransactionStateException cannotPrepareRolledbackTxn();
 
-    @Message (id = 109, value = "Transaction must be in active state to prepare")
+    @Message (id = 108, value = "Transaction must be in active state to prepare")
     InvalidTransactionStateException cannotPrepareNonActiveTxn();
 
-    @Message (id = 110, value = "Transaction cannot prepare: prepare already called")
+    @Message (id = 109, value = "Transaction cannot prepare: prepare already called")
     InvalidTransactionStateException cannotPreparePreparedTxn();
 
-    @Message (id = 111, value = "Transaction cannot commit: rollback requested")
+    @Message (id = 110, value = "Transaction cannot commit: rollback requested")
     InvalidTransactionStateException cannotCommitRolledbackTxn();
 
-    @Message (id = 112, value = "Transaction must be in prepared state to commit ")
+    @Message (id = 111, value = "Transaction must be in prepared state to commit ")
     InvalidTransactionStateException cannotCommitUnpreparedTxn();
 
-    @Message (id = 113, value = "Transaction cannot commit: problem reported")
+    @Message (id = 112, value = "Transaction cannot commit: problem reported")
     InvalidTransactionStateException cannotCommitProblematicTxn();
 
-    @Message (id = 114, value = "Transaction cannot commit: commit already called")
+    @Message (id = 113, value = "Transaction cannot commit: commit already called")
     InvalidTransactionStateException cannotCommitCommittedTxn();
 
-    @Message (id = 115, value = "Transaction must be in prepared state to abort")
+    @Message (id = 114, value = "Transaction must be in prepared state to abort")
     InvalidTransactionStateException cannotAbortUnpreparedTxn();
 
-    @Message (id = 116, value = "Transaction cannot abort: abort or rollback already called")
+    @Message (id = 115, value = "Transaction cannot abort: abort or rollback already called")
     InvalidTransactionStateException cannotAbortAbortedTxn();
 
-    @Message (id = 117, value = "Transaction must not be in prepared state to rollback")
+    @Message (id = 116, value = "Transaction must not be in prepared state to rollback")
     InvalidTransactionStateException cannotRollbackPreparedTxn();
 
-    @Message (id = 118, value = "Transaction cannot rollback: abort or rollback already called")
+    @Message (id = 117, value = "Transaction cannot rollback: abort or rollback already called")
     InvalidTransactionStateException cannotRollbackRolledbackTxn();
 
-    @Message (id = 119, value = "Transaction must be in prepared state to inspect commitable status")
+    @Message (id = 118, value = "Transaction must be in prepared state to inspect commitable status")
     InvalidTransactionStateException cannotInspectUnpreparedTxn();
 
-    @Message (id = 120, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
+    @Message (id = 119, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotAddChildToInactiveTxn(final int state);
 
-    @Message (id = 121, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
+    @Message (id = 120, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotCancelChildOnInactiveTxn(final int state);
 
-    @Message (id = 122, value = "Cannot use transaction at this stage: the transaction is terminated.")
+    @Message (id = 121, value = "Cannot use transaction at this stage: the transaction is terminated.")
     InvalidTransactionStateException txnTerminated();
 
-    @Message (id = 123, value = "No result is available")
+    @Message (id = 122, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message (id = 124, value = "Task may not be completed now")
+    @Message (id = 123, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message (id = 125, value = "Task may not be cancelled now")
+    @Message (id = 124, value = "Task may not be cancelled now")
     IllegalStateException taskCannotCancel();
 
-    @Message (id = 126, value = "Task may not be reverted now")
+    @Message (id = 125, value = "Task may not be reverted now")
     IllegalStateException taskCannotRollback();
 
-    @Message (id = 127, value = "Dependent may not be added at this point")
+    @Message (id = 126, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
 
-    @Message (id = 128, value = "A service named %s is already installed")
+    @Message (id = 127, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message (id = 129, value = "Cannot add new tasks to inactive transaction")
+    @Message (id = 128, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message (id = 130, value = "Cannot add new tasks with revertible component to inactive transaction")
+    @Message (id = 129, value = "Cannot add new tasks with revertible component to inactive transaction")
     InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
 
     /*

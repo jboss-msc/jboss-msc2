@@ -20,9 +20,7 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jboss.msc.service.ServiceStartExecutable;
-import org.jboss.msc.service.ServiceStartRevertible;
-import org.jboss.msc.service.SimpleService;
+import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
@@ -63,13 +61,8 @@ final class StartingServiceTasks {
                 setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
         
         // start service task builder
-        final Object service = serviceController.getService();
-        final TaskBuilder<T> startTaskBuilder;
-        if (service instanceof SimpleService) {
-            startTaskBuilder = taskFactory.newTask(new StartSimpleServiceTask<T>(serviceController, transaction));
-        } else {
-            startTaskBuilder =  taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
-        }
+        final Service service = serviceController.getService();
+        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
         }
@@ -254,16 +247,16 @@ final class StartingServiceTasks {
      * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
      * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
      */
-    private static class StartSimpleServiceTask<T> implements Executable<T>, Revertible {
+    private static class StartServiceTask<T> implements Executable<T>, Revertible {
 
         private final ServiceControllerImpl<T> serviceController;
-        protected final SimpleService<T> service;
+        protected final Service<T> service;
         private final Transaction transaction;
 
         @SuppressWarnings("unchecked")
-        StartSimpleServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
+        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
             this.serviceController = serviceController;
-            this.service = (SimpleService<T>) serviceController.getService();
+            this.service = (Service<T>) serviceController.getService();
             this.transaction = transaction;
         }
 
@@ -280,58 +273,6 @@ final class StartingServiceTasks {
         @Override
         public void rollback(final RollbackContext context) {
             service.stop(createStopContext(serviceController, transaction, context));
-        }
-    }
-
-    /**
-     * Task that starts service.
-     * 
-     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
-     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
-     */
-    private static class StartServiceTask<T> implements Executable<T>, Revertible {
-
-        private final ServiceControllerImpl<T> serviceController;
-        protected final Object service;
-        private final Transaction transaction;
-
-        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction/*, final Collection<TaskController<Boolean>> dependencyStartTasks*/) {
-            this.serviceController = serviceController;
-            this.service = serviceController.getService();
-            this.transaction = transaction;
-        }
-
-        /**
-         * Perform the task.
-         *
-         * @param context
-         */
-        @SuppressWarnings("unchecked")
-        @Override
-        public void execute(final ExecuteContext<T> context) {
-            if (service instanceof ServiceStartExecutable) {
-                ((ServiceStartExecutable<T>) service).executeStart(createStartContext(serviceController, transaction, context));
-            } else {
-                try {
-                    serviceController.setServiceUp(null, transaction);
-                } finally {
-                    context.complete();
-                }
-            }
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            if (service instanceof ServiceStartRevertible) {
-                ((ServiceStartRevertible) service).rollbackStart(createStopContext(serviceController, transaction, context));
-            } else {
-                try {
-                    serviceController.setServiceDown(transaction);
-                    serviceController.notifyServiceDown(transaction);
-                } finally {
-                    context.complete();
-                }
-            }
         }
     }
 
