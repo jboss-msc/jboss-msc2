@@ -23,7 +23,7 @@ import org.jboss.msc.txn.WorkContext;
 /**
  * Service start lifecycle context.
  *
- * @param T the service value type
+ * @param <T> the service value type
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public interface StartContext<T> extends WorkContext<T> {

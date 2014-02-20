@@ -48,7 +48,7 @@ public interface Service<T> {
      * <p>
      * Also, this method cannot be implemented asynchronously.
      * 
-     * @param stopContext
+     * @param stopContext the stop context
      */
     public void stop(StopContext stopContext);
 
