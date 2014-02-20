@@ -96,7 +96,7 @@ public enum DependencyFlag {
      * @return true if this enum constant is identical to any of the specified dependency flags 
      */
     public final boolean in(final Collection<DependencyFlag> others) {
-        return others != null ? others.contains(this) : false;
+        return others != null && others.contains(this);
     }
 
 }

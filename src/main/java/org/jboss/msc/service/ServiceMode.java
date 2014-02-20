@@ -99,7 +99,7 @@ public enum ServiceMode {
      * @return true if this enum constant is identical to any of the specified service modes 
      */
     public final boolean in(final Collection<ServiceMode> others) {
-        return others != null ? others.contains(this) : false;
+        return others != null && others.contains(this);
     }
 
 }
