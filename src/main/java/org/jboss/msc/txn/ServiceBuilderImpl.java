@@ -89,7 +89,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     public ServiceBuilder<T> setMode(final ServiceMode mode) {
         checkAlreadyInstalled();
         if (mode == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("mode");
+            throw MSCLogger.SERVICE.methodParameterIsNull("mode");
         }
         this.mode = mode;
         return this;
@@ -103,7 +103,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
         checkAlreadyInstalled();
         if (service == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("service");
+            throw MSCLogger.SERVICE.methodParameterIsNull("service");
         }
         this.service = service;
         return this;
