@@ -90,7 +90,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     private int unsatisfiedDependencies;
     /**
-     * Indicates if this service is demanded to start. Has precedence over {@link downDemanded}.
+     * Indicates if this service is demanded to start.
      */
     private int demandedByCount;
     /**
@@ -143,7 +143,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      *
      * @param transaction the active transaction
      */
-    boolean install(Transaction transaction, TaskFactory taskFactory, ReportableContext reportableContext) {
+    boolean install(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         primaryRegistration.installService(this, transaction);
         for (Registration alias: aliasRegistrations) {

@@ -147,7 +147,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             }
             reverted = isRollbackRequested;
         }
-        lock.unlock(this, reverted);
+        lock.unlock(this);
     }
 
     final void addTerminationListener(final TerminationListener listener) {
@@ -358,7 +358,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             }
             // free all locks
             for (final TransactionalLock lock : locks) {
-                lock.unlock(this, reverted);
+                lock.unlock(this);
             }
             locks.clear();
             // transaction completion notifications

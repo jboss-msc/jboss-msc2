@@ -29,10 +29,7 @@ import org.jboss.msc._private.MSCLogger;
  * <p>Only one transaction at a time can own this lock.
  * If the lock is not available then the current transaction becomes
  * inactive and lies dormant until transactional lock is freed.
- * <p>
- * It is possible to associate cleanup task via {@link #setCleaner(Cleaner)}
- * with this lock that will be executed before the lock is freed.
- * 
+ *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
@@ -115,7 +112,7 @@ public final class TransactionalLock {
         return true;
     }
 
-    void unlock(final Transaction currentOwner, final boolean reverted) {
+    void unlock(final Transaction currentOwner) {
         if (!ownerUpdater.compareAndSet(this, currentOwner, null)) return;
         final Cleaner cleaner = this.cleaner;
         if (cleaner != null) {

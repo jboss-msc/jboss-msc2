@@ -84,7 +84,7 @@ final class Transactions {
      * @param dependent the dependent
      * @param dependency the dependency
      * @param listener the wait completion listener
-     * @returns <code>true</code> if deadlock was detected and wait setup was cancelled
+     * @return <code>true</code> if deadlock was detected and wait setup was cancelled
      */
     static boolean waitForAsynchronously(final Transaction dependent, final Transaction dependency, final TerminationListener listener) {
         // detect self waits
@@ -138,8 +138,7 @@ final class Transactions {
      *
      * @param dependent the dependent
      * @param dependency the dependency
-     * @param listener the wait completion listener
-     * @returns <code>true</code> if deadlock was detected and wait setup was cancelled
+     * @return <code>true</code> if deadlock was detected and wait setup was cancelled
      */
     static boolean waitFor(final Transaction dependent, final Transaction dependency) {
         final CountDownLatch signal = new CountDownLatch(1);

@@ -82,12 +82,12 @@ final class StartingServiceTasks {
      * Creates starting service tasks. When all created tasks finish execution, {@code service} will enter {@code UP}
      * state.
      * 
-     * @param serviceController  starting service
-     * @param taskDependency     the tasks that must be first concluded before service can start
-     * @param transaction        the active transaction
-     * @param taskFactory        the task factory
-     * @return                   the final task to be executed. Can be used for creating tasks that depend on the
-     *                           conclusion of starting transition.
+     * @param serviceController    starting service
+     * @param dependencyStartTasks the tasks that must be first concluded before service can start
+     * @param transaction          the active transaction
+     * @param taskFactory          the task factory
+     * @return                     the final task to be executed. Can be used for creating tasks that depend on the
+     *                             conclusion of starting transition.
      */
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
@@ -98,7 +98,7 @@ final class StartingServiceTasks {
     /**
      * Attempt to revert start tasks for {@code service}.
      * 
-     * @param service     the service whose start tasks will be reverted
+     * @param serviceController the service whose start tasks will be reverted
      * @param transaction the active transaction
      * @return {@code true} if {@code service} has start tasks created during current transaction, indicating they have
      *                      been reverted; {@code false} if no such tasks exist, indicating stop tasks have to be

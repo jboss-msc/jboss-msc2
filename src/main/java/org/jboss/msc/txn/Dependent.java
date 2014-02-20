@@ -23,7 +23,6 @@ import org.jboss.msc.service.ServiceName;
  * Dependent service.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- * @see DependencyImpl#setDependent(Dependent, Transaction, ServiceContext)
  */
 interface Dependent {
 

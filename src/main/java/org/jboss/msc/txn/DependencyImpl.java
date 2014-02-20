@@ -61,13 +61,8 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * Creates a simple dependency to {@code dependencyRegistration}.
      * 
-     * @param injections             the dependency injections
      * @param dependencyRegistration the dependency registration
-     * @param demandFlag             if equal to {@link DependencyFlag#DEMANDED}, it indicates dependency should be
-     *                               demanded right away; if equal to {@link DependencyFlag#UNDEMANDED}, it indicates
-     *                               dependency should never be demanded; if {@code null}, it indicates dependency
-     *                               should be demanded when {@link #demand(Transaction, ServiceContext) requested}.
-     * @param transaction            the active transaction
+     * @param flags dependency flags
      */
     protected DependencyImpl(final Registration dependencyRegistration, final DependencyFlag... flags) {
         byte translatedFlags = 0;
@@ -110,7 +105,7 @@ class DependencyImpl<T> implements Dependency<T> {
     }
 
     /**
-     * Sets the dependency dependent, invoked during {@link dependentController} installation or {@link ParentDependency}
+     * Sets the dependency dependent, invoked during {@code dependentController} installation or {@link ParentDependency}
      * activation (when parent dependency is satisfied and installed).
      * 
      * @param dependent    dependent associated with this dependency
@@ -118,10 +113,6 @@ class DependencyImpl<T> implements Dependency<T> {
      */
     void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
         setDependent(dependent, transaction, transaction.getTaskFactory());
-    }
-
-    void resetDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
-        setDependent(dependent, transaction, null);
     }
 
     private void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction, TaskFactory taskFactory) {
@@ -135,7 +126,7 @@ class DependencyImpl<T> implements Dependency<T> {
     }
 
     /**
-     * Clears the dependency dependent, invoked during {@link dependentController} removal.
+     * Clears the dependency dependent, invoked during {@code dependentController} removal.
      * 
      * @param transaction   the active transaction
      * @param taskFactory   the task factory
@@ -184,7 +175,6 @@ class DependencyImpl<T> implements Dependency<T> {
      * Notifies that dependency is now {@code UP} or is scheduled to start.
      * 
      * @param transaction   the active transaction
-     * @param context       the service context
      * @param startTask     the dependency start task
      */
     void dependencyUp(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
@@ -204,7 +194,7 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * Validates dependency state before active transaction commits.
      * 
-     * @param controllerDependency the dependency controller, if available
+     * @param dependencyController the dependency controller, if available
      * @param context              context where all validation problems found will be added
      */
     void validate(ServiceControllerImpl<?> dependencyController, ReportableContext context) {
