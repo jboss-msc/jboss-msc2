@@ -205,6 +205,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (installed) {
             return null;
         }
+        installed = true;
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, name);
         registration.preinstallService(transaction);
