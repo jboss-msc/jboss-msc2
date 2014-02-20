@@ -58,7 +58,7 @@ final class CheckDependencyCycleTask implements Validatable {
     private final Transaction transaction;
 
     private CheckDependencyCycleTask(Transaction transaction) {
-        services = new CopyOnWriteArrayList<ServiceControllerImpl<?>>();
+        services = new CopyOnWriteArrayList<>();
         this.transaction = transaction;
     }
 
@@ -69,8 +69,8 @@ final class CheckDependencyCycleTask implements Validatable {
     @Override
     public void validate(ValidateContext context) {
         try {
-            final Set<ServiceControllerImpl<?>> checkedServices = new HashSet<ServiceControllerImpl<?>>();
-            final LinkedHashMap<ServiceName, ServiceControllerImpl<?>> pathTrace = new LinkedHashMap<ServiceName, ServiceControllerImpl<?>>();
+            final Set<ServiceControllerImpl<?>> checkedServices = new HashSet<>();
+            final LinkedHashMap<ServiceName, ServiceControllerImpl<?>> pathTrace = new LinkedHashMap<>();
             for (ServiceControllerImpl<?> service: services) {
                 if (checkedServices.contains(service) || service.getState(transaction) != ServiceControllerImpl.STATE_DOWN) {
                     continue;

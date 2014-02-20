@@ -37,7 +37,7 @@ final class StartingServiceTasks {
 
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>> create() {
-            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>>();
+            return new ConcurrentHashMap<>();
         }
 
     });
@@ -62,7 +62,7 @@ final class StartingServiceTasks {
         
         // start service task builder
         final Service service = serviceController.getService();
-        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
+        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
         }

@@ -83,7 +83,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
     private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
-    private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<TaskControllerImpl<?>>();
+    private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
     private final ProblemReport transactionReport = new ProblemReport();
     private final ProblemReport rollbackReport = new ProblemReport();
@@ -110,12 +110,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     };
     private final TaskFactory taskFactory = new TaskFactory() {
         public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
-            return new TaskBuilderImpl<T>(Transaction.this, topParent, task);
+            return new TaskBuilderImpl<>(Transaction.this, topParent, task);
         }
 
         @SuppressWarnings("unchecked")
         public TaskBuilder<Void> newTask() throws IllegalStateException {
-            return new TaskBuilderImpl<Void>(Transaction.this, topParent);
+            return new TaskBuilderImpl<>(Transaction.this, topParent);
         }
     };
     private long endTime;

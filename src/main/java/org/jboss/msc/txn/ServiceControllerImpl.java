@@ -572,7 +572,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     Collection<TaskController<?>> notifyServiceFailed(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
-        final List<TaskController<?>> tasks = new ArrayList<TaskController<?>>();
+        final List<TaskController<?>> tasks = new ArrayList<>();
         primaryRegistration.serviceFailed(transaction, taskFactory, tasks);
         for (Registration registration: aliasRegistrations) {
             registration.serviceFailed(transaction, taskFactory, tasks);
@@ -586,7 +586,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     Collection<TaskController<?>> notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
-        final List<TaskController<?>> tasks = new ArrayList<TaskController<?>>();
+        final List<TaskController<?>> tasks = new ArrayList<>();
         primaryRegistration.serviceStopping(transaction, taskFactory, tasks);
         for (Registration registration: aliasRegistrations) {
             registration.serviceStopping(transaction, taskFactory, tasks);
@@ -632,7 +632,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<T> startTask = null;
         // contains a list of all dependencyStartTasks
-        private ArrayList<TaskController<?>> dependencyStartTasks = new ArrayList<TaskController<?>>();
+        private ArrayList<TaskController<?>> dependencyStartTasks = new ArrayList<>();
 
         public synchronized void dependencySatisfied(Transaction transaction, TaskFactory taskFactory, TaskController<?> dependencyStartTask) {
             if (dependencyStartTask != null) {

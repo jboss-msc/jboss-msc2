@@ -37,7 +37,7 @@ final class StoppingServiceTasks {
 
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
-            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>();
+            return new ConcurrentHashMap<>();
         }
 
     });
@@ -63,7 +63,7 @@ final class StoppingServiceTasks {
                 .setRevertible(new RevertStoppingServiceTask(serviceController, transaction)).release();
 
         // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<T>(serviceController, (Service<T>) service, transaction));
+        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<>(serviceController, (Service<T>) service, transaction));
         stopTaskBuilder.addDependency(revertStoppingTask).addDependencies(dependentStopTasks);
         final TaskController<Void> stop = stopTaskBuilder.release();
 

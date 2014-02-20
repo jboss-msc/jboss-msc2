@@ -937,11 +937,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
 
                 public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
-                    return new TaskBuilderImpl<N>(getTransaction(), TaskControllerImpl.this, task);
+                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
                 }
 
                 public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<Void>(getTransaction(), TaskControllerImpl.this);
+                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
                 }
             });
         } catch (Throwable t) {
@@ -1012,12 +1012,12 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 @Override
                 public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
-                    return new TaskBuilderImpl<N>(getTransaction(), TaskControllerImpl.this, task);
+                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
                 }
 
                 @Override
                 public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<Void>(getTransaction(), TaskControllerImpl.this);
+                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
                 }
             }
             exec.execute(new ExecuteContextImpl());

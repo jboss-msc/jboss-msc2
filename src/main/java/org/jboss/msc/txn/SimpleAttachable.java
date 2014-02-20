@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 @SuppressWarnings("unchecked")
 class SimpleAttachable implements Attachable {
-    private final ConcurrentMap<AttachmentKey<?>, Object> attachments = new ConcurrentHashMap<AttachmentKey<?>, Object>();
+    private final ConcurrentMap<AttachmentKey<?>, Object> attachments = new ConcurrentHashMap<>();
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
         if (key == null) {

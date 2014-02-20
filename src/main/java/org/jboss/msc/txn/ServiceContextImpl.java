@@ -49,7 +49,7 @@ class ServiceContextImpl implements ServiceContext {
             throw new IllegalArgumentException("name is null");
         }
         
-        return new ServiceBuilderImpl<T>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
+        return new ServiceBuilderImpl<>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
@@ -77,7 +77,7 @@ class ServiceContextImpl implements ServiceContext {
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        return new ServiceBuilderImpl<Void>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
+        return new ServiceBuilderImpl<>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override

@@ -40,7 +40,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     private static final byte REMOVED  = 1 << 0x01;
 
     // map of service registrations
-    private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<ServiceName, Registration>();
+    private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
     private byte state = ENABLED;
     // transactional lock

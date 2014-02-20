@@ -76,7 +76,7 @@ final class Registration {
     /**
      * Incoming dependencies, i.e., dependent services.
      */
-    private final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<DependencyImpl<?>>();
+    private final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<>();
     /**
      * State.
      */

@@ -83,7 +83,7 @@ abstract class ServiceManager {
                 final DisableServiceTask task = new DisableServiceTask(this, transaction);
                 final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[DISABLE] == Collections.EMPTY_MAP) {
-                    tasks[DISABLE] = new ConcurrentHashMap<ServiceManager, TaskController<Void>>();
+                    tasks[DISABLE] = new ConcurrentHashMap<>();
                 }
                 tasks[DISABLE].put(this, taskController);
             }
@@ -113,7 +113,7 @@ abstract class ServiceManager {
                 final EnableServiceTask task = new EnableServiceTask(this, transaction);
                 final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[ENABLE] == Collections.EMPTY_MAP) {
-                    tasks[ENABLE] = new ConcurrentHashMap<ServiceManager, TaskController<Void>>();
+                    tasks[ENABLE] = new ConcurrentHashMap<>();
                 }
                 tasks[ENABLE].put(this, taskController);
             }

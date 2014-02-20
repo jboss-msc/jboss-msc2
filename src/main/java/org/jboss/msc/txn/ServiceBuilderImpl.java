@@ -52,11 +52,11 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service name
     private final ServiceName name;
     // service aliases
-    private final Set<ServiceName> aliases = new HashSet<ServiceName>(0);
+    private final Set<ServiceName> aliases = new HashSet<>(0);
     // service itself
     private Service<T> service;
     // dependencies
-    private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<ServiceName, DependencyImpl<?>>();
+    private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<>();
     // active transaction
     private final Transaction transaction;
     // service mode
@@ -164,7 +164,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
             throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
         final Registration dependencyRegistration = ((ServiceRegistryImpl) registry).getOrCreateRegistration(transaction, name);
-        final DependencyImpl<D> dependency = new DependencyImpl<D>(dependencyRegistration, transaction, flags != null ? flags : noFlags);
+        final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, transaction, flags != null ? flags : noFlags);
         dependencies.put(name, dependency);
         return dependency;
     }
@@ -222,7 +222,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         final DependencyImpl<?>[] dependenciesArray = new DependencyImpl<?>[dependencies.size()];
         dependencies.values().toArray(dependenciesArray);
         // create and install service controller
-        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
+        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
         transaction.getTaskFactory().newTask(new ServiceInstallTask(serviceController, transaction)).release();
         CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
         return serviceController;
