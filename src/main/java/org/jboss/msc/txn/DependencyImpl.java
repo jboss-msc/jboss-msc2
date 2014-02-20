@@ -69,7 +69,7 @@ class DependencyImpl<T> implements Dependency<T> {
      *                               should be demanded when {@link #demand(Transaction, ServiceContext) requested}.
      * @param transaction            the active transaction
      */
-    protected DependencyImpl(final Registration dependencyRegistration, final Transaction transaction, final DependencyFlag... flags) {
+    protected DependencyImpl(final Registration dependencyRegistration, final DependencyFlag... flags) {
         byte translatedFlags = 0;
         for (final DependencyFlag flag : flags) {
             if (flag != null) {

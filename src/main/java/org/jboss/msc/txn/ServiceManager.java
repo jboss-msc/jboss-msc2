@@ -80,7 +80,7 @@ abstract class ServiceManager {
             // if there is no enable task to cancel, and if there is not a disable task previously created for this txn
             // create a disable task
             if (enableTask == null && !tasks[DISABLE].containsKey(this)){
-                final DisableServiceTask task = new DisableServiceTask(this, transaction);
+                final DisableServiceTask task = new DisableServiceTask(transaction);
                 final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[DISABLE] == Collections.EMPTY_MAP) {
                     tasks[DISABLE] = new ConcurrentHashMap<>();
@@ -110,7 +110,7 @@ abstract class ServiceManager {
             // if there is no disable task to cancel, and if there is not a enable task previously created for this txn
             // create a enable task
             if (disableTask == null && !tasks[ENABLE].containsKey(this)) {
-                final EnableServiceTask task = new EnableServiceTask(this, transaction);
+                final EnableServiceTask task = new EnableServiceTask(transaction);
                 final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[ENABLE] == Collections.EMPTY_MAP) {
                     tasks[ENABLE] = new ConcurrentHashMap<>();
@@ -128,7 +128,7 @@ abstract class ServiceManager {
         private final Transaction transaction;
         private boolean enabled;
 
-        public EnableServiceTask(final ServiceManager serviceManager, final Transaction transaction) {
+        public EnableServiceTask(final Transaction transaction) {
             this.transaction = transaction;
         }
 
@@ -158,7 +158,7 @@ abstract class ServiceManager {
         private final Transaction transaction;
         private boolean disabled;
 
-        public DisableServiceTask(final ServiceManager serviceManager, final Transaction transaction) {
+        public DisableServiceTask(final Transaction transaction) {
             this.transaction = transaction;
         }
 

@@ -682,8 +682,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         transactionalState = STATE_STOPPING;
-                        TaskController<Void> stopTask = StoppingServiceTasks.createForFailedService(ServiceControllerImpl.this, transaction, taskFactory);
-                        completeTransitionTask = stopTask;
+                        completeTransitionTask = StoppingServiceTasks.createForFailedService(ServiceControllerImpl.this, transaction, taskFactory);
                     }
                     break;
                 case STATE_STARTING:
@@ -700,8 +699,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
-                        TaskController<Void> stopTask = StoppingServiceTasks.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
-                        completeTransitionTask = stopTask;
+                        completeTransitionTask = StoppingServiceTasks.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
                     }
                     break;
                 default:
@@ -729,8 +727,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             if (stoppingTask != null) {
                 removeTaskBuilder.addDependency(stoppingTask);
             }
-            final TaskController<Void> removeTask = removeTaskBuilder.release();
-            return removeTask;
+            return removeTaskBuilder.release();
         }
 
         private void setState(final byte sid) {

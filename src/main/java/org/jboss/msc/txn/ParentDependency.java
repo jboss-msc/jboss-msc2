@@ -28,8 +28,8 @@ import org.jboss.msc.service.DependencyFlag;
  */
 final class ParentDependency<T> extends DependencyImpl<T> {
 
-    ParentDependency(final Registration dependencyRegistration, final Transaction transaction) {
-        super(dependencyRegistration, transaction, DependencyFlag.UNREQUIRED);
+    ParentDependency(final Registration dependencyRegistration) {
+        super(dependencyRegistration, DependencyFlag.UNREQUIRED);
     }
 
     @Override

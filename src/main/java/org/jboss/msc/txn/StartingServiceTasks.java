@@ -61,7 +61,6 @@ final class StartingServiceTasks {
                 setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
         
         // start service task builder
-        final Service service = serviceController.getService();
         final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
@@ -93,7 +92,7 @@ final class StartingServiceTasks {
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
 
-        return create(serviceController, dependencyStartTasks, (TaskController<Void>) null, transaction, taskFactory);
+        return create(serviceController, dependencyStartTasks, null, transaction, taskFactory);
     }
 
     /**
@@ -253,18 +252,12 @@ final class StartingServiceTasks {
         protected final Service<T> service;
         private final Transaction transaction;
 
-        @SuppressWarnings("unchecked")
         StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
             this.serviceController = serviceController;
-            this.service = (Service<T>) serviceController.getService();
+            this.service = serviceController.getService();
             this.transaction = transaction;
         }
 
-        /**
-         * Perform the task.
-         *
-         * @param context
-         */
         @Override
         public void execute(final ExecuteContext<T> context) {
             service.start(createStartContext(serviceController, transaction, context));

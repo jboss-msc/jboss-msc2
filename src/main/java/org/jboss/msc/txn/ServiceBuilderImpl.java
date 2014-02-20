@@ -73,7 +73,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final Transaction transaction) {
         this.transactionController = transactionController;
         this.transaction = transaction;
-        this.registry = (ServiceRegistryImpl) registry;
+        this.registry = registry;
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
     }
@@ -164,13 +164,13 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
             throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
         final Registration dependencyRegistration = ((ServiceRegistryImpl) registry).getOrCreateRegistration(transaction, name);
-        final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, transaction, flags != null ? flags : noFlags);
+        final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
         dependencies.put(name, dependency);
         return dependency;
     }
 
     void setParentDependency(Registration parentRegistration) {
-        dependencies.put(name, new ParentDependency<Void>(parentRegistration, transaction));
+        dependencies.put(name, new ParentDependency<Void>(parentRegistration));
     }
 
     @Override

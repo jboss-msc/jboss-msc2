@@ -25,7 +25,6 @@ import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Problem.Severity;
 
 /**
  * ServiceContext implementation.
