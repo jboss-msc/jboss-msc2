@@ -135,7 +135,7 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                enabled = doEnable(transaction, (TaskFactory) context);
+                enabled = doEnable(transaction, context);
             } finally {
                 context.complete();
             }
@@ -165,7 +165,7 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                disabled = doDisable(transaction, (TaskFactory) context);
+                disabled = doDisable(transaction, context);
             } finally {
                 context.complete();
             }

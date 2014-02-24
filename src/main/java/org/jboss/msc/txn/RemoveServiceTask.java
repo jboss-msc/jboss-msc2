@@ -56,7 +56,7 @@ final class RemoveServiceTask implements Executable<Void>, Revertible {
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            serviceController.setServiceRemoved(transaction, (TaskFactory) context);
+            serviceController.setServiceRemoved(transaction, context);
         } finally {
             context.complete();
         }

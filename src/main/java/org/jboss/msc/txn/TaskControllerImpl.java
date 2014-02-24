@@ -940,8 +940,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
                 }
 
-                public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
+                public <N> TaskBuilder<N> newTask() throws IllegalStateException {
+                    return new TaskBuilderImpl<N>(getTransaction(), TaskControllerImpl.this);
                 }
             });
         } catch (Throwable t) {
@@ -956,8 +956,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         final Executable<T> exec = executable;
         if (exec != null) try {
             setClassLoader();
-            final class ExecuteContextImpl implements ExecuteContext<T>, TaskFactory {
-
+            exec.execute(new ExecuteContext<T>() {
                 @Override
                 public void complete(final T result) {
                     execComplete(result);
@@ -1016,11 +1015,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
 
                 @Override
-                public TaskBuilder<Void> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
+                public <N> TaskBuilder<N> newTask() throws IllegalStateException {
+                    return new TaskBuilderImpl<N>(getTransaction(), TaskControllerImpl.this);
                 }
-            }
-            exec.execute(new ExecuteContextImpl());
+            });
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);
             problemReport.addProblem(new Problem(Problem.Severity.CRITICAL, t));
