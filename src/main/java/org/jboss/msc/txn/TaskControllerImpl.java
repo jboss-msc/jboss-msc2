@@ -1224,7 +1224,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                         break;
                     }
                 }
-                case STATE_EXECUTE_DONE: dependencyDone = true;
+                case STATE_EXECUTE_DONE:
+                case STATE_EXECUTE_CHILDREN_WAIT:
+                    dependencyDone = true;
             }
         }
         if (dependencyDone) {
