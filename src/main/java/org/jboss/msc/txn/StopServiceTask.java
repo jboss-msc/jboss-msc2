@@ -20,6 +20,7 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceName;
@@ -98,7 +99,13 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
     }
 
     public void execute(final ExecuteContext<Void> context) {
-        serviceController.getService().stop(new StopContext() {
+        final Service<T> service = serviceController.getService();
+        if (service == null) {
+            serviceController.setServiceDown(transaction);
+            context.complete();
+            return;
+        }
+        service.stop(new StopContext() {
             @Override
             public void complete(Void result) {
                 serviceController.setServiceDown(transaction);
@@ -145,7 +152,14 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
 
     @Override
     public void rollback(final RollbackContext context) {
-        serviceController.getService().start(new StartContext<T>() {
+        final Service<T> service = serviceController.getService();
+        if (service == null) {
+            serviceController.setServiceUp(null, transaction);
+            serviceController.notifyServiceUp(transaction);
+            context.complete();
+            return;
+        }
+        service.start(new StartContext<T>() {
 
             @Override
             public void complete(T result) {
