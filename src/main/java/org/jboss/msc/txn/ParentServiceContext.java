@@ -17,6 +17,9 @@
  */
 package org.jboss.msc.txn;
 
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
@@ -28,7 +31,8 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-class ParentServiceContext extends ServiceContextImpl {
+class ParentServiceContext<T> extends ServiceContextImpl {
+
     private final Registration parentRegistration;
 
     public ParentServiceContext(Registration parentRegistration, TransactionController transactionController) {
@@ -36,29 +40,67 @@ class ParentServiceContext extends ServiceContextImpl {
         this.parentRegistration = parentRegistration;
     }
 
-    public void validateParentUp(final Transaction transaction) {
+    <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction, final TaskFactory taskFactory) {
+        validateParentUp(transaction);
+        final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(valueType, registry, name, transaction);
+        serviceBuilder.setTaskFactory(taskFactory);
+        final ServiceName parentName = parentRegistration.getServiceName();
+        serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
+        return serviceBuilder;
+    }
+
+    ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction, final TaskFactory taskFactory) {
+        validateParentUp(transaction);
+        final ServiceBuilderImpl<Void> serviceBuilder = (ServiceBuilderImpl<Void>) super.addService(registry, name, transaction);
+        serviceBuilder.setTaskFactory(taskFactory);
+        final ServiceName parentName = parentRegistration.getServiceName();
+        serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
+        return serviceBuilder;
+    }
+
+    private void validateParentUp(final Transaction transaction) {
         if (parentRegistration.getController() == null) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
         }
         validateTransaction(transaction);
-        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceControllerImpl.STATE_UP)) {
-            throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not UP");
+        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceControllerImpl.STATE_STARTING)) {
+            throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not starting");
         }
     }
 
-    @Override
-    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        validateParentUp(transaction);
-        final ServiceBuilder<T> serviceBuilder = super.addService(valueType, registry, name, transaction);
-        ((ServiceBuilderImpl<T>) serviceBuilder).setParentDependency(parentRegistration);
-        return serviceBuilder;
+    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>>  PARENT_DEPENDENCIES= AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> () {
+
+        @Override
+        public ConcurrentHashMap<ServiceName, DependencyImpl<?>> create() {
+            return new ConcurrentHashMap<ServiceName, DependencyImpl<?>>();
+        }
+
+    });
+
+    private static final <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration, Transaction transaction) {
+        final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = transaction.getAttachment(PARENT_DEPENDENCIES);
+        @SuppressWarnings("unchecked")
+        DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
+        if (parentDependency == null ) {
+            parentDependency = new ParentDependency<T>(parentRegistration, transaction);
+            parentDependencies.put(parentName, parentDependency);
+        }
+        return parentDependency;
     }
 
-    @Override
-    public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        validateParentUp(transaction);
-        final ServiceBuilder<Void> serviceBuilder = super.addService(registry, name, transaction);
-        ((ServiceBuilderImpl<Void>) serviceBuilder).setParentDependency(parentRegistration);
-        return serviceBuilder;
+    /**
+     * Parent dependency. The dependent is created whenever dependency is satisfied, and is removed whenever
+     * dependency is no longer satisfied.
+     */
+    private static final class ParentDependency<T> extends DependencyImpl<T> {
+
+        ParentDependency(final Registration dependencyRegistration, final Transaction transaction) {
+            super(dependencyRegistration, DependencyFlag.UNREQUIRED);
+        }
+
+        @Override
+        public TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
+            return dependent.remove(transaction, taskFactory);
+        }
     }
 }

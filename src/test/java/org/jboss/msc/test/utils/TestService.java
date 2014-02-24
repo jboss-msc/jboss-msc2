@@ -21,14 +21,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 
@@ -48,6 +57,7 @@ public final class TestService implements Service<Void> {
     private final boolean failToStart;
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
+    private Collection<ChildServiceFactory> childServiceFactories = Collections.emptyList();
 
     public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart,
             final DependencyInfo<?>... dependencyInfos) {
@@ -69,6 +79,9 @@ public final class TestService implements Service<Void> {
             // context.addProblem(new UnsupportedOperationException());
             context.fail();
         } else {
+            for (ChildServiceFactory childFactory: childServiceFactories) {
+                childFactory.create(context, serviceContext);
+            }
             up.set(true);
             context.complete();
         }
@@ -93,6 +106,15 @@ public final class TestService implements Service<Void> {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    public synchronized Future<TestService> addChild(ServiceName name, ServiceMode serviceMode,  ServiceRegistry registry) {
+        if (childServiceFactories.isEmpty()) {
+            childServiceFactories = new ArrayList<ChildServiceFactory>();
+        }
+        ChildServiceFactory childServiceFactory = new ChildServiceFactory(name, serviceMode, registry);
+        childServiceFactories.add(childServiceFactory);
+        return childServiceFactory;
     }
 
     public boolean isFailed() {
@@ -122,5 +144,56 @@ public final class TestService implements Service<Void> {
         failed.set(false);
         stopContext.complete();
         stopLatch.countDown();
+    }
+
+    private static class ChildServiceFactory implements Future<TestService> {
+        private final ServiceName serviceName;
+        private final ServiceRegistry registry;
+        private final ServiceMode serviceMode;
+        private final CountDownLatch latch;
+        private TestService childService;
+
+        ChildServiceFactory(final ServiceName serviceName, final ServiceMode serviceMode, final ServiceRegistry registry) {
+            this.serviceName = serviceName;
+            this.registry = registry;
+            this.serviceMode = serviceMode;
+            latch = new CountDownLatch(1);
+        }
+
+        public void create(StartContext<?> startContext, ServiceContext parentContext) {
+            final ServiceBuilder<Void> childBuilder = startContext.addService(registry, serviceName, parentContext);
+            childBuilder.setMode(serviceMode);
+            childService = new TestService(serviceName, childBuilder, false);
+            childBuilder.setService(childService);
+            childBuilder.install();
+            latch.countDown();
+        }
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return  childService != null;//latch.getCount() == 0;
+        }
+
+        @Override
+        public TestService get() throws InterruptedException, ExecutionException {
+            latch.await();
+            return childService;
+        }
+
+        @Override
+        public TestService get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            latch.await(timeout, unit);
+            return childService;
+        }
     }
 }

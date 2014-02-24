@@ -32,4 +32,25 @@ public interface StartContext<T> extends WorkContext<T> {
      * Marking completion of this service start failed.
      */
     void fail();
+
+    /**
+     * Start installation of a child service into {@code registry}.
+     *
+     * @param valueType      the type of the service value to be added
+     * @param registry       the target service registry where new service will be installed
+     * @param name           the service name
+     * @param serviceContext the parent service context
+     * @return the builder for the service
+     */
+    <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name, ServiceContext parentContext);
+
+    /**
+     * Start installation of a child service into {@code registry}.
+     *
+     * @param registry       the target service registry where new service will be installed
+     * @param name           the service name
+     * @param serviceContext the parent service context
+     * @return the builder for the service
+     */
+    ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext);
 }

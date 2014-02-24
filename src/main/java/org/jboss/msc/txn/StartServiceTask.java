@@ -20,6 +20,10 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
@@ -172,6 +176,17 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             @Override
             public void addProblem(Throwable cause) {
                 context.addProblem(cause);
+            }
+
+            @Override
+            public <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name,
+                    ServiceContext parentContext) {
+                return ((ParentServiceContext<?>) parentContext).addService(valueType, registry,  name, transaction, context);
+            }
+
+            @Override
+            public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext) {
+                return ((ParentServiceContext<?>) parentContext).addService(registry,  name, transaction, context);
             }
         });
     }

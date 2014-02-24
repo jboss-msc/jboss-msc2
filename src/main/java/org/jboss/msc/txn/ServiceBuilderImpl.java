@@ -59,6 +59,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<>();
     // active transaction
     private final Transaction transaction;
+    // the task factory to be used for service installation
+    private TaskFactory taskFactory;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -74,12 +76,21 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         this.transactionController = transactionController;
         this.transaction = transaction;
         this.registry = registry;
+        this.taskFactory = transaction.getTaskFactory();
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
     }
 
     ServiceName getServiceName() {
         return name;
+    }
+
+    void setTaskFactory(TaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
+    }
+
+    void addDependency(ServiceName serviceName, DependencyImpl<?> dependency) {
+        dependencies.put(serviceName, dependency);
     }
 
     /**
@@ -169,13 +180,9 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         return dependency;
     }
 
-    void setParentDependency(Registration parentRegistration) {
-        dependencies.put(name, new ParentDependency<Void>(parentRegistration));
-    }
-
     @Override
     public ServiceContext getServiceContext() {
-        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name), transactionController);
+        return new ParentServiceContext<T>(registry.getOrCreateRegistration(transaction, name), transactionController);
     }
 
     private static boolean calledFromConstructorOf(Object obj) {
@@ -189,6 +196,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         }
         return false;
     }
+
     private void checkAlreadyInstalled() {
         if (installed) {
             throw new IllegalStateException("ServiceBuilder installation already requested.");
