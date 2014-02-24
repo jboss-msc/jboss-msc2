@@ -1,7 +1,7 @@
 /*
  * JBoss, Home of Professional Open Source
  *
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,38 +20,36 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
 /**
- * Tasks executed when a service is starting.
+ * Task that starts service.
  * 
+ * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
  */
-final class StartingServiceTasks {
+final class StartServiceTask<T> implements Executable<T>, Revertible {
 
     private static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>>> START_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>>> () {
 
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>> create() {
-            return new ConcurrentHashMap<>();
+            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>>();
         }
 
     });
 
     /**
-     * Creates starting service tasks. When all created tasks finish execution, {@code service} will enter {@code UP}
-     * state.
+     * Creates a start service task.
      * 
      * @param serviceController  starting service
      * @param taskDependency     the task that must be first concluded before service can start
      * @param transaction        the active transaction
      * @param taskFactory        the task factory
-     * @return                   the final task to be executed. Can be used for creating tasks that depend on the
-     *                           conclusion of starting transition.
+     * @return                   the start task (can be used for creating tasks that depend on the conclusion of
+     *                           starting transition)
      */
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<?>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
@@ -59,9 +57,9 @@ final class StartingServiceTasks {
         // revert starting services, i.e., service that have not been started because start task has been cancelled
         final TaskController<Void> revertStartTask = taskFactory.<Void>newTask().
                 setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
-        
+
         // start service task builder
-        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
+        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
         }
@@ -79,32 +77,30 @@ final class StartingServiceTasks {
     }
 
     /**
-     * Creates starting service tasks. When all created tasks finish execution, {@code service} will enter {@code UP}
-     * state.
+     * Creates a start service task.
      * 
-     * @param serviceController    starting service
-     * @param dependencyStartTasks the tasks that must be first concluded before service can start
-     * @param transaction          the active transaction
-     * @param taskFactory          the task factory
-     * @return                     the final task to be executed. Can be used for creating tasks that depend on the
-     *                             conclusion of starting transition.
+     * @param serviceController  starting service
+     * @param taskDependency     the tasks that must be first concluded before service can start
+     * @param transaction        the active transaction
+     * @param taskFactory        the task factory
+     * @return                   the start task (can be used for creating tasks that depend on the conclusion of
+     *                           starting transition)
      */
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
 
-        return create(serviceController, dependencyStartTasks, null, transaction, taskFactory);
+        return create(serviceController, dependencyStartTasks, (TaskController<Void>) null, transaction, taskFactory);
     }
 
     /**
-     * Attempt to revert start tasks for {@code service}.
+     * Attempt to revert start task for {@code service}, thus causing the service to stop if it has been started.
      * 
-     * @param serviceController the service whose start tasks will be reverted
+     * @param service     the service whose start task will be reverted
      * @param transaction the active transaction
-     * @return {@code true} if {@code service} has start tasks created during current transaction, indicating they have
-     *                      been reverted; {@code false} if no such tasks exist, indicating stop tasks have to be
-     *                      created to stop the service 
+     * @return {@code true} if a start task has been reverted; {@code false} if no such start task exists, indicating
+     *                      a stop task has to be created to stop the service 
      */
-    static boolean revertStart(ServiceControllerImpl<?> serviceController, Transaction transaction) {
+    static boolean revert(ServiceControllerImpl<?> serviceController, Transaction transaction) {
         final TaskController<?> startTask = transaction.getAttachment(START_TASKS).remove(serviceController);
         if (startTask != null) {
             ((TaskControllerImpl<?>) startTask).forceCancel();
@@ -113,8 +109,22 @@ final class StartingServiceTasks {
         return false;
     }
 
-    private static <T> StartContext<T> createStartContext(final ServiceControllerImpl<T> serviceController, final Transaction transaction, final ExecuteContext<T> context) {
-        return new StartContext<T>() {
+    private final ServiceControllerImpl<T> serviceController;
+    private final Transaction transaction;
+
+    private StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
+        this.serviceController = serviceController;
+        this.transaction = transaction;
+    }
+
+    /**
+     * Perform the task.
+     *
+     * @param context
+     */
+    @Override
+    public void execute(final ExecuteContext<T> context) {
+        serviceController.getService().start(new StartContext<T>() {
             @Override
             public void complete(T result) {
                 serviceController.setServiceUp(result, transaction);
@@ -163,11 +173,12 @@ final class StartingServiceTasks {
             public void addProblem(Throwable cause) {
                 context.addProblem(cause);
             }
-        };
+        });
     }
 
-    private static StopContext createStopContext(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final RollbackContext context) {
-        return new StopContext() {
+    @Override
+    public void rollback(final RollbackContext context) {
+        serviceController.getService().stop(new StopContext() {
             @Override
             public void complete(Void result) {
                 serviceController.setServiceDown(transaction);
@@ -211,7 +222,7 @@ final class StartingServiceTasks {
             public void addProblem(Throwable cause) {
                 context.addProblem(cause);
             }
-        };
+        });
     }
 
     /**
@@ -237,35 +248,6 @@ final class StartingServiceTasks {
             } finally {
                 context.complete();
             }
-        }
-    }
-
-    /**
-     * Task that starts service.
-     * 
-     * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
-     * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
-     */
-    private static class StartServiceTask<T> implements Executable<T>, Revertible {
-
-        private final ServiceControllerImpl<T> serviceController;
-        protected final Service<T> service;
-        private final Transaction transaction;
-
-        StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
-            this.serviceController = serviceController;
-            this.service = serviceController.getService();
-            this.transaction = transaction;
-        }
-
-        @Override
-        public void execute(final ExecuteContext<T> context) {
-            service.start(createStartContext(serviceController, transaction, context));
-        }
-
-        @Override
-        public void rollback(final RollbackContext context) {
-            service.stop(createStopContext(serviceController, transaction, context));
         }
     }
 

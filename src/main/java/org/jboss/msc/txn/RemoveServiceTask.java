@@ -1,7 +1,7 @@
 /*
  * JBoss, Home of Professional Open Source
  *
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +24,30 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class ServiceRemoveTask implements Executable<Void>, Revertible {
+final class RemoveServiceTask implements Executable<Void>, Revertible {
+
+    /**
+     * Creates a remove service task.
+     * 
+     * @param serviceController  service that is being removed
+     * @param stopServiceTask    the task that must be first concluded before service can remove
+     * @param transaction        the active transaction
+     * @param taskFactory        the task factory
+     * @return                   the remove task (can be used for creating tasks that depend on the conclusion of removal)
+     */
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> stopTask,
+            Transaction transaction, TaskFactory taskFactory) {
+        final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new RemoveServiceTask(serviceController, transaction));
+        if (stopTask != null) {
+            removeTaskBuilder.addDependency(stopTask);
+        }
+        return removeTaskBuilder.release();
+    }
+
     private final Transaction transaction;
     private final ServiceControllerImpl<?> serviceController;
 
-    ServiceRemoveTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
+    private RemoveServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
         this.transaction = transaction;
         this.serviceController = serviceController;
     }

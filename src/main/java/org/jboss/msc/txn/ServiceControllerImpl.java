@@ -655,7 +655,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             if (transactionalState != STATE_FAILED) {
                 return;
             }
-            startTask = StartingServiceTasks.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, transaction.getTaskFactory());
+            startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, transaction.getTaskFactory());
         }
 
         private synchronized TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
@@ -665,7 +665,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_STOPPING:
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
-                        if (StoppingServiceTasks.revertStop(ServiceControllerImpl.this, transaction)) {
+                        if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STOPPING) {
                                 transactionalState = STATE_UP;
                             }
@@ -675,20 +675,20 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                             taskFactory = transaction.getTaskFactory();
                         }
                         transactionalState = STATE_STARTING;
-                        startTask = StartingServiceTasks.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
+                        startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
                         completeTransitionTask = startTask;
                     }
                     break;
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         transactionalState = STATE_STOPPING;
-                        completeTransitionTask = StoppingServiceTasks.createForFailedService(ServiceControllerImpl.this, transaction, taskFactory);
+                        completeTransitionTask = StopFailedServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
                     }
                     break;
                 case STATE_STARTING:
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
-                        if (StartingServiceTasks.revertStart(ServiceControllerImpl.this, transaction)) {
+                        if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STARTING) {
                                 transactionalState = STATE_DOWN;
                             }
@@ -699,7 +699,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
                         transactionalState = STATE_STOPPING;
-                        completeTransitionTask = StoppingServiceTasks.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
+                        completeTransitionTask = StopServiceTask.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
                     }
                     break;
                 default:
@@ -720,14 +720,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             }
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
-            final TaskController<?> stoppingTask = transition(transaction, taskFactory);
+            final TaskController<?> stopTask = transition(transaction, taskFactory);
             assert isStopping() || transactionalState == STATE_DOWN;// prevent hard to find bugs
-            // create remove task
-            final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new ServiceRemoveTask(ServiceControllerImpl.this, transaction));
-            if (stoppingTask != null) {
-                removeTaskBuilder.addDependency(stoppingTask);
-            }
-            return removeTaskBuilder.release();
+            return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
         private void setState(final byte sid) {
