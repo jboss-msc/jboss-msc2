@@ -131,26 +131,26 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
     public void execute(final ExecuteContext<T> context) {
         final Service<T> service = serviceController.getService();
         if (service == null ){
-            serviceController.setServiceUp(null, transaction);
+            serviceController.setServiceUp(null, transaction, context);
             context.complete(null);
             return;
         }
         service.start(new StartContext<T>() {
             @Override
             public void complete(T result) {
-                serviceController.setServiceUp(result, transaction);
+                serviceController.setServiceUp(result, transaction, context);
                 context.complete(result);
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceUp(null, transaction);
+                serviceController.setServiceUp(null, transaction, context);
                 context.complete();
             }
 
             @Override
             public void fail() {
-                serviceController.setServiceFailed(transaction);
+                serviceController.setServiceFailed(transaction, context);
                 serviceController.notifyServiceFailed(transaction, context);
                 context.complete();
             }
@@ -202,7 +202,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
     public void rollback(final RollbackContext context) {
         final Service<T> service = serviceController.getService();
         if (service == null ){
-            serviceController.setServiceDown(transaction);
+            serviceController.setServiceDown(transaction, context);
             serviceController.notifyServiceDown(transaction);
             context.complete();
             return;
@@ -210,14 +210,14 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         service.stop(new StopContext() {
             @Override
             public void complete(Void result) {
-                serviceController.setServiceDown(transaction);
+                serviceController.setServiceDown(transaction, context);
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceDown(transaction);
+                serviceController.setServiceDown(transaction, context);
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }
@@ -271,7 +271,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         public void rollback(RollbackContext context) {
             try {
                 // revert only services that have not started
-                if (serviceController.revertStarting(transaction)) {
+                if (serviceController.revertStarting(transaction, context)) {
                     serviceController.notifyServiceDown(transaction);
                 }
             } finally {

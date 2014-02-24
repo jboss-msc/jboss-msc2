@@ -53,7 +53,7 @@ public class StopFailedServiceTask implements Executable<Void>, Revertible {
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            serviceController.setServiceDown(transaction);
+            serviceController.setServiceDown(transaction, context);
         } finally {
             context.complete();
         }
@@ -62,7 +62,7 @@ public class StopFailedServiceTask implements Executable<Void>, Revertible {
     @Override
     public void rollback(RollbackContext context) {
         try {
-            serviceController.setServiceFailed(transaction);
+            serviceController.setServiceFailed(transaction, context);
         } finally {
             context.complete();
         }

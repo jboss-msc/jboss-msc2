@@ -54,13 +54,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     static final byte STATE_UP         = (byte)0b00001100;
     static final byte STATE_FAILED     = (byte)0b00010000;
     static final byte STATE_STOPPING   = (byte)0b00010100;
-    static final byte STATE_REMOVING   = (byte)0b00011000;
-    static final byte STATE_REMOVED    = (byte)0b00011100;
-    static final byte STATE_MASK       = (byte)0b00011100;
+    static final byte STATE_RESTARTING = (byte)0b00011000;
+    static final byte STATE_REMOVING   = (byte)0b00011100;
+    static final byte STATE_REMOVED    = (byte)0b00100000;
+    static final byte STATE_MASK       = (byte)0b00111100;
     // controller disposal flags
-    static final byte SERVICE_ENABLED  = (byte)0b00100000;
-    static final byte REGISTRY_ENABLED = (byte)0b01000000;
-    
+    static final byte SERVICE_ENABLED  = (byte)0b01000000;
+    static final byte REGISTRY_ENABLED = (byte)0b10000000;
+
     /**
      * The service itself.
      */
@@ -372,7 +373,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             throw TXN.methodParameterIsNull("transaction");
         }
         transaction.ensureIsActive();
-        // TODO
+        lock.lockSynchronously(transaction);
+        initTransactionalInfo();
+        transactionalInfo.restart(transaction);
     }
 
     /**
@@ -535,27 +538,27 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     /* Transition related methods */
 
-    void setServiceUp(T result, Transaction transaction) {
+    void setServiceUp(T result, Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         setValue(result);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction);
+        transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction, taskFactory);
     }
 
-    void setServiceFailed(Transaction transaction) {
+    void setServiceFailed(Transaction transaction, TaskFactory taskFactory) {
         MSCLogger.FAIL.startFailed(getServiceName());
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_FAILED, transaction);
+        transactionalInfo.setTransition(ServiceControllerImpl.STATE_FAILED, transaction, taskFactory);
     }
 
-    void setServiceDown(Transaction transaction) {
+    void setServiceDown(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         setValue(null);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_DOWN, transaction);
+        transactionalInfo.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, taskFactory);
     }
 
     void setServiceRemoved(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         clear(transaction, taskFactory);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_REMOVED, transaction);
+        transactionalInfo.setTransition(ServiceControllerImpl.STATE_REMOVED, transaction, taskFactory);
     }
 
     void notifyServiceStarting(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
@@ -594,19 +597,19 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return tasks;
     }
 
-    boolean revertStopping(Transaction transaction) {
+    boolean revertStopping(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         if (transactionalInfo.getTransition(transaction) == ServiceControllerImpl.STATE_STOPPING) {
-            transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction);
+            transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction, taskFactory);
             return true;
         }
         return false;
     }
 
-    boolean revertStarting(Transaction transaction) {
+    boolean revertStarting(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
         if (transactionalInfo.getTransition(transaction) == ServiceControllerImpl.STATE_STARTING) {
-            setServiceDown(transaction);
+            setServiceDown(transaction, taskFactory);
             return true;
         }
         return false;
@@ -646,8 +649,18 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return transactionalState;
         }
 
-        void setTransition(byte transactionalState, Transaction transaction) {
+        void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
             assert lock.isOwnedBy(transaction);
+            // time to restart the service
+            if (transactionalState == STATE_RESTARTING) {
+                if (transactionalState == STATE_UP | transactionalState == STATE_FAILED) {
+                    return;
+                } else {
+                    assert transactionalState == STATE_DOWN;
+                    transactionalState = STATE_DOWN;
+                    transition(transaction, taskFactory);
+                }
+            }
             this.transactionalState = transactionalState;
         }
 
@@ -707,6 +720,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
             }
             return completeTransitionTask;
+        }
+
+        private synchronized void restart(Transaction transaction) {
+            if (state == STATE_UP || state == STATE_STARTING) {
+                final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, transaction.getTaskFactory());
+                transactionalState = STATE_RESTARTING;
+                StopServiceTask.create(ServiceControllerImpl.this, startTask, dependentTasks, transaction, transaction.getTaskFactory());
+            }
         }
 
         private synchronized TaskController<Void> scheduleRemoval(Transaction transaction, TaskFactory taskFactory) {
