@@ -78,7 +78,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private static final int T_PREPARED_to_ROLLBACK    = 6;
     private static final int T_ROLLBACK_to_ROLLED_BACK = 7;
     private static final int T_COMMITTING_to_COMMITTED = 8;
-    final TransactionController controller;
+    final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
@@ -132,8 +132,8 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private volatile boolean isRollbackRequested;
     private volatile boolean isPrepareRequested;
 
-    Transaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
-        this.controller = controller;
+    Transaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        this.txnController = txnController;
         this.taskExecutor = taskExecutor;
         this.maxSeverity = maxSeverity;
     }
@@ -195,10 +195,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 return unit.convert(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
             }
         }
-    }
-
-    final TransactionController getController() {
-        return controller;
     }
 
     final Executor getExecutor() {
@@ -655,7 +651,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     void ensureIsActive() {
-        if (isPrepareRequested || isRollbackRequested) {
+        if (!isActive()) {
             throw MSCLogger.TXN.inactiveTransaction();
         }
     }

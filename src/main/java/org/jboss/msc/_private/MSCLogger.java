@@ -220,6 +220,10 @@ public interface MSCLogger {
 
     @Message (id = 130, value = "It is forbidden to create dependency on registry created by other transaction controller")
     IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
+
+    @Message (id = 131, value = "Transaction controller mismatch.")
+    IllegalArgumentException transactionControllerMismatch();
+
     /*
      * Location nesting types.
      */

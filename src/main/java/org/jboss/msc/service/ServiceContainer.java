@@ -18,6 +18,7 @@
 
 package org.jboss.msc.service;
 
+import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.Transaction;
 
 /**
@@ -40,7 +41,11 @@ public interface ServiceContainer {
      * Shuts down the container, removing all registries and their services.
      *
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service container.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void shutdown(Transaction transaction);
+    void shutdown(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
 }

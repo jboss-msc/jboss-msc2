@@ -267,7 +267,7 @@ public final class TransactionController extends SimpleAttachable {
         if (transaction == null) {
             throw TXN.methodParameterIsNull("transaction");
         }
-        return this == transaction.getController();
+        return this == transaction.txnController;
     }
 
     void validateTransaction(final BasicTransaction transaction) throws SecurityException {

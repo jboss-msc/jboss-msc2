@@ -18,7 +18,8 @@
 package org.jboss.msc.txn;
 
 import static org.jboss.msc._private.MSCLogger.SERVICE;
-import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.validateRegistry;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
@@ -34,27 +35,31 @@ import org.jboss.msc.service.ServiceRegistry;
  */
 class ServiceContextImpl implements ServiceContext {
 
-    private final TransactionController transactionController;
+    private final TransactionController txnController;
 
-    public ServiceContextImpl(TransactionController transactionController) {
-        this.transactionController = transactionController;
+    public ServiceContextImpl(final TransactionController txnController) {
+        this.txnController = txnController;
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction) {
-        validateTransaction(transaction);
+    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction)
+    throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
+        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
         
-        return new ServiceBuilderImpl<>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
+        return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
-    public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        validateTransaction(transaction);
+    public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
+        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         if (name == null) {
             throw SERVICE.methodParameterIsNull("name");
         }
@@ -70,57 +75,35 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction) {
-        validateTransaction(transaction);
+    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
+        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        return new ServiceBuilderImpl<>(transactionController, (ServiceRegistryImpl) registry, name, transaction);
+        return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
-    public <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceController service, Transaction transaction) {
+    public <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, Transaction transaction)
+    throws IllegalArgumentException, InvalidTransactionStateException {
+        validateRegistry(registry);
+        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         // TODO implement
         throw new RuntimeException("not implemented");
     }
 
     @Override
-    public ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction) {
+    public ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction)
+    throws IllegalArgumentException, InvalidTransactionStateException {
+        validateRegistry(registry);
+        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         // TODO implement
         throw new RuntimeException("not implemented");
     }
 
-    /**
-     * Validates {@code transaction} is a {@code TransactionImpl} created by the same transaction
-     * controller that is associated with this context.
-     * <p>
-     * This method must be invoked by all methods in the subclass that use a transaction to control one or more 
-     * tasks.
-     * 
-     * @param transaction the transaction to be validated
-     * @throws IllegalArgumentException if {@code transaction} does not belong to the same transaction controller
-     *                                  that created this context
-     */
-    protected void validateTransaction(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        //if (!(transaction instanceof BasicTransaction) && !(transaction instanceof XATransaction)) {
-        //    throw TXN.methodParameterIsInvalid("transaction");
-        //} TODO should we test this?
-        if (!transactionController.owns(transaction)) {
-            // cannot be used by this context
-            throw new IllegalArgumentException("Transaction does not belong to this context (transaction was created by a different transaction controller)");
-        }
-    }
-
-    private void validateRegistry(ServiceRegistry registry) {
-        if (registry == null) {
-            throw TXN.methodParameterIsNull("registry");
-        }
-        if (!(registry instanceof ServiceRegistryImpl)) {
-            throw TXN.methodParameterIsInvalid("registry");
-        }
-    }
 }

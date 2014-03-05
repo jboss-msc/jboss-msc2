@@ -18,6 +18,7 @@
 
 package org.jboss.msc.service;
 
+import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.Transaction;
 
 
@@ -34,38 +35,58 @@ public interface ServiceController<T> {
      * Disables a service, causing this service to stop if it is {@code UP}.
      *
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void disable(Transaction transaction);
+    void disable(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
      * <p> Services are enabled by default.
      *
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void enable(Transaction transaction);
+    void enable(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Removes this service.<p>
      * All dependent services will be automatically stopped as the result of this operation.
      * 
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void remove(Transaction transaction);
+    public void remove(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Restarts this service.
      * 
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void restart(Transaction transaction);
+    public void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Retries a failed service. Does nothing if the state has not failed.
      *
      * @param transaction the transaction
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void retry(Transaction transaction);
+    public void retry(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
     
     /**
      * Gets associated service.

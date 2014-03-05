@@ -68,10 +68,7 @@ abstract class ServiceManager {
      * Management operation for disabling one or more services. As a result, the affected services will stop if they are
      * {@code UP}.
      */
-    public void disable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
+    public void disable(final Transaction transaction) {
         // retrieve enable task if available
         final Map<ServiceManager, TaskController<Void>>[] tasks = transaction.getAttachment(MANAGEMENT_TASKS);
         final TaskControllerImpl<Void> enableTask;
@@ -98,10 +95,7 @@ abstract class ServiceManager {
      * their {@link ServiceMode mode} rules.
      * <p> Services are enabled by default.
      */
-    public void enable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
+    public void enable(final Transaction transaction) {
         final Map<ServiceManager, TaskController<Void>>[] tasks = transaction.getAttachment(MANAGEMENT_TASKS);
         // retrieve disable task if available
         final TaskControllerImpl<Void> disableTask;

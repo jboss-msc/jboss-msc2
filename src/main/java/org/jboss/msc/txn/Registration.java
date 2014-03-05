@@ -69,6 +69,8 @@ final class Registration {
 
     /** The registration name */
     private final ServiceName serviceName;
+    /** Associated transaction controller */
+    final TransactionController txnController;
     /**
      * The service controller.
      */
@@ -86,8 +88,9 @@ final class Registration {
      */
     private TransactionalLock lock = new TransactionalLock();
 
-    Registration(ServiceName serviceName) {
+    Registration(final ServiceName serviceName, final TransactionController txnController) {
         this.serviceName = serviceName;
+        this.txnController = txnController;
     }
 
     ServiceName getServiceName() {

@@ -19,6 +19,7 @@
 package org.jboss.msc.txn;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -39,7 +40,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     private static final byte ENABLED = 1 << 0x00;
     private static final byte REMOVED  = 1 << 0x01;
 
-    private final TransactionController txnController;
+    final TransactionController txnController;
     // map of service registrations
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
@@ -49,10 +50,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
 
     ServiceRegistryImpl(final TransactionController txnController) {
         this.txnController = txnController;
-    }
-
-    TransactionController getTransactionController() {
-        return txnController;
     }
 
     /**
@@ -91,7 +88,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         if (registration == null) {
             checkRemoved();
             lock.lockSynchronously(transaction);
-            registration = new Registration(name);
+            registration = new Registration(name, txnController);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
@@ -115,10 +112,8 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void remove(final Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
+    public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -141,7 +136,8 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void disable(Transaction transaction) {
+    public void disable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
         checkRemoved();
         super.disable(transaction);
     }
@@ -162,7 +158,8 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void enable(Transaction transaction) {
+    public void enable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
         checkRemoved();
         super.enable(transaction);
     }
@@ -182,7 +179,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         return true;
     }
 
-    private synchronized void checkRemoved() {
+    private synchronized void checkRemoved() throws IllegalStateException {
         if (Bits.anyAreSet(state, REMOVED)) {
             throw TXN.removedServiceRegistry();
         }

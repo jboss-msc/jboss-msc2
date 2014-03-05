@@ -18,11 +18,12 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.validateTransaction;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 
@@ -49,11 +50,8 @@ final class ServiceContainerImpl implements ServiceContainer {
     }
 
     @Override
-    public void shutdown(final Transaction txn) {
-        if (txn == null) {
-            throw MSCLogger.SERVICE.methodParameterIsNull("txn");
-        }
-        txn.ensureIsActive();
+    public void shutdown(final Transaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(txn, txnController);
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

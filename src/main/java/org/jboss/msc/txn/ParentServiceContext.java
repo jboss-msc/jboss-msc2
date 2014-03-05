@@ -17,6 +17,8 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.validateTransaction;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jboss.msc.service.DependencyFlag;
@@ -62,7 +64,7 @@ class ParentServiceContext<T> extends ServiceContextImpl {
         if (parentRegistration.getController() == null) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
         }
-        validateTransaction(transaction);
+        validateTransaction(transaction, parentRegistration.txnController);
         if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceControllerImpl.STATE_STARTING)) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not starting");
         }

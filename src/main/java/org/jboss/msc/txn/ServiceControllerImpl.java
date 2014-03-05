@@ -19,7 +19,7 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
-import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -257,6 +257,12 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
+    public void disable(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
+        super.disable(transaction);
+    }
+
+    @Override
     public boolean doDisable(final Transaction transaction, final TaskFactory taskFactory) {
         lock.lockSynchronously(transaction);
         initTransactionalInfo();
@@ -267,6 +273,12 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         }
         transactionalInfo.transition(transaction, taskFactory);
         return true;
+    }
+
+    @Override
+    public void enable(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
+        super.enable(transaction);
     }
 
     @Override
@@ -340,7 +352,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void retry(final Transaction transaction) {
+    public void retry(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
         if (lock.tryLock(transaction)) {
             doRetry(transaction);
         } else {
@@ -359,20 +372,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void remove(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
-        this.remove(transaction, transaction.getTaskFactory());
+    public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
+        remove(transaction, transaction.getTaskFactory());
     }
 
     @Override
-    public void restart(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        transaction.ensureIsActive();
+    public void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
         lock.lockSynchronously(transaction);
         initTransactionalInfo();
         transactionalInfo.restart(transaction);
