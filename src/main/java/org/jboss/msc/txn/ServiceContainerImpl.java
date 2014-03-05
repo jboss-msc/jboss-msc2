@@ -35,10 +35,15 @@ import org.jboss.msc.service.ServiceRegistry;
  */
 final class ServiceContainerImpl implements ServiceContainer {
 
+    private final TransactionController txnController;
     private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
 
+    ServiceContainerImpl(final TransactionController txnController) {
+        this.txnController = txnController;
+    }
+
     public ServiceRegistry newRegistry() {
-        final ServiceRegistryImpl returnValue = new ServiceRegistryImpl();
+        final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(txnController);
         registries.add(returnValue);
         return returnValue;
     }

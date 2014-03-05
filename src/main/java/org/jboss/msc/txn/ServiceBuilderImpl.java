@@ -155,7 +155,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     @Override
     public <D> Dependency<D> addDependency(final ServiceRegistry registry, final ServiceName name) {
-        return addDependencyInternal(registry, name, (DependencyFlag[])null);
+        return addDependencyInternal((ServiceRegistryImpl)registry, name, (DependencyFlag[])null);
     }
 
     /**
@@ -163,10 +163,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     @Override
     public <D> Dependency<D> addDependency(final ServiceRegistry registry, final ServiceName name, final DependencyFlag... flags) {
-        return addDependencyInternal(registry, name, flags);
+        return addDependencyInternal((ServiceRegistryImpl)registry, name, flags);
     }
 
-    private <D> Dependency<D> addDependencyInternal(final ServiceRegistry registry, final ServiceName name, final DependencyFlag... flags) {
+    private <D> Dependency<D> addDependencyInternal(final ServiceRegistryImpl registry, final ServiceName name, final DependencyFlag... flags) {
         checkAlreadyInstalled();
         if (registry == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("registry");
@@ -174,7 +174,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (name == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
-        final Registration dependencyRegistration = ((ServiceRegistryImpl) registry).getOrCreateRegistration(transaction, name);
+        if (this.registry.getTransactionController() != registry.getTransactionController()) {
+            throw MSCLogger.SERVICE.cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
+        }
+        final Registration dependencyRegistration = registry.getOrCreateRegistration(transaction, name);
         final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
         dependencies.put(name, dependency);
         return dependency;

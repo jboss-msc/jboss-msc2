@@ -37,7 +37,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     @Test
     public void outsiderTransaction() {
         final TransactionController outsiderController = TransactionController.createInstance();
-        final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
+        final BasicTransaction outsiderTransaction = outsiderController.createTransaction(defaultExecutor);
         SecurityException expected = null;
         try {
             txnController.canCommit(outsiderTransaction);

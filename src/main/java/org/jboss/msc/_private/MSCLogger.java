@@ -218,6 +218,8 @@ public interface MSCLogger {
     @Message (id = 129, value = "Cannot add new tasks with revertible component to inactive transaction")
     InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
 
+    @Message (id = 130, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
     /*
      * Location nesting types.
      */

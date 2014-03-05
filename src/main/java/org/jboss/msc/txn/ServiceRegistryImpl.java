@@ -39,6 +39,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     private static final byte ENABLED = 1 << 0x00;
     private static final byte REMOVED  = 1 << 0x01;
 
+    private final TransactionController txnController;
     // map of service registrations
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
@@ -46,7 +47,13 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     // transactional lock
     private TransactionalLock lock = new TransactionalLock();
 
+    ServiceRegistryImpl(final TransactionController txnController) {
+        this.txnController = txnController;
+    }
 
+    TransactionController getTransactionController() {
+        return txnController;
+    }
 
     /**
      * Gets a service, throwing an exception if it is not found.

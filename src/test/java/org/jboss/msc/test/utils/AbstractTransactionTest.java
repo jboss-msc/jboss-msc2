@@ -138,14 +138,14 @@ public abstract class AbstractTransactionTest {
 
     protected BasicTransaction newTransaction() {
         assertNotNull(defaultExecutor);
-        final BasicTransaction transaction = txnController.create(defaultExecutor);
+        final BasicTransaction transaction = txnController.createTransaction(defaultExecutor);
         createdTransactions.add(transaction);
         return transaction;
     }
 
     protected BasicTransaction newTransaction(final Executor executor) {
         assertNotNull(executor);
-        return txnController.create(executor);
+        return txnController.createTransaction(executor);
     }
 
     protected static void assertCalled(final TestTask task) {

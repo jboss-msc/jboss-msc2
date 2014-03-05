@@ -25,7 +25,6 @@ import static org.junit.Assert.assertSame;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceContainerFactory;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
@@ -58,7 +57,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     @Before
     public void setUp() {
         super.setUp();
-        serviceContainer = ServiceContainerFactory.getInstance().newServiceContainer();
+        serviceContainer = txnController.createServiceContainer();
         serviceRegistry = serviceContainer.newRegistry();
         TestServiceBuilder.setDefaultServiceRegistry(serviceRegistry);
     }
@@ -294,7 +293,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNotNull(serviceContext);
         // try to use with wrong transactions
         final TransactionController outsiderController = TransactionController.createInstance();
-        final BasicTransaction outsiderTransaction = outsiderController.create(defaultExecutor);
+        final BasicTransaction outsiderTransaction = outsiderController.createTransaction(defaultExecutor);
         final ServiceName serviceName = ServiceName.of("non", "existent");
         try {
             IllegalArgumentException expected = null;

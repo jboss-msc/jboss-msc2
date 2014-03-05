@@ -22,6 +22,7 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 import java.util.concurrent.Executor;
 
 import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceContainer;
 
 /**
  * A transaction controller, creates transactions and manages them.
@@ -52,8 +53,8 @@ public final class TransactionController extends SimpleAttachable {
      * @param executor the executor to use to run tasks
      * @return the transaction
      */
-    public BasicTransaction create(final Executor executor) {
-        return create(executor, Problem.Severity.WARNING);
+    public BasicTransaction createTransaction(final Executor executor) {
+        return createTransaction(executor, Problem.Severity.WARNING);
     }
 
     /**
@@ -63,7 +64,7 @@ public final class TransactionController extends SimpleAttachable {
      * @param maxSeverity the maximum severity to allow
      * @return the transaction
      */
-    public BasicTransaction create(final Executor executor, final Problem.Severity maxSeverity) {
+    public BasicTransaction createTransaction(final Executor executor, final Problem.Severity maxSeverity) {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
         }
@@ -84,6 +85,15 @@ public final class TransactionController extends SimpleAttachable {
             throw e;
         }
         return transaction;
+    }
+
+    /**
+     * Create a new service container.
+     *
+     * @return new service container.
+     */
+    public ServiceContainer createServiceContainer() {
+        return new ServiceContainerImpl(this);
     }
 
     /**

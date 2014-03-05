@@ -30,7 +30,7 @@ final class RemoveServiceTask implements Executable<Void>, Revertible {
      * Creates a remove service task.
      * 
      * @param serviceController  service that is being removed
-     * @param stopServiceTask    the task that must be first concluded before service can remove
+     * @param stopTask           the task that must be first concluded before service can remove
      * @param transaction        the active transaction
      * @param taskFactory        the task factory
      * @return                   the remove task (can be used for creating tasks that depend on the conclusion of removal)
