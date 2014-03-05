@@ -139,13 +139,11 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     final void addLock(final TransactionalLock lock) {
-        final boolean reverted;
         synchronized (this) {
             if (locks != null) {
                 locks.add(lock);
                 return;
             }
-            reverted = isRollbackRequested;
         }
         lock.unlock(this);
     }
@@ -342,11 +340,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
             Transactions.unregister(this);
-            final boolean reverted;
             final Set<TransactionalLock> locks;
             final List<TerminationListener> listeners;
             synchronized (this) {
-                reverted = isRollbackRequested;
                 locks = this.locks;
                 this.locks = null;
                 listeners = terminateListeners;
@@ -482,10 +478,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
-    }
-
-    final boolean isRollbackRequested() {
-        return isRollbackRequested;
     }
 
     final boolean canCommit() throws InvalidTransactionStateException {
