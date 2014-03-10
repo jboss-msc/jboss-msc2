@@ -18,14 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicReference;
 
-import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
 
 /**
@@ -47,12 +46,6 @@ final class Registration {
      */
     private static final int REMOVED  =      0x20000000;
     /**
-     * Indicates this registration is under service installation process. During this process, controller is null
-     * (i.e., no demand/disable messages are forwarded to controller), but not other controller can start installation.
-     * @see #preinstallService(Transaction)
-     */
-    private static final int INSTALLATION_LOCKED = 0x10000000;
-    /**
      * Indicates this registration is scheduled to start or up.
      */
     private static final int UP = 0x8000000;
@@ -71,10 +64,9 @@ final class Registration {
     private final ServiceName serviceName;
     /** Associated transaction controller */
     final TransactionController txnController;
-    /**
-     * The service controller.
-     */
-    private volatile ServiceControllerImpl<?> controller;
+    /** Associated controller and its metadata */
+    final AtomicReference<ControllerHolder> holderRef = new AtomicReference<>();
+
     /**
      * Incoming dependencies, i.e., dependent services.
      */
@@ -98,75 +90,36 @@ final class Registration {
     }
 
     ServiceControllerImpl<?> getController() {
-        return controller;
+        final ControllerHolder currentHolder = holderRef.get();
+        return currentHolder != null ? currentHolder.controller : null;
     }
 
     /**
-     * Locks this registration for a {@link #installService(ServiceControllerImpl, Transaction) service installation},
-     * thus guaranteeing that not more than one service will be installed at the same registration.<br>
-     * If there is already a service installed, or if this registration is already locked for another service
-     * installation, throws a {@code DuplicateServiceException}.
-     * 
-     * @param transaction   the active transaction
-     * @throws DuplicateServiceException if there is a service installed at this registration
-     */
-    void preinstallService(final Transaction transaction) throws DuplicateServiceException {
-        lock.lockSynchronously(transaction);
-        synchronized (this) {
-            if (controller != null || Bits.anyAreSet(state,  INSTALLATION_LOCKED)) {
-                throw SERVICE.duplicateService(serviceName);
-            }
-            state = state | INSTALLATION_LOCKED;
-        }
-    }
-
-    /**
-     * Completes a service installation. This method can only be called after {@link #preinstallService(Transaction)},
-     * to guarantee that only a single controller will be installed at this registration.
-     * 
-     * @param serviceController the controller
+     * Installs a service,
+     *
      * @param transaction       the active transaction
      */
-    void installService(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
-        installService(serviceController, transaction, transaction.getTaskFactory());
+    void installService(final Transaction transaction) {
+        installService(transaction, transaction.getTaskFactory());
     }
 
-    /**
-     * Reinstall the service into this registration (invoked on revert).
-     * 
-     * @param serviceController the controller
-     * @param transaction       the active transaction
-     */
-    void reinstallService(final ServiceControllerImpl<?> serviceController, final Transaction transaction) {
-        assert lock.isOwnedBy(transaction);
-        assert controller == null;
-        preinstallService(transaction);
-        installService(serviceController, transaction, null);
-    }
-
-    private void installService(final ServiceControllerImpl<?> serviceController, final Transaction transaction, final TaskFactory taskFactory) {
+    private void installService(final Transaction transaction, final TaskFactory taskFactory) {
         if (lock.tryLock(transaction)) {
-            doInstallService(serviceController, transaction, taskFactory);
+            doInstallService(transaction, taskFactory);
         } else {
             lock.lockAsynchronously(transaction, new LockListener() {
 
                 public void lockAcquired() {
-                    doInstallService(serviceController, transaction, taskFactory);
+                    doInstallService(transaction, taskFactory);
                 }
             });
         }
     }
 
-    private void doInstallService(ServiceControllerImpl<?> serviceController, Transaction transaction, TaskFactory taskFactory) {
-        final boolean demanded;
+    private void doInstallService(Transaction transaction, TaskFactory taskFactory) {
+        final ServiceControllerImpl<?> serviceController;
         synchronized (this) {
-            assert this.controller == null && Bits.anyAreSet(state,  INSTALLATION_LOCKED): "Installation not properly initiated, invoke preinstallService first.";
-            this.controller = serviceController;
-            state = state & ~INSTALLATION_LOCKED;
-            demanded = (state & DEMANDED_MASK) > 0;
-        }
-        if (demanded) {
-            serviceController.demand(transaction, taskFactory);
+            serviceController = holderRef.get().controller;
         }
         if (Bits.anyAreSet(state, REMOVED)) {
             throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
@@ -194,7 +147,7 @@ final class Registration {
     private void doClearController(Transaction transaction, TaskFactory taskFactory) {
         installDependenciesValidateTask(transaction, taskFactory);
         synchronized (this) {
-            this.controller = null;
+            holderRef.set(null);
         }
     }
 
@@ -217,7 +170,7 @@ final class Registration {
         synchronized (this) {
             incomingDependencies.add(dependency);
             up = Bits.anyAreSet(state,  UP);
-            startTask = up? controller.getStartTask(transaction): null;
+            startTask = up? holderRef.get().controller.getStartTask(transaction): null;
             if (up) {
                 dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
             }
@@ -299,10 +252,11 @@ final class Registration {
     void doAddDemand(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            controller = this.controller;
             if (((++ state) & DEMANDED_MASK) > 1) {
                 return;
             }
+            final ControllerHolder currentHolder = holderRef.get();
+            controller = currentHolder != null ? currentHolder.controller : null;
         }
         if (controller != null) {
             controller.demand(transaction, taskFactory);
@@ -325,10 +279,11 @@ final class Registration {
     private void doRemoveDemand(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            controller = this.controller;
             if (((--state) & DEMANDED_MASK) > 0) {
                 return;
             }
+            final ControllerHolder currentHolder = holderRef.get();
+            controller = currentHolder != null ? currentHolder.controller : null;
         }
         if (controller != null) {
             controller.undemand(transaction, taskFactory);
@@ -350,9 +305,10 @@ final class Registration {
     private void doRemove(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            controller = this.controller;
             if (Bits.anyAreSet(state, REMOVED)) return;
             state = state | REMOVED;
+            final ControllerHolder currentHolder = holderRef.get();
+            controller = currentHolder != null ? currentHolder.controller : null;
         }
         if (controller != null) {
             controller.remove(transaction, taskFactory);
@@ -371,7 +327,8 @@ final class Registration {
         synchronized (this) {
             if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
             state = state & ~REGISTRY_ENABLED;
-            controller = this.controller;
+            final ControllerHolder currentHolder = holderRef.get();
+            controller = currentHolder != null ? currentHolder.controller : null;
         }
         if (controller != null) {
             controller.disableRegistry(transaction, taskFactory);
@@ -383,7 +340,8 @@ final class Registration {
         synchronized (this) {
             if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
             state = state | REGISTRY_ENABLED;
-            controller = this.controller;
+            final ControllerHolder currentHolder = holderRef.get();
+            controller = currentHolder != null ? currentHolder.controller : null;
         }
         if (controller != null) {
             controller.enableRegistry(transaction, taskFactory);
@@ -400,6 +358,8 @@ final class Registration {
             public void validate(final ValidateContext context) {
                 try {
                     synchronized (Registration.this) {
+                        final ControllerHolder holder = Registration.this.holderRef.get();
+                        final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
                         for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
                             incomingDependency.validate(controller, context);
                         }

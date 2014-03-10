@@ -19,12 +19,15 @@
 package org.jboss.msc.txn;
 
 import static java.lang.Thread.holdsLock;
+import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc.txn.Helper.validateTransaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.jboss.msc.service.CircularDependencyException;
+import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc._private.MSCLogger;
@@ -77,7 +80,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     /**
      * The dependencies of this service.
      */
-    private final DependencyImpl<?>[] dependencies;
+    final DependencyImpl<?>[] dependencies;
     /**
      * The service value, resulting of service start.
      */
@@ -119,9 +122,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final Transaction transaction) {
         this.service = service;
         setMode(mode);
-        this.dependencies = dependencies;
-        this.aliasRegistrations = aliasRegistrations;
         this.primaryRegistration = primaryRegistration;
+        this.aliasRegistrations = aliasRegistrations;
+        this.dependencies = dependencies;
         lock.tryLock(transaction);
         assert lock.isOwnedBy(transaction);
         initTransactionalInfo();
@@ -146,9 +149,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     boolean install(Transaction transaction, TaskFactory taskFactory) {
         assert lock.isOwnedBy(transaction);
-        primaryRegistration.installService(this, transaction);
+        primaryRegistration.installService(transaction);
         for (Registration alias: aliasRegistrations) {
-            alias.installService(this, transaction);
+            alias.installService(transaction);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -163,15 +166,12 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return true;
     }
 
-    void reinstall(Transaction transaction) {
+    void reinstall(final Transaction transaction) {
         assert lock.isOwnedBy(transaction);
         for (DependencyImpl<?> dependency: dependencies) {
             dependency.setDependent(this, transaction);
         }
-        primaryRegistration.reinstallService(this, transaction);
-        for (Registration alias: aliasRegistrations) {
-            alias.reinstallService(this, transaction);
-        }
+        install();
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
@@ -631,13 +631,13 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     @Override
     public synchronized  void clean() {
         // prevent hard to find bugs
-        assert transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED: "State: " + transactionalInfo.getState();
+        assert transactionalInfo.getState() == STATE_NEW || transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED: "State: " + transactionalInfo.getState();
         state = (byte) (transactionalInfo.getState() | state & ~STATE_MASK);
         transactionalInfo = null;
     }
 
     final class TransactionalInfo {
-        // current transactional state
+        // current transactional state - must be always set via {@link #setState()} method, not directly
         private byte transactionalState = ServiceControllerImpl.this.currentState();
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<T> startTask = null;
@@ -660,7 +660,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             assert lock.isOwnedBy(transaction);
             // time to restart the service
             if (transactionalState == STATE_RESTARTING) {
-                if (transactionalState == STATE_UP | transactionalState == STATE_FAILED) {
+                if (transactionalState == STATE_UP || transactionalState == STATE_FAILED) {
                     return;
                 } else {
                     assert transactionalState == STATE_DOWN;
@@ -668,7 +668,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     transition(transaction, taskFactory);
                 }
             }
-            this.transactionalState = transactionalState;
+            setState(transactionalState);
         }
 
         private synchronized void retry(Transaction transaction) {
@@ -687,21 +687,21 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
                         if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STOPPING) {
-                                transactionalState = STATE_UP;
+                                setState(STATE_UP);
                             }
                             break;
                         }
                         if (taskFactory == null) {
                             taskFactory = transaction.getTaskFactory();
                         }
-                        transactionalState = STATE_STARTING;
+                        setState(STATE_STARTING);
                         startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
                         completeTransitionTask = startTask;
                     }
                     break;
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
-                        transactionalState = STATE_STOPPING;
+                        setState(STATE_STOPPING);
                         completeTransitionTask = StopFailedServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
                     }
                     break;
@@ -710,7 +710,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STARTING) {
-                                transactionalState = STATE_DOWN;
+                                setState(STATE_DOWN);
                             }
                             break;
                         }
@@ -718,7 +718,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                             return null;
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
-                        transactionalState = STATE_STOPPING;
+                        setState(STATE_STOPPING);
                         completeTransitionTask = StopServiceTask.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
                     }
                     break;
@@ -732,7 +732,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         private synchronized void restart(Transaction transaction) {
             if (state == STATE_UP || state == STATE_STARTING) {
                 final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, transaction.getTaskFactory());
-                transactionalState = STATE_RESTARTING;
+                setState(STATE_RESTARTING);
                 StopServiceTask.create(ServiceControllerImpl.this, startTask, dependentTasks, transaction, transaction.getTaskFactory());
             }
         }
@@ -749,12 +749,25 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             final TaskController<?> stopTask = transition(transaction, taskFactory);
-            assert isStopping() || transactionalState == STATE_DOWN;// prevent hard to find bugs
+            assert isStopping() || transactionalState == STATE_DOWN || transactionalState == STATE_NEW; // prevent hard to find bugs
             return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
         private void setState(final byte sid) {
-            transactionalState = sid;
+            assert transactionalState != sid;
+            if (dependencies.length == 0) {
+                transactionalState = sid;
+            } else {
+                // this controller has dependencies - we need to deal with 'cycle detection set' transitions
+                final boolean leavingDownState = transactionalState == STATE_DOWN && sid != STATE_REMOVED;
+                final boolean enteringDownState = transactionalState != STATE_NEW && transactionalState != STATE_REMOVED && sid == STATE_DOWN;
+                transactionalState = sid;
+                if (leavingDownState) {
+                    leaveCycleDetectionSet();
+                } else if (enteringDownState) {
+                    enterCycleDetectionSet();
+                }
+            }
         }
 
         private byte getState() {
@@ -767,6 +780,34 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
         private boolean isStopping() {
             return transactionalState == STATE_STOPPING;
+        }
+    }
+
+    private void leaveCycleDetectionSet() {
+        assert dependencies.length != 0;
+        final ControllerHolder newValue = new ControllerHolder(false, this);
+        replaceHolder(primaryRegistration, newValue);
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            replaceHolder(aliasRegistration, newValue);
+        }
+    }
+
+    private void enterCycleDetectionSet() {
+        assert dependencies.length != 0;
+        final ControllerHolder newValue = new ControllerHolder(true, this);
+        replaceHolder(primaryRegistration, newValue);
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            replaceHolder(aliasRegistration, newValue);
+        }
+    }
+
+    private void replaceHolder(final Registration registration, final ControllerHolder newValue) {
+        boolean success = false;
+        while (!success) {
+            final ControllerHolder oldValue = registration.holderRef.get();
+            if (oldValue == null) return; // controller was removed - we're finished for now
+            assert oldValue.inCycleDetectionSet != newValue.inCycleDetectionSet;
+            success = registration.holderRef.compareAndSet(oldValue, newValue);
         }
     }
 
@@ -790,4 +831,34 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         assert holdsLock(this);
         return (byte)(state & STATE_MASK);
     }
+
+    void install() throws DuplicateServiceException, CircularDependencyException {
+        final ControllerHolder controllerHolder = new ControllerHolder(dependencies.length != 0, this);
+
+        // associate controller holder with primary registration
+        if (!primaryRegistration.holderRef.compareAndSet(null, controllerHolder)) {
+            throw SERVICE.duplicateService(primaryRegistration.getServiceName());
+        }
+        boolean ok = false;
+        int lastIndex = -1;
+        try {
+            // associate controller holder with alias registrations
+            for (int i = 0; i < aliasRegistrations.length; lastIndex = i++) {
+                if (!aliasRegistrations[i].holderRef.compareAndSet(null, controllerHolder)) {
+                    throw SERVICE.duplicateService(aliasRegistrations[i].getServiceName());
+                }
+            }
+            CycleDetector.execute(this);
+            ok = true;
+        } finally {
+            if (!ok) {
+                // exception was thrown, cleanup
+                for (int i = 0; i < lastIndex; i++) {
+                    aliasRegistrations[i].holderRef.set(null);
+                }
+                primaryRegistration.holderRef.set(null);
+            }
+        }
+    }
+
 }

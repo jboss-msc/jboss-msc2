@@ -27,6 +27,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Executable;
@@ -223,6 +224,12 @@ public interface MSCLogger {
 
     @Message (id = 131, value = "Transaction controller mismatch.")
     IllegalArgumentException transactionControllerMismatch();
+
+    @Message (id = 132, value = "ServiceBuilder.install() have been already called")
+    IllegalStateException cannotCallInstallTwice();
+
+    @Message (id = 133, value = "%s service installation failed because it introduced the following cycle: %s")
+    CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
     /*
      * Location nesting types.

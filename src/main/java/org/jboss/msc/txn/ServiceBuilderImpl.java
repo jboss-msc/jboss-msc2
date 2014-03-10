@@ -24,8 +24,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
+import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
@@ -33,6 +35,8 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+
+import static org.jboss.msc._private.MSCLogger.SERVICE;
 
 /**
  * A service builder.
@@ -42,6 +46,9 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
+
+    private static final Registration[] NO_ALIASES = new Registration[0];
+    private static final DependencyImpl<?>[] NO_DEPENDENCIES = new DependencyImpl<?>[0];
 
     static final DependencyFlag[] noFlags = new DependencyFlag[0];
 
@@ -210,33 +217,36 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public ServiceController install() {
+    public ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException {
         assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
         if (installed) {
-            return null;
+            throw MSCLogger.SERVICE.cannotCallInstallTwice();
         }
         installed = true;
+
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, name);
-        registration.preinstallService(transaction);
 
         // create alias registrations
-        final ServiceName[] aliasArray = aliases.toArray(new ServiceName[aliases.size()]);
-        final Registration[] aliasRegistrations = new Registration[aliasArray.length];
-        int i = 0; 
-        for (ServiceName alias: aliases) {
-            aliasRegistrations[i] = registry.getOrCreateRegistration(transaction, alias);
-            aliasRegistrations[i++].preinstallService(transaction);
+        final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
+        if (aliasRegistrations != null) {
+            int i = 0;
+            for (final ServiceName alias: aliases) {
+                aliasRegistrations[i++] = registry.getOrCreateRegistration(transaction, alias);
+            }
         }
 
         // create dependencies
-        final DependencyImpl<?>[] dependenciesArray = new DependencyImpl<?>[dependencies.size()];
-        dependencies.values().toArray(dependenciesArray);
+        final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
+        if (dependenciesArray != null) {
+            dependencies.values().toArray(dependenciesArray);
+        }
+
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
+        serviceController.install();
         transaction.getTaskFactory().newTask(new InstallServiceTask(serviceController, transaction)).release();
-        CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
         return serviceController;
     }
 }

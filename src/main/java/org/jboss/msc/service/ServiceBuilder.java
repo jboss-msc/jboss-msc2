@@ -124,7 +124,10 @@ public interface ServiceBuilder<T> {
      * Initiates installation of this configured service to the container.
      * 
      * @return the controller for the installed service
+     * @throws IllegalStateException if this method is called more than once
+     * @throws DuplicateServiceException if installation collides with some already existing service
+     * @throws org.jboss.msc.service.CircularDependencyException if dependencies cycle is detected
      */
-    ServiceController install() throws IllegalStateException, DuplicateServiceException;
+    ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
 
 }
