@@ -39,7 +39,7 @@ public interface Service<T> {
      * 
      * @param startContext the start context
      */
-    public void start(StartContext<T> startContext);
+    void start(StartContext<T> startContext);
 
     /**
      * Service stop method, invoked on execution and rollback (when needed to revert a previous start).
@@ -50,6 +50,6 @@ public interface Service<T> {
      * 
      * @param stopContext the stop context
      */
-    public void stop(StopContext stopContext);
+    void stop(StopContext stopContext);
 
 }

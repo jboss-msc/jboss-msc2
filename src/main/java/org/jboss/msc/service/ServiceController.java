@@ -64,7 +64,7 @@ public interface ServiceController<T> {
      * is not the same as the one associated with this service controller.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void remove(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+    void remove(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Restarts this service.
@@ -75,7 +75,7 @@ public interface ServiceController<T> {
      * is not the same as the one associated with this service controller.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+    void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Retries a failed service. Does nothing if the state has not failed.
@@ -86,12 +86,12 @@ public interface ServiceController<T> {
      * is not the same as the one associated with this service controller.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    public void retry(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+    void retry(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
     
     /**
      * Gets associated service.
      * @return service
      */
-    public Service<T> getService();
+    Service<T> getService();
 
 }
