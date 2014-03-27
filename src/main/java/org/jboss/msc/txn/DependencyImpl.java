@@ -195,11 +195,11 @@ class DependencyImpl<T> implements Dependency<T> {
      * Validates dependency state before active transaction commits.
      * 
      * @param dependencyController the dependency controller, if available
-     * @param context              context where all validation problems found will be added
+     * @param report               report where all validation problems found will be added
      */
-    void validate(ServiceControllerImpl<?> dependencyController, ReportableContext context) {
+    void validate(final ServiceControllerImpl<?> dependencyController, final ProblemReport report) {
         if (dependencyController == null && !hasUnrequiredFlag()) {
-            context.addProblem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName()));
+            report.addProblem(new Problem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName())));
         }
     }
 

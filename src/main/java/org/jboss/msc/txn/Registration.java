@@ -259,21 +259,17 @@ final class Registration {
             return;
         }
         if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
-        ((TaskBuilderImpl<Void>)transaction.getTaskFactory().<Void>newTask()).setValidatable(new Validatable() {
+        transaction.addListener(new PrepareCompletionListener() {
             @Override
-            public void validate(final ValidateContext context) {
-                try {
-                    synchronized (Registration.this) {
-                        final ControllerHolder holder = Registration.this.holderRef.get();
-                        final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
-                        for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
-                            incomingDependency.validate(controller, context);
-                        }
+            public void transactionPrepared() {
+                synchronized (Registration.this) {
+                    final ControllerHolder holder = Registration.this.holderRef.get();
+                    final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
+                    for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
+                        incomingDependency.validate(controller, transaction.getTransactionReport());
                     }
-                } finally {
-                    context.complete();
                 }
             }
-        }).release();
+        });
     }
 }
