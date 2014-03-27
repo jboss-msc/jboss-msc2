@@ -79,7 +79,7 @@ public final class TransactionController extends SimpleAttachable {
 
     BasicTransaction registerTransaction(final BasicTransaction transaction) {
         try {
-            Transactions.register(transaction);
+            Transactions.register();
         } catch (final IllegalStateException e) {
             transaction.forceStateRolledBack();
             throw e;
@@ -241,21 +241,6 @@ public final class TransactionController extends SimpleAttachable {
     public boolean canCommit(final BasicTransaction transaction) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         return transaction.canCommit();
-    }
-
-    /**
-     * Indicate that the current operation on {@code transaction} depends on the completion of the given {@code other}
-     * transaction.
-     * 
-     * @param transaction transaction containing current operation
-     * @param other the other transaction
-     * @throws TransactionDeadlockException if this wait would cause a transaction deadlock
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws TransactionDeadlockException, SecurityException {
-        validateTransaction(transaction);
-        validateTransaction(other);
-        if (Transactions.waitFor(transaction, other)) throw new TransactionDeadlockException();
     }
 
     /**

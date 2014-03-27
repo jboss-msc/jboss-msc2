@@ -30,167 +30,28 @@ import java.util.concurrent.CountDownLatch;
 final class Transactions {
 
     private static final int maxTxns = 64;
-    private static final Transaction[] activeTxns = new Transaction[maxTxns];
-    private static final long[] txnDeps = new long[maxTxns];
+    private static int activeTxns;
 
     private Transactions() {
         // forbidden inheritance
     }
 
     /**
-     * Register transaction.
+     * Increment active transaction count.
      * 
-     * @param txn new active transaction
      * @throws IllegalStateException if there are too many active transactions
      */
-    static synchronized void register(final Transaction txn) throws IllegalStateException {
-        for (int i = 0; i < maxTxns; i++) {
-            if (activeTxns[i] == null) {
-                activeTxns[i] = txn;
-                return;
-            }
-        }
-        throw TXN.tooManyActiveTransactions();
+    static synchronized void register() throws IllegalStateException {
+        if (activeTxns == 64) throw TXN.tooManyActiveTransactions();
+        activeTxns++;
     }
 
     /**
-     * Unregister transaction.
-     * 
-     * @param txn old terminated transaction
+     * Decrement active transaction count.
      */
-    static synchronized void unregister(final Transaction txn) {
-        // unregister transaction and clean up its dependencies list
-        int txnIndex = -1;
-        for (int i = 0; i < maxTxns; i++) {
-            if (activeTxns[i] == txn) {
-                activeTxns[i] = null;
-                txnDeps[i] = 0L;
-                txnIndex = i;
-                break;
-            }
-        }
-        // clean up transaction dependency for every dependent
-        long bit = 1L << txnIndex;
-        for (int i = 0; i < maxTxns; i++) {
-            txnDeps[i] &= ~bit;
-        }
+    static synchronized void unregister() throws IllegalStateException {
+        assert activeTxns > 0;
+        activeTxns--;
     }
 
-    /**
-     * Causes <code>dependent</code> transaction to wait for <code>dependency</code> transaction.
-     * If some of the participating transactions have been terminated in the meantime wait will not happen.
-     * If wait setup was successful then registered termination listener is called when wait is finished.
-     * 
-     * @param dependent the dependent
-     * @param dependency the dependency
-     * @param listener the wait completion listener
-     * @return <code>true</code> if deadlock was detected and wait setup was cancelled
-     */
-    static boolean waitForAsynchronously(final Transaction dependent, final Transaction dependency, final TerminationListener listener) {
-        // detect self waits
-        if (dependent == dependency) {
-            Transaction.safeCallTerminateListener(listener);
-            return false;
-        }
-        boolean staleTransactions = true;
-        synchronized (Transactions.class) {
-            // lookup transaction indices from active transactions
-            int dependentIndex = -1, dependencyIndex = -1;
-            for (int i = 0; i < maxTxns; i++) {
-                if (activeTxns[i] == dependent) {
-                    dependentIndex = i;
-                } else if (activeTxns[i] == dependency) {
-                    dependencyIndex = i;
-                }
-                if (dependentIndex >= 0 && dependencyIndex >= 0) {
-                    break; // we have both indices
-                }
-            }
-            // ensure transaction indices are still valid
-            if (dependentIndex != -1 && dependencyIndex != -1) {
-                staleTransactions = false;
-                // register transactions dependency and detect deadlock
-                try {
-                    addDependency(dependentIndex, dependencyIndex);
-                    checkDeadlock(dependentIndex, 0L);
-                } catch (final TransactionDeadlockException e) {
-                    removeDependency(dependentIndex, dependencyIndex);
-                    return true;
-                }
-            }
-        }
-        if (staleTransactions) {
-            // Some of participating transactions have been terminated so we're done
-            Transaction.safeCallTerminateListener(listener);
-        } else {
-            // transactions dependency have been registered and no deadlock was detected, registering termination listener
-            final OneShotTerminationListener oneShotCompletionListener = OneShotTerminationListener.wrap(listener);
-            dependency.addTerminationListener(oneShotCompletionListener);
-            dependent.addTerminationListener(oneShotCompletionListener);
-        }
-        return false;
-    }
-
-    /**
-     * Causes <code>dependent</code> transaction to wait for <code>dependency</code> transaction.
-     * If some of the participating transactions have been terminated in the meantime wait will not happen.
-     * If wait setup was successful then this method blocks current thread until wait is finished.
-     *
-     * @param dependent the dependent
-     * @param dependency the dependency
-     * @return <code>true</code> if deadlock was detected and wait setup was cancelled
-     */
-    static boolean waitFor(final Transaction dependent, final Transaction dependency) {
-        final CountDownLatch signal = new CountDownLatch(1);
-        final TerminationListener listener = new TerminationListener() {
-            @Override
-            public void transactionTerminated() {
-                signal.countDown();
-            }
-        };
-        if (waitForAsynchronously(dependent, dependency, listener)) return true;
-        boolean interrupted = false;
-        while (true) {
-            try {
-                signal.await();
-                break;
-            } catch (InterruptedException e) {
-                interrupted = true;
-            }
-        }
-        if (interrupted) {
-            Thread.currentThread().interrupt();
-        }
-        return false;
-    }
-
-
-    private static void addDependency(final int dependentIndex, final int dependencyIndex) {
-        long bit = 1L << dependencyIndex;
-        txnDeps[dependentIndex] |= bit;
-    }
-
-    private static void removeDependency(final int dependentIndex, final int dependencyIndex) {
-        long bit = 1L << dependencyIndex;
-        txnDeps[dependentIndex] &= ~bit;
-    }
-
-    private static void checkDeadlock(final int txnIndex, long visited) throws TransactionDeadlockException {
-        // check deadlock
-        final long bit = 1L << txnIndex;
-        if (Bits.allAreSet(visited, bit)) {
-            throw new TransactionDeadlockException();
-        }
-        visited |= bit;
-        // process transaction dependencies
-        long dependencies = txnDeps[txnIndex];
-        long dependencyBit;
-        int dependencyIndex;
-        while (dependencies != 0L) {
-            dependencyBit = Long.lowestOneBit(dependencies);
-            dependencyIndex = Long.numberOfTrailingZeros(dependencyBit);
-            checkDeadlock(dependencyIndex, visited);
-            dependencies &= ~dependencyBit;
-        }
-    }
 }

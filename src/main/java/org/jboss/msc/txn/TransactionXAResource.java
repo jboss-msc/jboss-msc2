@@ -132,7 +132,7 @@ final class TransactionXAResource extends TransactionManagementScheme<XATransact
 
     XATransaction registerTransaction(final XATransaction transaction) {
         try {
-            Transactions.register(transaction);
+            Transactions.register();
         } catch (final IllegalStateException e) {
             transaction.forceStateRolledBack();
             throw e;

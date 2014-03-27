@@ -21,7 +21,6 @@ import static org.junit.Assert.assertNotNull;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.TransactionDeadlockException;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TransactionController;
@@ -105,16 +104,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         }
         assertNotNull(expected);
 
-        expected = null;
         final BasicTransaction transaction = newTransaction();
-        try {
-            txnController.waitFor(outsiderTransaction, transaction);
-        } catch (SecurityException e) {
-            expected = e;
-        } catch (TransactionDeadlockException e) {
-            // never happens
-        }
-        assertNotNull(expected);
         outsiderController.prepare(outsiderTransaction, null);
         outsiderController.commit(outsiderTransaction, null);
         txnController.prepare(transaction, null);

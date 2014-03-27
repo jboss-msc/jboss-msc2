@@ -33,6 +33,7 @@ import org.jboss.msc._private.MSCLogger;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
+// TODO: eliminate this class
 public final class TransactionalLock {
 
     private static final AtomicReferenceFieldUpdater<TransactionalLock, Transaction> ownerUpdater = AtomicReferenceFieldUpdater.newUpdater(TransactionalLock.class, Transaction.class, "owner");
@@ -81,23 +82,7 @@ public final class TransactionalLock {
                     safeCallLockListener(listener);
                     break;
                 } else {
-                    // some transaction already owns the lock, registering termination listener
-                    final boolean deadlockDetected = Transactions.waitForAsynchronously(newOwner, previousOwner, new TerminationListener() {
-                            @Override
-                            public void transactionTerminated() {
-                                lockAsynchronously(newOwner, listener);
-                            }
-                        });
-                    if (deadlockDetected) {
-                        // TODO review this: isn't there a better way of adding this problem, specifically why do we need
-                        // a task controller, and how will that look like in the log?
-                        final TransactionDeadlockException e = new TransactionDeadlockException();
-                        final Problem problem = new Problem(e, null);
-                        newOwner.getTransactionReport().addProblem(problem);
-                        safeCallLockListener(listener);
-                        throw new RuntimeException(e);
-                    }
-                    break;
+                    throw new UnsupportedOperationException();
                 }
             }
         }

@@ -339,7 +339,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             }
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
-            Transactions.unregister(this);
+            Transactions.unregister();
             final Set<TransactionalLock> locks;
             final List<TerminationListener> listeners;
             synchronized (this) {
