@@ -45,8 +45,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
     private byte state = ENABLED;
-    // transactional lock
-    private TransactionalLock lock = new TransactionalLock();
 
     ServiceRegistryImpl(final TransactionController txnController) {
         this.txnController = txnController;
@@ -87,7 +85,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lock.lock(transaction);
             registration = new Registration(name, txnController);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
@@ -114,7 +111,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     @Override
     public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
-        lock.lock(transaction);
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
@@ -132,7 +128,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
-        lock.lock(transaction);
         synchronized (this) {
             // idempotent
             if (!Bits.anyAreSet(state, ENABLED)) {
@@ -154,7 +149,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
-        lock.lock(transaction);
         synchronized (this) {
             // idempotent
             if (Bits.anyAreSet(state, ENABLED)) {

@@ -21,10 +21,7 @@ package org.jboss.msc.txn;
 import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +79,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
     private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
     private final ProblemReport transactionReport = new ProblemReport();
@@ -128,7 +124,8 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private Listener<? super AbortResult<? extends Transaction>> abortListener;
     private Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
-    private List<TerminationListener> terminateListeners = new ArrayList<>(0);
+    private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
+    private List<TerminateCompletionListener> terminateCompletionListeners = new ArrayList<>(0);
     private volatile boolean isRollbackRequested;
     private volatile boolean isPrepareRequested;
 
@@ -138,24 +135,24 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         this.maxSeverity = maxSeverity;
     }
 
-    final void addLock(final TransactionalLock lock) {
+    final void addListener(final PrepareCompletionListener listener) {
         synchronized (this) {
-            if (locks != null) {
-                locks.add(lock);
+            if (prepareCompletionListeners != null) {
+                prepareCompletionListeners.add(listener);
                 return;
             }
         }
-        lock.unlock(this);
+        throw new InvalidTransactionStateException();
     }
 
-    final void addTerminationListener(final TerminationListener listener) {
+    final void addListener(final TerminateCompletionListener listener) {
         synchronized (this) {
-            if (terminateListeners != null) {
-                terminateListeners.add(listener);
+            if (terminateCompletionListeners != null) {
+                terminateCompletionListeners.add(listener);
                 return;
             }
         }
-        safeCallTerminateListener(listener);
+        throw new InvalidTransactionStateException();
     }
 
     final void forceStateRolledBack() {
@@ -340,37 +337,22 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
             Transactions.unregister();
-            final Set<TransactionalLock> locks;
-            final List<TerminationListener> listeners;
-            synchronized (this) {
-                locks = this.locks;
-                this.locks = null;
-                listeners = terminateListeners;
-                terminateListeners = null;
-            }
-            // free all locks
-            for (final TransactionalLock lock : locks) {
-                lock.unlock(this);
-            }
-            locks.clear();
-            // transaction completion notifications
-            for (final TerminationListener listener : listeners) {
-                safeCallTerminateListener(listener);
-            }
-            listeners.clear();
         }
         if (userThread) {
             if (Bits.anyAreSet(state, LISTENERS_MASK)) {
                 safeExecute(new AsyncTask(state & (PERSISTENT_STATE | LISTENERS_MASK)));
             }
         } else {
-            if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
-                callCommitListener(state);
-            }
             if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
+                callPrepareCompletionListeners();
                 callPrepareListener(state);
             }
+            if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
+                callTerminateCompletionListeners();
+                callCommitListener(state);
+            }
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
+                callTerminateCompletionListeners();
                 callTerminateListeners(state);
             }
         }
@@ -384,11 +366,19 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    static void safeCallTerminateListener(final TerminationListener listener) {
+    static void safeCallListener(final PrepareCompletionListener listener) {
+        try {
+            listener.transactionPrepared();
+        } catch (final Throwable t) {
+            MSCLogger.ROOT.prepareCompletionListenerFailed(t);
+        }
+    }
+
+    static void safeCallListener(final TerminateCompletionListener listener) {
         try {
             listener.transactionTerminated();
-        } catch (Throwable t) {
-            MSCLogger.ROOT.terminationListenerFailed(t);
+        } catch (final Throwable t) {
+            MSCLogger.ROOT.terminateCompletionListenerFailed(t);
         }
     }
 
@@ -646,6 +636,30 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         if (!isActive()) {
             throw MSCLogger.TXN.inactiveTransaction();
         }
+    }
+
+    private void callPrepareCompletionListeners() {
+        final List<PrepareCompletionListener> prepareCompletionListeners;
+        synchronized (this) {
+            prepareCompletionListeners = this.prepareCompletionListeners;
+            this.prepareCompletionListeners = null;
+        }
+        for (final PrepareCompletionListener listener : prepareCompletionListeners) {
+            safeCallListener(listener);
+        }
+        prepareCompletionListeners.clear();
+    }
+
+    private void callTerminateCompletionListeners() {
+        final List<TerminateCompletionListener> terminateCompletionListeners;
+        synchronized (this) {
+            terminateCompletionListeners = this.terminateCompletionListeners;
+            this.terminateCompletionListeners = null;
+        }
+        for (final TerminateCompletionListener listener : terminateCompletionListeners) {
+            safeCallListener(listener);
+        }
+        terminateCompletionListeners.clear();
     }
 
     private void callPrepareListener(final int state) {

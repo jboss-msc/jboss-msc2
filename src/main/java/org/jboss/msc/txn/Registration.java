@@ -75,10 +75,6 @@ final class Registration {
      * State.
      */
     private int state;
-    /**
-     * Transactional lock.
-     */
-    private TransactionalLock lock = new TransactionalLock();
 
     Registration(final ServiceName serviceName, final TransactionController txnController) {
         this.serviceName = serviceName;
@@ -104,7 +100,6 @@ final class Registration {
     }
 
     private void installService(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lock(transaction);
         final ServiceControllerImpl<?> serviceController;
         synchronized (this) {
             serviceController = holderRef.get().controller;
@@ -120,7 +115,6 @@ final class Registration {
     }
 
     void clearController(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lock(transaction);
         installDependenciesValidateTask(transaction, taskFactory);
         synchronized (this) {
             holderRef.set(null);
@@ -128,7 +122,6 @@ final class Registration {
     }
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
-        lock.lock(transaction);
         installDependenciesValidateTask(transaction, transaction.getTaskFactory());
         final TaskController<?> startTask;
         final boolean up;
@@ -143,7 +136,6 @@ final class Registration {
     }
 
     void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
-        lock.lock(transaction);
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
@@ -190,7 +182,6 @@ final class Registration {
     }
 
     void addDemand(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((++ state) & DEMANDED_MASK) > 1) {
@@ -205,7 +196,6 @@ final class Registration {
     }
 
     void removeDemand(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((--state) & DEMANDED_MASK) > 0) {
@@ -220,7 +210,6 @@ final class Registration {
     }
 
     void remove(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;
@@ -234,7 +223,6 @@ final class Registration {
     }
 
     void reinstall(Transaction transaction) {
-        assert lock.isOwnedBy(transaction);
         synchronized (this) {
             state = state & ~REMOVED;
         }

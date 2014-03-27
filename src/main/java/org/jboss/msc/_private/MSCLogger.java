@@ -116,11 +116,15 @@ public interface MSCLogger {
     void lockCleanupFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 19, value = "Transaction termination listener execution failed")
-    void terminationListenerFailed(@Cause Throwable cause);
+    @Message(id = 19, value = "Transaction prepare completion listener failed")
+    void prepareCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 20, value = "Lock request listener execution failed")
+    @Message(id = 20, value = "Transaction terminate completion listener failed")
+    void terminateCompletionListenerFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 21, value = "Lock request listener execution failed")
     void lockListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
