@@ -104,19 +104,7 @@ final class Registration {
     }
 
     private void installService(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doInstallService(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doInstallService(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    private void doInstallService(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         final ServiceControllerImpl<?> serviceController;
         synchronized (this) {
             serviceController = holderRef.get().controller;
@@ -132,19 +120,7 @@ final class Registration {
     }
 
     void clearController(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doClearController(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doClearController(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    private void doClearController(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         installDependenciesValidateTask(transaction, taskFactory);
         synchronized (this) {
             holderRef.set(null);
@@ -152,18 +128,7 @@ final class Registration {
     }
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
-        if (lock.tryLock(transaction)) {
-            doAddIncomingDependency(transaction, dependency);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener(){
-                public void lockAcquired() {
-                    doAddIncomingDependency(transaction, dependency);
-                }
-            });
-        }
-    }
-
-    private void doAddIncomingDependency(Transaction transaction, DependencyImpl<?> dependency) {
+        lock.lock(transaction);
         installDependenciesValidateTask(transaction, transaction.getTaskFactory());
         final TaskController<?> startTask;
         final boolean up;
@@ -178,19 +143,7 @@ final class Registration {
     }
 
     void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
-        if (lock.tryLock(transaction)) {
-            doRemoveIncomingDependency(dependency);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doRemoveIncomingDependency(dependency);
-                }
-            });
-        }
-    }
-
-    private void doRemoveIncomingDependency(DependencyImpl<?> dependency) {
+        lock.lock(transaction);
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
@@ -237,19 +190,7 @@ final class Registration {
     }
 
     void addDemand(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doAddDemand(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doAddDemand(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    void doAddDemand(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((++ state) & DEMANDED_MASK) > 1) {
@@ -264,19 +205,7 @@ final class Registration {
     }
 
     void removeDemand(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doRemoveDemand(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                 public void lockAcquired() {
-                    doRemoveDemand(transaction, taskFactory);
-                }});
-        }
-        
-    }
-
-    private void doRemoveDemand(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((--state) & DEMANDED_MASK) > 0) {
@@ -291,18 +220,7 @@ final class Registration {
     }
 
     void remove(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doRemove(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doRemove(transaction, taskFactory);
-                }});
-        }
-    }
-
-    private void doRemove(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;

@@ -48,57 +48,18 @@ public final class TransactionalLock {
         this.cleaner = cleaner;
     }
 
-    void lockSynchronously(final Transaction transaction) {
-        if (transaction.isTerminated()) {
-            throw MSCLogger.TXN.txnTerminated();
-        }
-        final CountDownLatch signal = new CountDownLatch(1);
-        lockAsynchronously(transaction, new LockListener() {
-            @Override
-            public void lockAcquired() {
-                signal.countDown();
-            }
-        });
-        try {signal.await();} catch (InterruptedException ignored) {}
-    }
-
-    void lockAsynchronously(final Transaction newOwner, final LockListener listener) {
+    void lock(final Transaction newOwner) {
         if (newOwner.isTerminated()) {
             throw MSCLogger.TXN.txnTerminated();
         }
-        Transaction previousOwner;
-        while (true) {
-            previousOwner = owner;
-            if (previousOwner == null) {
-                if (ownerUpdater.compareAndSet(this, null, newOwner)) {
-                    // lock successfully acquired
-                    newOwner.addLock(this);
-                    safeCallLockListener(listener);
-                    break;
-                }
-            } else {
-                if (previousOwner == newOwner) {
-                    // reentrant access
-                    safeCallLockListener(listener);
-                    break;
-                } else {
-                    throw new UnsupportedOperationException();
-                }
-            }
-        }
-    }
-
-    boolean tryLock(final Transaction newOwner) {
-        if (newOwner.isTerminated()) {
-            throw MSCLogger.TXN.txnTerminated();
-        }
-        if (!ownerUpdater.compareAndSet(this, null, newOwner)) return false;
+        final Transaction previousOwner = ownerUpdater.get(this);
+        if (previousOwner == newOwner) return;
+        if (!ownerUpdater.compareAndSet(this, null, newOwner)) throw new UnsupportedOperationException();
         newOwner.addLock(this);
-        return true;
     }
 
     void unlock(final Transaction currentOwner) {
-        if (!ownerUpdater.compareAndSet(this, currentOwner, null)) return;
+        if (!ownerUpdater.compareAndSet(this, currentOwner, null)) throw new UnsupportedOperationException();
         final Cleaner cleaner = this.cleaner;
         if (cleaner != null) {
             try {
@@ -106,14 +67,6 @@ public final class TransactionalLock {
             } catch (final Throwable t) {
                 MSCLogger.FAIL.lockCleanupFailed(t);
             }
-        }
-    }
-
-    private void safeCallLockListener(final LockListener listener) {
-        try {
-            listener.lockAcquired();
-        } catch (final Throwable t) {
-            MSCLogger.FAIL.lockListenerFailed(t);
         }
     }
 

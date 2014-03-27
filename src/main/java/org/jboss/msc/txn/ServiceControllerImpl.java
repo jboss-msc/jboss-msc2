@@ -125,7 +125,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         this.primaryRegistration = primaryRegistration;
         this.aliasRegistrations = aliasRegistrations;
         this.dependencies = dependencies;
-        lock.tryLock(transaction);
+        lock.lock(transaction);
         assert lock.isOwnedBy(transaction);
         initTransactionalInfo();
         unsatisfiedDependencies = dependencies.length;
@@ -264,7 +264,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     @Override
     public boolean doDisable(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized(this) {
             if (!isServiceEnabled()) return false;
@@ -283,7 +283,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     @Override
     public boolean doEnable(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized(this) {
             if (isServiceEnabled()) return false;
@@ -300,20 +300,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     void disableRegistry(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doDisableRegistry(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doDisableRegistry(transaction, taskFactory);
-                }
-            });
-        }
-        
-    }
-
-    private void doDisableRegistry(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized (this) {
             if (!isRegistryEnabled()) return;
@@ -324,19 +311,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     void enableRegistry(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doEnableRegistry(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doEnableRegistry(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    void doEnableRegistry(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized (this) {
             if (isRegistryEnabled()) return;
@@ -353,24 +328,12 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     @Override
     public void retry(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        lock.lock(transaction);
         validateTransaction(transaction, primaryRegistration.txnController);
-        if (lock.tryLock(transaction)) {
-            doRetry(transaction);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doRetry(transaction);
-                }
-            });
-        }
-    }
-    
-    private void doRetry(Transaction transaction) {
         initTransactionalInfo();
         transactionalInfo.retry(transaction);
     }
-
+    
     @Override
     public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
@@ -380,7 +343,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     @Override
     public void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         initTransactionalInfo();
         transactionalInfo.restart(transaction);
     }
@@ -401,7 +364,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 return null;
             }
         }
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         initTransactionalInfo();
         return transactionalInfo.scheduleRemoval(transaction, taskFactory);
     }
@@ -413,19 +376,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      * @param taskFactory the task factory
      */
     void demand(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doDemand(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doDemand(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    void doDemand(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         initTransactionalInfo();
         final boolean propagate;
         synchronized (this) {
@@ -460,19 +411,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      * @param taskFactory the task factory
      */
     void undemand(final Transaction transaction, final TaskFactory taskFactory) {
-        if (lock.tryLock(transaction)) {
-            doUndemand(transaction, taskFactory);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doUndemand(transaction, taskFactory);
-                }
-            });
-        }
-    }
-
-    private void doUndemand(Transaction transaction, TaskFactory taskFactory) {
+        lock.lock(transaction);
         initTransactionalInfo();
         final boolean propagate;
         synchronized (this) {
@@ -512,19 +451,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     void dependencySatisfied(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> dependencyStartTask) {
-        if (lock.tryLock(transaction)) {
-            doDependencySatisfied(transaction, taskFactory, dependencyStartTask);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doDependencySatisfied(transaction, taskFactory, dependencyStartTask);
-                }
-            });
-        }
-    }
-
-    private void doDependencySatisfied(Transaction transaction, TaskFactory taskFactory, TaskController<?> dependencyStartTask) {
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized (ServiceControllerImpl.this) {
             -- unsatisfiedDependencies;
@@ -533,7 +460,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     public TaskController<?> dependencyUnsatisfied(final Transaction transaction, final TaskFactory taskFactory) {
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         initTransactionalInfo();
         synchronized (this) {
            if (++ unsatisfiedDependencies > 1) {

@@ -87,7 +87,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lock.lockSynchronously(transaction);
+            lock.lock(transaction);
             registration = new Registration(name, txnController);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
@@ -114,23 +114,12 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     @Override
     public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
+        lock.lock(transaction);
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
             }
         }
-        if (lock.tryLock(transaction)) {
-            doRemove(transaction);
-        } else {
-            lock.lockAsynchronously(transaction, new LockListener() {
-
-                public void lockAcquired() {
-                    doRemove(transaction);
-                }});
-        }
-    }
-
-    private void doRemove(final Transaction transaction) {
         final RemoveTask removeTask = new RemoveTask(transaction);
         transaction.getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
     }
@@ -143,7 +132,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         synchronized (this) {
             // idempotent
             if (!Bits.anyAreSet(state, ENABLED)) {
@@ -165,7 +154,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
-        lock.lockSynchronously(transaction);
+        lock.lock(transaction);
         synchronized (this) {
             // idempotent
             if (Bits.anyAreSet(state, ENABLED)) {
