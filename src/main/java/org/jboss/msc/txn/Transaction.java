@@ -49,32 +49,28 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private static final int FLAG_DO_COMMIT_LISTENER   = 1 << 7;
     private static final int FLAG_DO_ROLLBACK_LISTENER = 1 << 8;
     private static final int FLAG_SEND_CANCEL_REQ      = 1 << 9;
-    private static final int FLAG_SEND_VALIDATE_REQ    = 1 << 10;
-    private static final int FLAG_SEND_COMMIT_REQ      = 1 << 11;
-    private static final int FLAG_SEND_ROLLBACK_REQ    = 1 << 12;
-    private static final int FLAG_CLEAN_UP             = 1 << 13;
+    private static final int FLAG_SEND_COMMIT_REQ      = 1 << 10;
+    private static final int FLAG_SEND_ROLLBACK_REQ    = 1 << 11;
+    private static final int FLAG_CLEAN_UP             = 1 << 12;
     private static final int FLAG_USER_THREAD          = 1 << 31;
 
     private static final int STATE_ACTIVE      = 0x0; // adding tasks and subtransactions; counts = # added
-    private static final int STATE_PREPARING   = 0x1; // preparing all our tasks
-    private static final int STATE_PREPARED    = 0x2; // prepare finished, wait for commit/abort decision from user or parent
-    private static final int STATE_ROLLBACK    = 0x3; // rolling back all our tasks; count = # remaining
-    private static final int STATE_COMMITTING  = 0x4; // performing commit actions
-    private static final int STATE_ROLLED_BACK = 0x5; // "dead" state
-    private static final int STATE_COMMITTED   = 0x6; // "success" state
+    private static final int STATE_PREPARED    = 0x1; // prepare finished, wait for commit/abort decision from user or parent
+    private static final int STATE_ROLLBACK    = 0x2; // rolling back all our tasks; count = # remaining
+    private static final int STATE_COMMITTING  = 0x3; // performing commit actions
+    private static final int STATE_ROLLED_BACK = 0x4; // "dead" state
+    private static final int STATE_COMMITTED   = 0x5; // "success" state
     private static final int STATE_MASK        = 0x07;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER | FLAG_DO_ROLLBACK_LISTENER;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_ROLLBACK_REQ | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
 
     private static final int T_NONE                    = 0;
-    private static final int T_ACTIVE_to_PREPARING     = 1;
+    private static final int T_ACTIVE_to_PREPARED      = 1;
     private static final int T_ACTIVE_to_ROLLBACK      = 2;
-    private static final int T_PREPARING_to_PREPARED   = 3;
-    private static final int T_PREPARING_to_ROLLBACK   = 4;
-    private static final int T_PREPARED_to_COMMITTING  = 5;
-    private static final int T_PREPARED_to_ROLLBACK    = 6;
-    private static final int T_ROLLBACK_to_ROLLED_BACK = 7;
-    private static final int T_COMMITTING_to_COMMITTED = 8;
+    private static final int T_PREPARED_to_COMMITTING  = 3;
+    private static final int T_PREPARED_to_ROLLBACK    = 4;
+    private static final int T_ROLLBACK_to_ROLLED_BACK = 5;
+    private static final int T_COMMITTING_to_COMMITTED = 6;
     final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
@@ -86,10 +82,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final TaskParent topParent = new TaskParent() {
         public void childExecuted(final boolean userThread) {
             doChildExecuted(userThread);
-        }
-
-        public void childValidated(final boolean userThread) {
-            doChildValidated(userThread);
         }
 
         public void childTerminated(final boolean userThread) {
@@ -118,7 +110,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     private int state;
     private int uncancelledChildren;
     private int unexecutedChildren;
-    private int unvalidatedChildren;
     private int unterminatedChildren;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
@@ -218,16 +209,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
                     return T_ACTIVE_to_ROLLBACK;
                 } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
-                    return T_ACTIVE_to_PREPARING;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_PREPARING: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                    return T_PREPARING_to_ROLLBACK;
-                } else if (unvalidatedChildren == 0) {
-                    return T_PREPARING_to_PREPARED;
+                    return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
                 }
@@ -277,20 +259,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             int t = getTransition(state);
             switch (t) {
                 case T_NONE: return state;
-                case T_ACTIVE_to_PREPARING: {
-                    state = newState(STATE_PREPARING, state | FLAG_SEND_VALIDATE_REQ);
+                case T_ACTIVE_to_PREPARED: {
+                    state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
                     continue;
                 }
                 case T_ACTIVE_to_ROLLBACK: {
                     state = newState(STATE_ROLLBACK, state);
-                    continue;
-                }
-                case T_PREPARING_to_PREPARED: {
-                    state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
-                    continue;
-                }
-                case T_PREPARING_to_ROLLBACK: {
-                    state = newState(STATE_ROLLBACK, state | FLAG_SEND_ROLLBACK_REQ);
                     continue;
                 }
                 case T_PREPARED_to_COMMITTING: {
@@ -323,11 +297,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childRollback(userThread);
-            }
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
-            for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childValidate(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
@@ -521,19 +490,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    private void doChildValidated(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            unvalidatedChildren--;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
     private void doChildTerminated(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
@@ -562,7 +518,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             }
             topLevelTasks.add(child);
             unexecutedChildren++;
-            unvalidatedChildren++;
             unterminatedChildren++;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -602,14 +557,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
+    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
         final boolean sendRollbackRequest;
         synchronized (this) {
             topLevelTasks.addAll(grandchildren);
             unexecutedChildren += unexecutedGreatGrandchildren;
-            unvalidatedChildren += unvalidatedGreatGrandchildren;
             unterminatedChildren += unterminatedGreatGrandchildren;
             state = this.state;
             sendRollbackRequest = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);

@@ -41,14 +41,12 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
     private Executable<T> executable;
-    private Validatable validatable;
     private Revertible revertible;
 
     TaskBuilderImpl(final Transaction transaction, final TaskParent parent, final Executable<T> executable) {
         this.transaction = transaction;
         this.parent = parent;
         this.executable = executable;
-        if (executable instanceof Validatable) validatable = (Validatable) executable;
         if (executable instanceof Revertible) revertible = (Revertible) executable;
     }
 
@@ -117,14 +115,8 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, revertible, validatable, classLoader);
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, revertible, classLoader);
         controller.install();
         return controller;
     }
-
-    TaskBuilderImpl<T> setValidatable(final Validatable validatable) {
-        this.validatable = validatable;
-        return this;
-    }
-
 }

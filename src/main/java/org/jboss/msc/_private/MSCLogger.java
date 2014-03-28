@@ -86,55 +86,30 @@ public interface MSCLogger {
 
     // id = 10: failed mbean registration (N/A)
 
-    @Message(id = 11, value = "Service not started")
-    IllegalStateException serviceNotStarted();
-
     @LogMessage(level = ERROR)
-    @Message(id = 12, value = "Execution of task \"%s\" caused an exception")
+    @Message(id = 11, value = "Execution of task \"%s\" caused an exception")
     void taskExecutionFailed(@Cause Throwable cause, Executable<?> task);
 
     @LogMessage(level = ERROR)
-    @Message(id = 13, value = "Validation of task \"%s\" caused an exception")
-    void taskValidationFailed(@Cause Throwable cause, Object task);
-
-    @LogMessage(level = ERROR)
-    @Message(id = 14, value = "Rollback of task \"%s\" caused an exception")
+    @Message(id = 12, value = "Rollback of task \"%s\" caused an exception")
     void taskRollbackFailed(@Cause Throwable cause, Revertible task);
 
     @LogMessage(level = FATAL)
-    @Message(id = 15, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
+    @Message(id = 13, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
     void runnableExecuteFailed(@Cause Throwable cause, Runnable command);
 
-    @Message(id = 16, value ="Service %s has a required dependency on service %s that is missing")
+    @Message(id = 14, value ="Service %s has a required dependency on service %s that is missing")
     String requiredDependency(ServiceName dependentName, ServiceName dependencyName);
 
-    @Message(id = 17, value="Dependency cycle found: %s")
-    String dependencyCycle(ServiceName[] cycle);
-
     @LogMessage(level = FATAL)
-    @Message(id = 18, value = "Lock cleanup failed")
-    void lockCleanupFailed(@Cause Throwable cause);
-
-    @LogMessage(level = FATAL)
-    @Message(id = 19, value = "Transaction prepare completion listener failed")
+    @Message(id = 15, value = "Transaction prepare completion listener failed")
     void prepareCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 20, value = "Transaction terminate completion listener failed")
+    @Message(id = 16, value = "Transaction terminate completion listener failed")
     void terminateCompletionListenerFailed(@Cause Throwable cause);
 
-    @LogMessage(level = FATAL)
-    @Message(id = 21, value = "Lock request listener execution failed")
-    void lockListenerFailed(@Cause Throwable cause);
-
     // jump to 100...
-
-    /*
-     * This method is for uninjection failures which are not service-related.  See also id = 6
-     */
-    @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 100, value = "Unexpected failure to uninject %s")
-    void uninjectFailed(@Cause Throwable cause, Object target);
 
     @Message(id = 101, value = "Parameter %s is null")
     IllegalArgumentException methodParameterIsNull(final String parameterName);
@@ -196,43 +171,40 @@ public interface MSCLogger {
     @Message (id = 120, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotCancelChildOnInactiveTxn(final int state);
 
-    @Message (id = 121, value = "Cannot use transaction at this stage: the transaction is terminated.")
-    InvalidTransactionStateException txnTerminated();
-
-    @Message (id = 122, value = "No result is available")
+    @Message (id = 121, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message (id = 123, value = "Task may not be completed now")
+    @Message (id = 122, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message (id = 124, value = "Task may not be cancelled now")
+    @Message (id = 123, value = "Task may not be cancelled now")
     IllegalStateException taskCannotCancel();
 
-    @Message (id = 125, value = "Task may not be reverted now")
+    @Message (id = 124, value = "Task may not be reverted now")
     IllegalStateException taskCannotRollback();
 
-    @Message (id = 126, value = "Dependent may not be added at this point")
+    @Message (id = 125, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
 
-    @Message (id = 127, value = "A service named %s is already installed")
+    @Message (id = 126, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message (id = 128, value = "Cannot add new tasks to inactive transaction")
+    @Message (id = 127, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message (id = 129, value = "Cannot add new tasks with revertible component to inactive transaction")
+    @Message (id = 128, value = "Cannot add new tasks with revertible component to inactive transaction")
     InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
 
-    @Message (id = 130, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    @Message (id = 129, value = "It is forbidden to create dependency on registry created by other transaction controller")
     IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
 
-    @Message (id = 131, value = "Transaction controller mismatch.")
+    @Message (id = 130, value = "Transaction controller mismatch.")
     IllegalArgumentException transactionControllerMismatch();
 
-    @Message (id = 132, value = "ServiceBuilder.install() have been already called")
+    @Message (id = 131, value = "ServiceBuilder.install() have been already called")
     IllegalStateException cannotCallInstallTwice();
 
-    @Message (id = 133, value = "%s service installation failed because it introduced the following cycle: %s")
+    @Message (id = 132, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
     /*

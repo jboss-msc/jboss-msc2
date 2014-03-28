@@ -33,13 +33,6 @@ interface TaskParent {
     void childExecuted(boolean userThread);
 
     /**
-     * Indicate to this parent that a child is validated.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void childValidated(boolean userThread);
-
-    /**
      * Indicate to this parent that a child is terminated.
      *
      * @param userThread {@code true} if executed from a user thread
