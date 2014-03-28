@@ -205,7 +205,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
                     state = (byte) (state & ~REMOVED);
                 }
                 for (Registration registration : registry.values()) {
-                    registration.reinstall(transaction);
+                    registration.reinstall();
                 }
             } finally {
                 context.complete();

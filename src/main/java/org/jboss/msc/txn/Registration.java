@@ -20,6 +20,8 @@ package org.jboss.msc.txn;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -35,7 +37,7 @@ import org.jboss.msc.service.ServiceName;
  */
 final class Registration {
 
-    private static final AttachmentKey<Boolean> VALIDATE_TASK = AttachmentKey.create();
+    private static final AttachmentKey<RequiredDependenciesCheck> REQUIRED_DEPENDENCIES_CHECK_TASK = AttachmentKey.create();
 
     /**
      * Indicates if registry is enabled
@@ -70,7 +72,7 @@ final class Registration {
     /**
      * Incoming dependencies, i.e., dependent services.
      */
-    private final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<>();
+    final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<>();
     /**
      * State.
      */
@@ -135,7 +137,7 @@ final class Registration {
         }
     }
 
-    void removeIncomingDependency(final Transaction transaction, final DependencyImpl<?> dependency) {
+    void removeIncomingDependency(final DependencyImpl<?> dependency) {
         assert incomingDependencies.contains(dependency);
         incomingDependencies.remove(dependency);
     }
@@ -222,7 +224,7 @@ final class Registration {
         }
     }
 
-    void reinstall(Transaction transaction) {
+    void reinstall() {
         synchronized (this) {
             state = state & ~REMOVED;
         }
@@ -258,18 +260,50 @@ final class Registration {
         if (taskFactory == null) {
             return;
         }
-        if (transaction.putAttachment(VALIDATE_TASK, Boolean.TRUE) != null) return;
-        transaction.addListener(new PrepareCompletionListener() {
-            @Override
-            public void transactionPrepared() {
-                synchronized (Registration.this) {
-                    final ControllerHolder holder = Registration.this.holderRef.get();
-                    final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
-                    for (final DependencyImpl<?> incomingDependency : incomingDependencies) {
-                        incomingDependency.validate(controller, transaction.getTransactionReport());
-                    }
+        RequiredDependenciesCheck task = transaction.getAttachmentIfPresent(REQUIRED_DEPENDENCIES_CHECK_TASK);
+        if (task == null) {
+            task = new RequiredDependenciesCheck(transaction.getTransactionReport());
+            final RequiredDependenciesCheck appearing = transaction.putAttachmentIfAbsent(REQUIRED_DEPENDENCIES_CHECK_TASK, task);
+            if (appearing == null) {
+                transaction.addListener(task);
+            } else {
+                task = appearing;
+            }
+        }
+        task.addRegistration(this);
+    }
+
+    private static final class RequiredDependenciesCheck implements PrepareCompletionListener {
+
+        private Set<Registration> registrations = Collections.newSetFromMap(new IdentityHashMap<Registration, Boolean>());
+        private final ProblemReport report;
+
+        RequiredDependenciesCheck(final ProblemReport report) {
+            this.report = report;
+        }
+
+        void addRegistration(final Registration registration) {
+            synchronized (this) {
+                if (registrations != null) {
+                    registrations.add(registration);
+                    return;
                 }
             }
-        });
+            throw new InvalidTransactionStateException();
+        }
+
+        @Override
+        public void transactionPrepared() {
+            final Set<Registration> registrations;
+            synchronized (this) {
+                registrations = this.registrations;
+                this.registrations = null;
+            }
+            for (final Registration registration : registrations) {
+                for (final DependencyImpl<?> dependency : registration.incomingDependencies) {
+                    dependency.validate(report);
+                }
+            }
+        }
     }
 }

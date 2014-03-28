@@ -132,7 +132,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param taskFactory   the task factory
      */
     void clearDependent(Transaction transaction, TaskFactory taskFactory) {
-        dependencyRegistration.removeIncomingDependency(transaction, this);
+        dependencyRegistration.removeIncomingDependency(this);
         if (!propagateDemand && hasDemandedFlag()) {
             dependencyRegistration.removeDemand(transaction, taskFactory);
         }
@@ -194,11 +194,12 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * Validates dependency state before active transaction commits.
      * 
-     * @param dependencyController the dependency controller, if available
-     * @param report               report where all validation problems found will be added
+     * @param report report where all validation problems found will be added
      */
-    void validate(final ServiceControllerImpl<?> dependencyController, final ProblemReport report) {
-        if (dependencyController == null && !hasUnrequiredFlag()) {
+    void validate(final ProblemReport report) {
+        final ControllerHolder holder = dependencyRegistration.holderRef.get();
+        final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
+        if (controller == null && !hasUnrequiredFlag()) {
             report.addProblem(new Problem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName())));
         }
     }

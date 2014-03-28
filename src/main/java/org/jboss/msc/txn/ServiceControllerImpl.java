@@ -197,13 +197,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     /**
-     * Gets the alias registrations.
-     */
-    Registration[] getAliasRegistrations() {
-        return aliasRegistrations;
-    }
-
-    /**
      * Gets the dependencies.
      */
     DependencyImpl<?>[] getDependencies() {
@@ -227,10 +220,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     /**
      * Gets the current service controller state inside {@code transaction} context.
-     * 
-     * @param transaction the transaction
      */
-    synchronized int getState(Transaction transaction) {
+    synchronized int getState() {
         return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
     }
 
@@ -415,14 +406,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         }
     }
 
-    /**
-     * Indicates if this service is demanded to start by one or more of its incoming dependencies.
-     * @return
-     */
-    synchronized boolean isUpDemanded() {
-        return demandedByCount > 0;
-    }
-
     public ServiceName getServiceName() {
         return primaryRegistration.getServiceName();
     }
@@ -449,22 +432,22 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     void setServiceUp(T result, Transaction transaction, TaskFactory taskFactory) {
         setValue(result);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_UP, transaction, taskFactory);
     }
 
     void setServiceFailed(Transaction transaction, TaskFactory taskFactory) {
         MSCLogger.FAIL.startFailed(getServiceName());
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_FAILED, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_FAILED, transaction, taskFactory);
     }
 
     void setServiceDown(Transaction transaction, TaskFactory taskFactory) {
         setValue(null);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_DOWN, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_DOWN, transaction, taskFactory);
     }
 
     void setServiceRemoved(Transaction transaction, TaskFactory taskFactory) {
         clear(transaction, taskFactory);
-        transactionalInfo.setTransition(ServiceControllerImpl.STATE_REMOVED, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_REMOVED, transaction, taskFactory);
     }
 
     void notifyServiceStarting(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
@@ -501,15 +484,15 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     boolean revertStopping(Transaction transaction, TaskFactory taskFactory) {
-        if (transactionalInfo.getTransition(transaction) == ServiceControllerImpl.STATE_STOPPING) {
-            transactionalInfo.setTransition(ServiceControllerImpl.STATE_UP, transaction, taskFactory);
+        if (transactionalInfo.getTransition() == STATE_STOPPING) {
+            transactionalInfo.setTransition(STATE_UP, transaction, taskFactory);
             return true;
         }
         return false;
     }
 
     boolean revertStarting(Transaction transaction, TaskFactory taskFactory) {
-        if (transactionalInfo.getTransition(transaction) == ServiceControllerImpl.STATE_STARTING) {
+        if (transactionalInfo.getTransition() == STATE_STARTING) {
             setServiceDown(transaction, taskFactory);
             return true;
         }
@@ -550,7 +533,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             transition(transaction, taskFactory);
         }
 
-        byte getTransition(Transaction transaction) {
+        byte getTransition() {
             return transactionalState;
         }
 

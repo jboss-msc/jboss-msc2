@@ -65,7 +65,7 @@ class ParentServiceContext<T> extends ServiceContextImpl {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
         }
         validateTransaction(transaction, parentRegistration.txnController);
-        if (!Bits.allAreSet(parentRegistration.getController().getState(transaction), ServiceControllerImpl.STATE_STARTING)) {
+        if (!Bits.allAreSet(parentRegistration.getController().getState(), ServiceControllerImpl.STATE_STARTING)) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not starting");
         }
     }
