@@ -50,8 +50,8 @@ final class CycleDetector {
         final Deque<ServiceName> path = new LinkedList<>();
     }
 
-    static void execute(final ServiceControllerImpl<?> controller) throws CircularDependencyException {
-        if (controller.dependencies.length == 0) {
+    static void execute(final ServiceControllerImpl<?> rootController) throws CircularDependencyException {
+        if (rootController.dependencies.length == 0) {
             // if controller has no dependencies, it cannot participate in any cycle
             return;
         }
@@ -62,9 +62,9 @@ final class CycleDetector {
         final Set<ServiceControllerImpl> visited = Collections.newSetFromMap(new IdentityHashMap<ServiceControllerImpl, Boolean>());
 
         // put root controller to visited set
-        visited.add(controller);
+        visited.add(rootController);
         Branch currentBranch = new Branch();
-        for (final DependencyImpl dependency : controller.dependencies) {
+        for (final DependencyImpl dependency : rootController.dependencies) {
             // register edges to investigate from root
             currentBranch.stack.push(dependency.getDependencyRegistration());
         }
@@ -91,9 +91,9 @@ final class CycleDetector {
                         currentBranch.stack.push(d.getDependencyRegistration());
                     }
                     if (dependencies.length > 0) continue; // we didn't reach dead end - investigation continues
-                } else {
-                    // we already visited this controller, we have the cycle!
-                    throw SERVICE.cycleDetected(controller.getPrimaryRegistration().getServiceName(), getCycle(branches));
+                } else if (dependencyController == rootController) {
+                    // we returned to the root controller, we have the cycle!
+                    throw SERVICE.cycleDetected(rootController.getPrimaryRegistration().getServiceName(), getCycle(branches));
                 }
             }
             // investigation path dead end
