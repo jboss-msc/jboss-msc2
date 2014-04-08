@@ -66,8 +66,8 @@ final class Registration {
     private final ServiceName serviceName;
     /** Associated transaction controller */
     final TransactionController txnController;
-    /** Associated controller and its metadata */
-    final AtomicReference<ControllerHolder> holderRef = new AtomicReference<>();
+    /** Associated controller */
+    final AtomicReference<ServiceControllerImpl<?>> holderRef = new AtomicReference<>();
 
     /**
      * Incoming dependencies, i.e., dependent services.
@@ -88,8 +88,7 @@ final class Registration {
     }
 
     ServiceControllerImpl<?> getController() {
-        final ControllerHolder currentHolder = holderRef.get();
-        return currentHolder != null ? currentHolder.controller : null;
+        return holderRef.get();
     }
 
     /**
@@ -104,7 +103,7 @@ final class Registration {
     private void installService(final Transaction transaction, final TaskFactory taskFactory) {
         final ServiceControllerImpl<?> serviceController;
         synchronized (this) {
-            serviceController = holderRef.get().controller;
+            serviceController = holderRef.get();
         }
         if (Bits.anyAreSet(state, REMOVED)) {
             throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
@@ -130,7 +129,7 @@ final class Registration {
         synchronized (this) {
             incomingDependencies.add(dependency);
             up = Bits.anyAreSet(state,  UP);
-            startTask = up? holderRef.get().controller.getStartTask(transaction): null;
+            startTask = up? holderRef.get().getStartTask(transaction): null;
             if (up) {
                 dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
             }
@@ -190,8 +189,7 @@ final class Registration {
             if (((++ state) & DEMANDED_MASK) > 1) {
                 return;
             }
-            final ControllerHolder currentHolder = holderRef.get();
-            controller = currentHolder != null ? currentHolder.controller : null;
+            controller = holderRef.get();
         }
         if (controller != null) {
             controller.demand(transaction, taskFactory);
@@ -204,8 +202,7 @@ final class Registration {
             if (((--state) & DEMANDED_MASK) > 0) {
                 return;
             }
-            final ControllerHolder currentHolder = holderRef.get();
-            controller = currentHolder != null ? currentHolder.controller : null;
+            controller = holderRef.get();
         }
         if (controller != null) {
             controller.undemand(transaction, taskFactory);
@@ -217,8 +214,7 @@ final class Registration {
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;
             state = state | REMOVED;
-            final ControllerHolder currentHolder = holderRef.get();
-            controller = currentHolder != null ? currentHolder.controller : null;
+            controller = holderRef.get();
         }
         if (controller != null) {
             controller.remove(transaction, taskFactory);
@@ -236,8 +232,7 @@ final class Registration {
         synchronized (this) {
             if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
             state = state & ~REGISTRY_ENABLED;
-            final ControllerHolder currentHolder = holderRef.get();
-            controller = currentHolder != null ? currentHolder.controller : null;
+            controller = holderRef.get();
         }
         if (controller != null) {
             controller.disableRegistry(transaction, taskFactory);
@@ -249,8 +244,7 @@ final class Registration {
         synchronized (this) {
             if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
             state = state | REGISTRY_ENABLED;
-            final ControllerHolder currentHolder = holderRef.get();
-            controller = currentHolder != null ? currentHolder.controller : null;
+            controller = holderRef.get();
         }
         if (controller != null) {
             controller.enableRegistry(transaction, taskFactory);

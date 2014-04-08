@@ -197,8 +197,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param report report where all validation problems found will be added
      */
     void validate(final ProblemReport report) {
-        final ControllerHolder holder = dependencyRegistration.holderRef.get();
-        final ServiceControllerImpl<?> controller = holder != null ? holder.controller : null;
+        final ServiceControllerImpl<?> controller = dependencyRegistration.holderRef.get();
         if (controller == null && !hasUnrequiredFlag()) {
             report.addProblem(new Problem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName())));
         }

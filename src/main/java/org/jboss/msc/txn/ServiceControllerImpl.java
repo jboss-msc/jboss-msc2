@@ -151,7 +151,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
-            transactionalInfo.setState(STATE_DOWN);
+            transactionalInfo.transactionalState = STATE_DOWN;
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
@@ -169,7 +169,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
-            transactionalInfo.setState(STATE_DOWN);
+            transactionalInfo.transactionalState = STATE_DOWN;
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
@@ -230,6 +230,18 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      */
     synchronized int getState() {
         return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
+    }
+
+    synchronized int getNonTxnState() {
+        return getState(state);
+    }
+
+    int getNonSyncState() {
+        return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
+    }
+
+    int getNonSyncTxnState() {
+        return getState(state);
     }
 
     private static int getState(byte state) {
@@ -555,7 +567,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     transition(transaction, taskFactory);
                 }
             }
-            setState(transactionalState);
+            this.transactionalState = transactionalState;
         }
 
         private synchronized void retry(Transaction transaction) {
@@ -574,21 +586,21 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
                         if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STOPPING) {
-                                setState(STATE_UP);
+                                transactionalState = STATE_UP;
                             }
                             break;
                         }
                         if (taskFactory == null) {
                             taskFactory = transaction.getTaskFactory();
                         }
-                        setState(STATE_STARTING);
+                        transactionalState = STATE_STARTING;
                         startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
                         completeTransitionTask = startTask;
                     }
                     break;
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
-                        setState(STATE_STOPPING);
+                        transactionalState = STATE_STOPPING;
                         completeTransitionTask = StopFailedServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
                     }
                     break;
@@ -597,7 +609,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
                         if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STARTING) {
-                                setState(STATE_DOWN);
+                                transactionalState = STATE_DOWN;
                             }
                             break;
                         }
@@ -605,7 +617,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                             return null;
                         }
                         final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, taskFactory);
-                        setState(STATE_STOPPING);
+                        transactionalState = STATE_STOPPING;
                         completeTransitionTask = StopServiceTask.create(ServiceControllerImpl.this, dependentTasks, transaction, taskFactory);
                     }
                     break;
@@ -619,7 +631,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         private synchronized void restart(Transaction transaction) {
             if (state == STATE_UP || state == STATE_STARTING) {
                 final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, transaction.getTaskFactory());
-                setState(STATE_RESTARTING);
+                transactionalState = STATE_RESTARTING;
                 StopServiceTask.create(ServiceControllerImpl.this, startTask, dependentTasks, transaction, transaction.getTaskFactory());
             }
         }
@@ -640,23 +652,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
-        private void setState(final byte sid) {
-            assert transactionalState != sid;
-            if (dependencies.length == 0) {
-                transactionalState = sid;
-            } else {
-                // this controller has dependencies - we need to deal with 'cycle detection set' transitions
-                final boolean leavingDownState = transactionalState == STATE_DOWN && sid != STATE_REMOVED;
-                final boolean enteringDownState = transactionalState != STATE_NEW && transactionalState != STATE_REMOVED && sid == STATE_DOWN;
-                transactionalState = sid;
-                if (leavingDownState) {
-                    leaveCycleDetectionSet();
-                } else if (enteringDownState) {
-                    enterCycleDetectionSet();
-                }
-            }
-        }
-
         private byte getState() {
             return transactionalState;
         }
@@ -667,34 +662,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
         private boolean isStopping() {
             return transactionalState == STATE_STOPPING;
-        }
-    }
-
-    private void leaveCycleDetectionSet() {
-        assert dependencies.length != 0;
-        final ControllerHolder newValue = new ControllerHolder(false, this);
-        replaceHolder(primaryRegistration, newValue);
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            replaceHolder(aliasRegistration, newValue);
-        }
-    }
-
-    private void enterCycleDetectionSet() {
-        assert dependencies.length != 0;
-        final ControllerHolder newValue = new ControllerHolder(true, this);
-        replaceHolder(primaryRegistration, newValue);
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            replaceHolder(aliasRegistration, newValue);
-        }
-    }
-
-    private void replaceHolder(final Registration registration, final ControllerHolder newValue) {
-        boolean success = false;
-        while (!success) {
-            final ControllerHolder oldValue = registration.holderRef.get();
-            if (oldValue == null) return; // controller was removed - we're finished for now
-            assert oldValue.inCycleDetectionSet != newValue.inCycleDetectionSet;
-            success = registration.holderRef.compareAndSet(oldValue, newValue);
         }
     }
 
@@ -720,10 +687,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     void install() throws DuplicateServiceException, CircularDependencyException {
-        final ControllerHolder controllerHolder = new ControllerHolder(dependencies.length != 0, this);
-
         // associate controller holder with primary registration
-        if (!primaryRegistration.holderRef.compareAndSet(null, controllerHolder)) {
+        if (!primaryRegistration.holderRef.compareAndSet(null, this)) {
             throw SERVICE.duplicateService(primaryRegistration.getServiceName());
         }
         boolean ok = false;
@@ -731,7 +696,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         try {
             // associate controller holder with alias registrations
             for (int i = 0; i < aliasRegistrations.length; lastIndex = i++) {
-                if (!aliasRegistrations[i].holderRef.compareAndSet(null, controllerHolder)) {
+                if (!aliasRegistrations[i].holderRef.compareAndSet(null, this)) {
                     throw SERVICE.duplicateService(aliasRegistrations[i].getServiceName());
                 }
             }

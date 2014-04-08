@@ -135,8 +135,13 @@ final class CycleDetector {
      * @return controller or null
      */
     private static ServiceControllerImpl getController(final Registration registration) {
-        final ControllerHolder holder = registration.holderRef.get();
-        return holder != null && holder.inCycleDetectionSet ? holder.controller : null;
+        final ServiceControllerImpl serviceController = registration.holderRef.get();
+        // ignore every service that is not down/new or that has no dependencies
+        if (serviceController != null && (serviceController.getDependencies().length == 0 ||
+                serviceController.getNonSyncTxnState() > ServiceControllerImpl.STATE_DOWN)) {
+            return null;
+        }
+        return serviceController;
     }
 
 }
