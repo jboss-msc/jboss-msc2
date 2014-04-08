@@ -207,6 +207,9 @@ public interface MSCLogger {
     @Message (id = 132, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
+    @Message(id = 133, value = "%s service  is not started yet")
+    IllegalStateException serviceNotStarted(final ServiceName name); 
+
     /*
      * Location nesting types.
      */
