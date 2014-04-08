@@ -20,6 +20,7 @@ package org.jboss.msc.txn;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
@@ -157,42 +158,93 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
             @Override
             public void addProblem(Problem reason) {
+                if (reason == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("reason");
+                }
                 context.addProblem(reason);
             }
 
             @Override
             public void addProblem(Severity severity, String message) {
+                if (severity == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
+                }
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
                 context.addProblem(severity, message);
             }
 
             @Override
             public void addProblem(Severity severity, String message, Throwable cause) {
+                if (severity == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
+                }
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(severity, message, cause);
             }
 
             @Override
             public void addProblem(String message, Throwable cause) {
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(message, cause);
             }
 
             @Override
             public void addProblem(String message) {
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
                 context.addProblem(message);
             }
 
             @Override
             public void addProblem(Throwable cause) {
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(cause);
             }
 
             @Override
             public <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name,
                     ServiceContext parentContext) {
+                if (valueType == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("valueType");
+                }
+                if (registry == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
+                }
+                if (name == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
+                }
+                if (parentContext == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
+                }
                 return ((ParentServiceContext<?>) parentContext).addService(valueType, registry,  name, transaction, context);
             }
 
             @Override
             public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext) {
+                if (registry == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
+                }
+                if (name == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
+                }
+                if (parentContext == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
+                }
                 return ((ParentServiceContext<?>) parentContext).addService(registry,  name, transaction, context);
             }
         });
@@ -224,31 +276,61 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
             @Override
             public void addProblem(Problem reason) {
+                if (reason == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("reason");
+                }
                 context.addProblem(reason);
             }
 
             @Override
             public void addProblem(Severity severity, String message) {
+                if (severity == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
+                }
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
                 context.addProblem(severity, message);
             }
 
             @Override
             public void addProblem(Severity severity, String message, Throwable cause) {
+                if (severity == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
+                }
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(severity, message, cause);
             }
 
             @Override
             public void addProblem(String message, Throwable cause) {
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(message, cause);
             }
 
             @Override
             public void addProblem(String message) {
+                if (message == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
+                }
                 context.addProblem(message);
             }
 
             @Override
             public void addProblem(Throwable cause) {
+                if (cause == null) {
+                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
+                }
                 context.addProblem(cause);
             }
         });
