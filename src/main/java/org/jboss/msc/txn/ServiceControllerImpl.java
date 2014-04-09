@@ -124,10 +124,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         this.primaryRegistration = primaryRegistration;
         this.aliasRegistrations = aliasRegistrations;
         this.dependencies = dependencies;
-        initTransactionalInfo(transaction);
         unsatisfiedDependencies = dependencies.length;
         for (DependencyImpl<?> dependency: dependencies) {
-            dependency.setDependent(this, transaction);
+            dependency.setDependent(this, transaction); // TODO: this escapes contructor!!!
         }
     }
 
