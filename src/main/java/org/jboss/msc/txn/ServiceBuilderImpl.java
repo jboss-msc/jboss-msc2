@@ -18,8 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,8 +35,6 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-
-import static org.jboss.msc._private.MSCLogger.SERVICE;
 
 /**
  * A service builder.
@@ -63,7 +61,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service itself
     private Service<T> service;
     // dependencies
-    private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<>();
+    private final Map<ServiceName, DependencyImpl<?>> dependencies= new HashMap<>(); // TODO: why not set but map?
     // active transaction
     private final Transaction transaction;
     // the task factory to be used for service installation
