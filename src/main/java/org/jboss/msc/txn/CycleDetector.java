@@ -71,7 +71,7 @@ final class CycleDetector {
         Registration dependency;
         ServiceControllerImpl dependencyController;
         while (currentBranch != null) {
-            dependency = currentBranch.stack.poll();
+            dependency = currentBranch.stack.remove();
             dependencyController = getController(dependency);
             if (dependencyController != null) {
                 // current controller is in the 'cycle detection set', investigate its dependencies
