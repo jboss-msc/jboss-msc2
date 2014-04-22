@@ -75,7 +75,7 @@ final class CycleDetector {
 
         Registration dependency;
         ServiceControllerImpl dependencyController;
-        while (currentBranch != null) {
+        while (true) {
             dependency = currentBranch.stack.removeFirst();
             dependencyController = getController(dependency);
             if (dependencyController != null) {
