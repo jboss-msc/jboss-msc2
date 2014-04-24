@@ -96,13 +96,12 @@ final class CycleDetector {
             }
             // investigation path dead end
             currentBranch.path.clear(); // cleanup path since last branch point
-            if (currentBranch.stack.size() == 0) {
+            while (currentBranch.stack.size() == 0) {
                 // we're finished with this branch investigation - cleanup and return to the last branch we didn't investigate completely yet
                 branches.poll();
                 currentBranch = branches.peek();
-                if (currentBranch != null) {
-                    currentBranch.path.clear(); // always cleanup last path on unfinished branch that lead us to the previous dead end
-                }
+                if (currentBranch == null) return; // we're done
+                currentBranch.path.clear(); // always cleanup last path on unfinished branch that lead us to the previous dead end
             }
         }
     }
