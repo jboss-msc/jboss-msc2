@@ -604,7 +604,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             switch (transactionalState) {
                 case STATE_STOPPING:
                 case STATE_DOWN:
-                    if (unsatisfiedDependencies == 0 && shouldStart() && !isStarting()) {
+                    if (unsatisfiedDependencies == 0 && shouldStart()) {
                         if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STOPPING) {
                                 transactionalState = STATE_UP;
@@ -620,14 +620,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                     }
                     break;
                 case STATE_FAILED:
-                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         transactionalState = STATE_STOPPING;
                         completeTransitionTask = StopFailedServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
                     }
                     break;
                 case STATE_STARTING:
                 case STATE_UP:
-                    if ((unsatisfiedDependencies > 0 || shouldStop()) && !isStopping()) {
+                    if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
                             if (transactionalState == STATE_STARTING) {
                                 transactionalState = STATE_DOWN;
@@ -669,7 +669,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             final TaskController<?> stopTask = transition(transaction, taskFactory);
-            assert isStopping() || transactionalState == STATE_DOWN || transactionalState == STATE_NEW; // prevent hard to find bugs
+            assert transactionalState == STATE_STOPPING || transactionalState == STATE_DOWN || transactionalState == STATE_NEW; // prevent hard to find bugs
             return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
@@ -677,13 +677,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return transactionalState;
         }
 
-        private boolean isStarting() {
-            return transactionalState == STATE_STARTING;
-        }
-
-        private boolean isStopping() {
-            return transactionalState == STATE_STOPPING;
-        }
     }
 
     private synchronized boolean shouldStart() {
