@@ -139,8 +139,7 @@ final class Registration {
     }
 
     void removeIncomingDependency(final DependencyImpl<?> dependency) {
-        assert incomingDependencies.contains(dependency);
-        incomingDependencies.remove(dependency);
+        assert incomingDependencies.remove(dependency);
     }
 
     void serviceStarting(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> startTask) {
