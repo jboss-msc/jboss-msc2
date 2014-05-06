@@ -228,7 +228,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
         // create alias registrations
         final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
-        if (aliasRegistrations != null) {
+        if (aliasRegistrations.length > 0) {
             int i = 0;
             for (final ServiceName alias: aliases) {
                 aliasRegistrations[i++] = registry.getOrCreateRegistration(transaction, alias);
@@ -237,7 +237,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
         // create dependencies
         final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
-        if (dependenciesArray != null) {
+        if (dependenciesArray.length > 0) {
             dependencies.values().toArray(dependenciesArray);
         }
 
