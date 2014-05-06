@@ -23,8 +23,9 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.msc.service.ServiceName;
@@ -72,7 +73,7 @@ final class Registration {
     /**
      * Incoming dependencies, i.e., dependent services.
      */
-    final Set<DependencyImpl<?>> incomingDependencies = new CopyOnWriteArraySet<>();
+    final Queue<DependencyImpl<?>> incomingDependencies = new ConcurrentLinkedQueue<>();
     /**
      * State.
      */
@@ -149,7 +150,7 @@ final class Registration {
                 return;
             }
             state = state | UP;
-            for (DependencyImpl<?> incomingDependency: incomingDependencies) {
+            for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyUp(transaction, taskFactory, startTask);
             }
         }
@@ -161,7 +162,7 @@ final class Registration {
             // handle out of order notifications
             if (Bits.anyAreSet(state, UP)) {
                 state = state & ~UP;
-                for (DependencyImpl<?> incomingDependency: incomingDependencies) {
+                for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
                     final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
                     if (task != null) {
                         tasks.add(task);

@@ -22,7 +22,8 @@ import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.jboss.msc._private.MSCLogger;
 
@@ -121,7 +122,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private final Revertible revertible;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
-    private final List<TaskControllerImpl<?>> children = new CopyOnWriteArrayList<>();
+    private final Queue<TaskControllerImpl<?>> children = new ConcurrentLinkedQueue<>();
 
     private int state;
     private int unexecutedDependencies;
@@ -511,7 +512,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             parent.childExecuted(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
-            for (TaskChild child : children) {
+            for (final TaskChild child : children) {
                 child.childRollback(userThread);
             }
         }
@@ -521,7 +522,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             if (cachedChild != null) {
                 cachedChild.childCommit(userThread);
             } else {
-                for (TaskChild child : children) {
+                for (final TaskChild child : children) {
                     child.childCommit(userThread);
                 }
             }
@@ -564,7 +565,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         int state;
         final int unexecutedChildren;
         final int unterminatedChildren;
-        final List<TaskControllerImpl<?>> children;
+        final Queue<TaskControllerImpl<?>> children;
         synchronized (this) {
             unexecutedChildren = this.unexecutedChildren;
             unterminatedChildren = this.unterminatedChildren;

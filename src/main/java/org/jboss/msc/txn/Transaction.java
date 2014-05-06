@@ -22,7 +22,8 @@ import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -75,7 +76,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<>();
+    private final Queue<TaskControllerImpl<?>> topLevelTasks = new ConcurrentLinkedQueue<>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
     private final ProblemReport transactionReport = new ProblemReport();
     private final ProblemReport rollbackReport = new ProblemReport();
@@ -557,7 +558,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
+    void adoptGrandchildren(final Queue<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
         final boolean sendRollbackRequest;
