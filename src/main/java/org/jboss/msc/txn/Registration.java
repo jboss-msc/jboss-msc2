@@ -95,12 +95,9 @@ final class Registration {
      * Installs a service,
      *
      * @param transaction       the active transaction
+     * @param taskFactory       the task factory
      */
-    void installService(final Transaction transaction) {
-        installService(transaction, transaction.getTaskFactory());
-    }
-
-    private void installService(final Transaction transaction, final TaskFactory taskFactory) {
+    void installService(final Transaction transaction, final TaskFactory taskFactory) {
         final ServiceControllerImpl<?> serviceController;
         synchronized (this) {
             serviceController = holderRef.get();

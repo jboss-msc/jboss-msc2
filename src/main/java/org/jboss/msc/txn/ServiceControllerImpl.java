@@ -139,14 +139,47 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     /**
+     * Begins services installation, by bounding service with its registrations (primary and aliases) and dependencies.
+     * 
+     * @throws DuplicateServiceException   if there is already a service installed at any of the registrations
+     * @throws CircularDependencyException if installation of this services creates a dependency cycle
+     */
+    void beginInstallation() throws DuplicateServiceException, CircularDependencyException {
+        // associate controller holder with primary registration
+        if (!primaryRegistration.holderRef.compareAndSet(null, this)) {
+            throw SERVICE.duplicateService(primaryRegistration.getServiceName());
+        }
+        boolean ok = false;
+        int lastIndex = -1;
+        try {
+            // associate controller holder with alias registrations
+            for (int i = 0; i < aliasRegistrations.length; lastIndex = i++) {
+                if (!aliasRegistrations[i].holderRef.compareAndSet(null, this)) {
+                    throw SERVICE.duplicateService(aliasRegistrations[i].getServiceName());
+                }
+            }
+            CycleDetector.execute(this);
+            ok = true;
+        } finally {
+            if (!ok) {
+                // exception was thrown, cleanup
+                for (int i = 0; i < lastIndex; i++) {
+                    aliasRegistrations[i].holderRef.set(null);
+                }
+                primaryRegistration.holderRef.set(null);
+            }
+        }
+    }
+
+    /**
      * Completes service installation, enabling the service and installing it into registrations.
      *
      * @param transaction the active transaction
      */
-    boolean install(Transaction transaction, TaskFactory taskFactory) {
-        primaryRegistration.installService(transaction);
+    boolean completeInstallation(Transaction transaction, TaskFactory taskFactory) {
+        primaryRegistration.installService(transaction, taskFactory);
         for (Registration alias: aliasRegistrations) {
-            alias.installService(transaction);
+            alias.installService(transaction, taskFactory);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -165,7 +198,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         for (DependencyImpl<?> dependency: dependencies) {
             dependency.setDependent(this, transaction);
         }
-        install();
+        beginInstallation();
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
@@ -673,32 +706,4 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         assert holdsLock(this);
         return (byte)(state & STATE_MASK);
     }
-
-    void install() throws DuplicateServiceException, CircularDependencyException {
-        // associate controller holder with primary registration
-        if (!primaryRegistration.holderRef.compareAndSet(null, this)) {
-            throw SERVICE.duplicateService(primaryRegistration.getServiceName());
-        }
-        boolean ok = false;
-        int lastIndex = -1;
-        try {
-            // associate controller holder with alias registrations
-            for (int i = 0; i < aliasRegistrations.length; lastIndex = i++) {
-                if (!aliasRegistrations[i].holderRef.compareAndSet(null, this)) {
-                    throw SERVICE.duplicateService(aliasRegistrations[i].getServiceName());
-                }
-            }
-            CycleDetector.execute(this);
-            ok = true;
-        } finally {
-            if (!ok) {
-                // exception was thrown, cleanup
-                for (int i = 0; i < lastIndex; i++) {
-                    aliasRegistrations[i].holderRef.set(null);
-                }
-                primaryRegistration.holderRef.set(null);
-            }
-        }
-    }
-
 }

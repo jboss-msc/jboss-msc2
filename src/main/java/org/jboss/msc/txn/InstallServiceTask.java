@@ -38,7 +38,7 @@ final class InstallServiceTask implements Executable<Void>, Revertible {
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            installed = serviceController.install(transaction, context);
+            installed = serviceController.completeInstallation(transaction, context);
         } finally {
             context.complete();
         }
