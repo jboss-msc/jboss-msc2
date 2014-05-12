@@ -21,11 +21,10 @@ package org.jboss.msc.txn;
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.msc.service.ServiceName;
@@ -73,7 +72,7 @@ final class Registration {
     /**
      * Incoming dependencies, i.e., dependent services.
      */
-    final Queue<DependencyImpl<?>> incomingDependencies = new ConcurrentLinkedQueue<>();
+    final Set<DependencyImpl<?>> incomingDependencies = new HashSet<>();
     /**
      * State.
      */
@@ -139,7 +138,9 @@ final class Registration {
     }
 
     void removeIncomingDependency(final DependencyImpl<?> dependency) {
-        assert incomingDependencies.remove(dependency);
+        synchronized (this) {
+            assert incomingDependencies.remove(dependency);
+        }
     }
 
     void serviceStarting(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> startTask) {
@@ -300,8 +301,10 @@ final class Registration {
                 this.registrations = null;
             }
             for (final Registration registration : registrations) {
-                for (final DependencyImpl<?> dependency : registration.incomingDependencies) {
-                    dependency.validate(report);
+                synchronized (registration) {
+                    for (final DependencyImpl<?> dependency : registration.incomingDependencies) {
+                        dependency.validate(report);
+                    }
                 }
             }
         }
