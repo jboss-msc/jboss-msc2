@@ -43,9 +43,14 @@ final class CycleDetector {
      */
     private static final class Branch {
         /** Edges to investigate since last branch point. */
-        final Deque<Registration> stack = new ArrayDeque<>();
+        final Deque<Registration> stack;
         /** Path we walked since last branch point. */
-        final Deque<ServiceName> path = new ArrayDeque<>();
+        final Deque<ServiceName> path;
+
+        private Branch(final int stackSize) {
+            stack = new ArrayDeque<>(stackSize);
+            path = new ArrayDeque<>();
+        }
     }
 
     static void execute(final ServiceControllerImpl<?> rootController) throws CircularDependencyException {
@@ -61,32 +66,32 @@ final class CycleDetector {
 
         // put root controller to visited set
         visited.add(rootController);
-        Branch currentBranch = new Branch();
+        Branch currentBranch = new Branch(rootController.dependencies.length);
         for (final DependencyImpl dependency : rootController.dependencies) {
             // register edges to investigate from root
-            currentBranch.stack.push(dependency.getDependencyRegistration());
+            currentBranch.stack.addFirst(dependency.getDependencyRegistration());
         }
-        branches.push(currentBranch);
+        branches.addFirst(currentBranch);
 
         Registration dependency;
         ServiceControllerImpl dependencyController;
         while (currentBranch != null) {
-            dependency = currentBranch.stack.remove();
+            dependency = currentBranch.stack.removeFirst();
             dependencyController = getController(dependency);
             if (dependencyController != null) {
                 // current controller is in the 'cycle detection set', investigate its dependencies
-                currentBranch.path.add(dependency.getServiceName()); // add current step to the path
+                currentBranch.path.addLast(dependency.getServiceName()); // add current step to the path
                 if (visited.add(dependencyController)) {
                     // we didn't visit this controller yet, our voyage continues
                     final DependencyImpl[] dependencies = dependencyController.dependencies;
                     if (dependencies.length > 1) {
                         // identified new branch on current path
-                        currentBranch = new Branch();
-                        branches.push(currentBranch);
+                        currentBranch = new Branch(dependencies.length);
+                        branches.addFirst(currentBranch);
                     }
                     for (final DependencyImpl d : dependencies) {
                         // register edges to investigate from current controller
-                        currentBranch.stack.push(d.getDependencyRegistration());
+                        currentBranch.stack.addFirst(d.getDependencyRegistration());
                     }
                     if (dependencies.length > 0) continue; // we didn't reach dead end - investigation continues
                 } else if (dependencyController == rootController) {
@@ -98,8 +103,8 @@ final class CycleDetector {
             currentBranch.path.clear(); // cleanup path since last branch point
             while (currentBranch.stack.size() == 0) {
                 // we're finished with this branch investigation - cleanup and return to the last branch we didn't investigate completely yet
-                branches.poll();
-                currentBranch = branches.peek();
+                branches.pollFirst();
+                currentBranch = branches.peekFirst();
                 if (currentBranch == null) return; // we're done
                 currentBranch.path.clear(); // always cleanup last path on unfinished branch that lead us to the previous dead end
             }
