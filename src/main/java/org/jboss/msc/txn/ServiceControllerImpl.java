@@ -91,7 +91,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     /**
      * The controller state.
      */
-    private byte state = (byte)(STATE_NEW | MODE_ACTIVE);
+    private volatile byte state = (byte)(STATE_NEW | MODE_ACTIVE);
     /**
      * The number of dependencies that are not satisfied.
      */
@@ -228,20 +228,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     /**
      * Gets the current service controller state inside {@code transaction} context.
      */
-    synchronized int getState() {
+    int getState() {
         return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
-    }
-
-    synchronized int getNonTxnState() {
-        return getState(state);
-    }
-
-    int getNonSyncState() {
-        return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
-    }
-
-    int getNonSyncTxnState() {
-        return getState(state);
     }
 
     private static int getState(byte state) {
@@ -539,7 +527,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     final class TransactionalInfo {
         // current transactional state - must be always set via {@link #setState()} method, not directly
-        private byte transactionalState = ServiceControllerImpl.this.currentState();
+        private volatile byte transactionalState = ServiceControllerImpl.this.currentState();
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<T> startTask = null;
         // contains a list of all dependencyStartTasks
