@@ -30,7 +30,7 @@ public interface Executable<T> {
     /**
      * Perform the task.
      *
-     * @param context
+     * @param context execution context
      */
     void execute(ExecuteContext<T> context);
 }

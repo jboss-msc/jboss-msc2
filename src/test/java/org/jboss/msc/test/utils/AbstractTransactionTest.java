@@ -138,14 +138,14 @@ public abstract class AbstractTransactionTest {
 
     protected BasicTransaction newTransaction() {
         assertNotNull(defaultExecutor);
-        final BasicTransaction transaction = txnController.create(defaultExecutor);
+        final BasicTransaction transaction = txnController.createTransaction(defaultExecutor);
         createdTransactions.add(transaction);
         return transaction;
     }
 
     protected BasicTransaction newTransaction(final Executor executor) {
         assertNotNull(executor);
-        return txnController.create(executor);
+        return txnController.createTransaction(executor);
     }
 
     protected static void assertCalled(final TestTask task) {
@@ -293,17 +293,14 @@ public abstract class AbstractTransactionTest {
     protected static void commit(final BasicTransaction transaction) {
         assertNotNull(transaction);
         final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
-        try {
-            txnController.commit(transaction, commitListener);
-        } finally {
-            assertNoCriticalProblem(transaction);
-        }
+        txnController.commit(transaction, commitListener);
         commitListener.awaitCompletionUninterruptibly();
+        assertNoCriticalProblem(transaction);
         assertCommitted(transaction);
     }
 
     private static void assertNoCriticalProblem(final BasicTransaction txn) {
-        List<Problem> problems = txnController.getProblemReport(txn).getProblems();
+        List<Problem> problems = txnController.getTransactionReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {
                 if (problem.getCause() != null) {

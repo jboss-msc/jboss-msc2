@@ -36,11 +36,11 @@ public final class AttachmentKey<T> {
     }
 
     public static <T> AttachmentKey<T> create() {
-        return new AttachmentKey<T>();
+        return new AttachmentKey<>();
     }
 
     public static <T> AttachmentKey<T> create(Factory<T> factory) {
-        return new AttachmentKey<T>(factory);
+        return new AttachmentKey<>(factory);
     }
 
     T createValue() {

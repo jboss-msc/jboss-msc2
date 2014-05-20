@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012 Red Hat, Inc., and individual contributors
+ * Copyright 2014 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,18 @@
 
 package org.jboss.msc.txn;
 
+import java.util.EventListener;
+
 /**
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * A transaction prepare phase completion listener.
+ *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-interface ValidateContext extends ReportableContext, SimpleWorkContext {
+interface PrepareCompletionListener extends EventListener {
+
+    /**
+     * Notify observers.
+     */
+    void transactionPrepared();
+    
 }

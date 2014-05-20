@@ -18,8 +18,6 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ServiceContext;
-import org.jboss.msc.txn.ServiceController;
 
 
 /**
@@ -53,24 +51,13 @@ public interface ServiceBuilder<T> {
     ServiceBuilder<T> setMode(ServiceMode mode) throws IllegalStateException;
 
     /**
-     * Sets the service instance.
-     * 
-     * @param service the service
-     * @return a reference to this object
-     * @throws IllegalStateException if {@link #install()} has been called.
-     */
-    ServiceBuilder<T> setService(ServiceStartExecutable<T> service) throws IllegalStateException;
-
-    /**
      * Sets the service instance..
      * 
      * @param service the service
      * @return a reference to this object
      * @throws IllegalStateException if {@link #install()} has been called.
-     * @throws IllegalArgumentException if {@code service} implements {@code ServiceStartExecutable}. In this case,
-     *                                   use {@link #setService(ServiceStartExecutable)} instead.
      */
-    ServiceBuilder<T> setService(Object service) throws IllegalStateException, IllegalArgumentException;
+    ServiceBuilder<T> setService(Service<T> service) throws IllegalStateException, IllegalArgumentException;
 
     /**
      * Add aliases for the service.
@@ -137,7 +124,10 @@ public interface ServiceBuilder<T> {
      * Initiates installation of this configured service to the container.
      * 
      * @return the controller for the installed service
+     * @throws IllegalStateException if this method is called more than once
+     * @throws DuplicateServiceException if installation collides with some already existing service
+     * @throws org.jboss.msc.service.CircularDependencyException if dependencies cycle is detected
      */
-    ServiceController install() throws IllegalStateException, DuplicateServiceException;
+    ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
 
 }

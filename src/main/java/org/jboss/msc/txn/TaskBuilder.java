@@ -53,14 +53,6 @@ public interface TaskBuilder<T> {
     TaskBuilder<T> setRevertible(final Revertible revertible);
 
     /**
-     * todo - doc
-     *
-     * @param task
-     * @return this task builder
-     */
-    TaskBuilder<T> setTraits(final Object task);
-
-    /**
      * Set the class loader to use for this task.
      *
      * @param classLoader the class loader

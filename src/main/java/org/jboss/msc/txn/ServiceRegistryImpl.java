@@ -18,15 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
@@ -37,17 +35,20 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class ServiceRegistryImpl extends TransactionalObject implements ServiceRegistry {
+final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistry {
 
     private static final byte ENABLED = 1 << 0x00;
     private static final byte REMOVED  = 1 << 0x01;
 
+    final TransactionController txnController;
     // map of service registrations
-    private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<ServiceName, Registration>();
+    private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
     private byte state = ENABLED;
 
-
+    ServiceRegistryImpl(final TransactionController txnController) {
+        this.txnController = txnController;
+    }
 
     /**
      * Gets a service, throwing an exception if it is not found.
@@ -84,13 +85,12 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
         Registration registration = registry.get(name);
         if (registration == null) {
             checkRemoved();
-            lockWrite(transaction);
-            registration = new Registration(name);
+            registration = new Registration(name, txnController);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
             } else if (Bits.anyAreSet(state, ENABLED)){
-                registration.enableRegistry(transaction);
+                registration.enableRegistry(transaction, transaction.getTaskFactory());
             }
         }
         return registration;
@@ -109,84 +109,107 @@ final class ServiceRegistryImpl extends TransactionalObject implements ServiceRe
     }
 
     @Override
-    public void remove(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        synchronized(this) {
+    public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
+        synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
             }
-            state = (byte) (state | REMOVED);
         }
-        for (Registration registration : registry.values()) {
-            registration.remove(transaction);
-        }
+        final RemoveTask removeTask = new RemoveTask(transaction);
+        transaction.getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
     }
 
     @Override
-    public synchronized void disable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
+    public void disable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
         checkRemoved();
-        // idempotent
-        if (!Bits.anyAreSet(state, ENABLED)) {
-            return;
+        super.disable(transaction);
+    }
+
+    boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
+        synchronized (this) {
+            // idempotent
+            if (!Bits.anyAreSet(state, ENABLED)) {
+                return false;
+            }
+            state = (byte) (state & ~ENABLED);
         }
-        state = (byte) (state & ~ENABLED);
         for (Registration registration: registry.values()) {
-            registration.disableRegistry(transaction);
+            registration.disableRegistry(transaction, taskFactory);
         }
+        return true;
     }
 
     @Override
-    public synchronized void enable(Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
+    public void enable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
         checkRemoved();
-        // idempotent
-        if (Bits.anyAreSet(state, ENABLED)) {
-            return;
+        super.enable(transaction);
+    }
+
+    boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
+        synchronized (this) {
+            // idempotent
+            if (Bits.anyAreSet(state, ENABLED)) {
+                return false;
+            }
+            state = (byte) (state | ENABLED);
         }
-        state = (byte) (state | ENABLED);
         for (Registration registration: registry.values()) {
-            registration.enableRegistry(transaction);
+            registration.enableRegistry(transaction, taskFactory);
         }
+        return true;
     }
 
-    @Override
-    Object takeSnapshot() {
-        return new Snapshot();
-    }
-
-    @Override
-    void revert(final Object snapshot) {
-        ((Snapshot)snapshot).apply();
-    }
-
-    private synchronized void checkRemoved() {
+    private synchronized void checkRemoved() throws IllegalStateException {
         if (Bits.anyAreSet(state, REMOVED)) {
             throw TXN.removedServiceRegistry();
         }
     }
-    
-    private final class Snapshot {
-        private final byte state;
-        private final Map<ServiceName, Registration> registry;
-        
-        private Snapshot() {
-            assert holdsLock(ServiceRegistryImpl.this);
-            state = ServiceRegistryImpl.this.state;
-            registry = new HashMap<ServiceName, Registration>(ServiceRegistryImpl.this.registry);
+
+    private final class RemoveTask implements Executable<Void>, Revertible {
+
+        private final Transaction transaction;
+        private boolean removed;
+
+        public RemoveTask(final Transaction transaction) {
+            this.transaction = transaction;
         }
-        
-        private void apply() {
-            assert holdsLock(ServiceRegistryImpl.this);
-            ServiceRegistryImpl.this.state = state;
-            ServiceRegistryImpl.this.registry.clear();
-            ServiceRegistryImpl.this.registry.putAll(registry);
+
+        @Override
+        public synchronized void execute(ExecuteContext<Void> context) {
+            try {
+                synchronized(ServiceRegistryImpl.this) {
+                    if (Bits.anyAreSet(state, REMOVED)) {
+                        return;
+                    }
+                    state = (byte) (state | REMOVED);
+                }
+                for (Registration registration : registry.values()) {
+                    registration.remove(transaction, context);
+                }
+                removed = true;
+            } finally {
+                context.complete();
+            }
+        }
+
+        @Override
+        public synchronized void rollback(RollbackContext context) {
+            try {
+                if (!removed ) {
+                    return;
+                }
+                synchronized (ServiceRegistryImpl.this) {
+                    state = (byte) (state & ~REMOVED);
+                }
+                for (Registration registration : registry.values()) {
+                    registration.reinstall();
+                }
+            } finally {
+                context.complete();
+            }
         }
     }
 }

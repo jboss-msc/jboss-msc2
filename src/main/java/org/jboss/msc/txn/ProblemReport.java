@@ -31,7 +31,7 @@ import java.util.List;
  */
 public final class ProblemReport implements Iterable<Problem> {
     private Problem.Severity maxSeverity = Problem.Severity.INFO;
-    private final List<Problem> problems = new ArrayList<Problem>();
+    private final List<Problem> problems = new ArrayList<>();
 
     public ProblemReport() {
     }
@@ -48,7 +48,7 @@ public final class ProblemReport implements Iterable<Problem> {
 
     public List<Problem> getProblems() {
         synchronized (problems) {
-            return Collections.<Problem>unmodifiableList(Arrays.asList(problems.toArray(new Problem[problems.size()])));
+            return Collections.unmodifiableList(Arrays.asList(problems.toArray(new Problem[problems.size()])));
         }
     }
 

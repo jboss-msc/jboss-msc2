@@ -1,8 +1,14 @@
+# maven excludes
 target
+# intellij excludes
 *.iml
+*.ipr
+*.iws
 .idea
+# eclipse excludes
 .settings
 .project
 .classpath
+# modified files excludes
 *~
 

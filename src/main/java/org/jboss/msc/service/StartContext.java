@@ -18,17 +18,39 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.WorkContext;
 
 /**
  * Service start lifecycle context.
  *
+ * @param <T> the service value type
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StartContext<T> extends ExecuteContext<T> {
-    
+public interface StartContext<T> extends WorkContext<T> {
+
     /**
      * Marking completion of this service start failed.
      */
     void fail();
+
+    /**
+     * Start installation of a child service into {@code registry}.
+     *
+     * @param valueType      the type of the service value to be added
+     * @param registry       the target service registry where new service will be installed
+     * @param name           the service name
+     * @param serviceContext the parent service context
+     * @return the builder for the service
+     */
+    <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name, ServiceContext parentContext);
+
+    /**
+     * Start installation of a child service into {@code registry}.
+     *
+     * @param registry       the target service registry where new service will be installed
+     * @param name           the service name
+     * @param serviceContext the parent service context
+     * @return the builder for the service
+     */
+    ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext);
 }

@@ -18,13 +18,13 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.WorkContext;
 
 /**
  * Service stop lifecycle context.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StopContext extends ExecuteContext<Void> {
+public interface StopContext extends WorkContext<Void> {
 
 }

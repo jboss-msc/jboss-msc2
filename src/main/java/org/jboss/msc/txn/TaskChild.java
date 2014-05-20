@@ -28,34 +28,26 @@ package org.jboss.msc.txn;
 interface TaskChild {
 
     /**
-     * Indicate to this child that a dependency's execution has completed.
+     * Indicate to this child that its dependency execution has completed.
      *
      * @param userThread {@code true} if executed from a user thread
      */
-    void dependencyExecutionComplete(boolean userThread);
+    void dependencyExecuted(boolean userThread);
 
     /**
-     * Request this child to initiate rollback when possible. Neither {@link #childInitiateValidate(boolean)} nor
-     * {@link #childInitiateCommit(boolean)} may be called after this method is called.
+     * Request this child to initiate rollback when possible.
+     * Method {@link #childCommit(boolean)} may not be called after this method is called.
      *
      * @param userThread {@code true} if executed from a user thread
      */
-    void childInitiateRollback(boolean userThread);
+    void childRollback(boolean userThread);
 
     /**
-     * Request this child to initiate validation when possible. May never be called after
-     * {@link #childInitiateRollback(boolean)}.  Will always be followed by either {@link #childInitiateRollback(boolean)} or
-     * {@link #childInitiateCommit(boolean)}.
+     * Request this child to initiate commit when possible.
+     * Will never be called after {@link #childRollback(boolean)}.
      *
      * @param userThread {@code true} if executed from a user thread
      */
-    void childInitiateValidate(boolean userThread);
+    void childCommit(boolean userThread);
 
-    /**
-     * Request this child to initiate commit when possible. Will always be called after
-     * {@link #childInitiateValidate(boolean)}. Will never be called after {@link #childInitiateRollback(boolean)}.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void childInitiateCommit(boolean userThread);
 }

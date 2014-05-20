@@ -41,14 +41,12 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
     private Executable<T> executable;
-    private Validatable validatable;
     private Revertible revertible;
 
     TaskBuilderImpl(final Transaction transaction, final TaskParent parent, final Executable<T> executable) {
         this.transaction = transaction;
         this.parent = parent;
         this.executable = executable;
-        if (executable instanceof Validatable) validatable = (Validatable) executable;
         if (executable instanceof Revertible) revertible = (Revertible) executable;
     }
 
@@ -56,77 +54,33 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         this(transaction, parent, null);
     }
 
-    /**
-     * Get the transaction associated with this builder.
-     *
-     * @return the transaction associated with this builder
-     */
+    @Override
     public Transaction getTransaction() {
         return transaction;
     }
 
-    /**
-     * Change the executable part of this task, or {@code null} to prevent the executable part from running.
-     *
-     * @param executable the new executable part
-     * @return this task builder
-     */
+    @Override
     public TaskBuilderImpl<T> setExecutable(final Executable<T> executable) {
         this.executable = executable;
         return this;
     }
 
-    /**
-     * Set the validatable part of this task, or {@code null} to prevent the validation phase from running for this task.
-     *
-     * @param validatable the validatable part
-     * @return this task builder
-     */
-    public TaskBuilderImpl<T> setValidatable(final Validatable validatable) {
-        this.validatable = validatable;
-        return this;
-    }
-
-    /**
-     * Set the revertible part of this task, or {@code null} if the task should not support rollback.
-     *
-     * @param revertible the revertible part
-     * @return this task builder
-     */
+    @Override
     public TaskBuilderImpl<T> setRevertible(final Revertible revertible) {
+        if (!transaction.isActive()) {
+            throw TXN.cannotAddRevertibleToInactiveTransaction();
+        }
         this.revertible = revertible;
         return this;
     }
 
-    /**
-     * todo - doc
-     *
-     * @param task
-     * @return this task builder
-     */
-    public TaskBuilderImpl<T> setTraits(final Object task) {
-        if (task instanceof Revertible) revertible = (Revertible) task;
-        if (task instanceof Validatable) validatable = (Validatable) task;
-        return this;
-    }
-
-    /**
-     * Set the class loader to use for this task.
-     *
-     * @param classLoader the class loader
-     * @return this task builder
-     */
+    @Override
     public TaskBuilderImpl<T> setClassLoader(final ClassLoader classLoader) {
         this.classLoader = classLoader;
         return this;
     }
 
-    /**
-     * Add dependencies, if this subtask has not yet been executed.
-     *
-     * @param dependencies the dependencies to add
-     * @return this builder
-     */
+    @Override
     public TaskBuilderImpl<T> addDependencies(final TaskController<?>... dependencies) throws IllegalStateException {
         if (dependencies == null) {
             throw TXN.methodParameterIsNull("dependencies");
@@ -137,12 +91,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         return this;
     }
 
-    /**
-     * Add dependencies, if this subtask has not yet been executed.
-     *
-     * @param dependencies the dependencies to add
-     * @return this builder
-     */
+    @Override
     public TaskBuilderImpl<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException {
         if (dependencies == null) {
             throw TXN.methodParameterIsNull("dependencies");
@@ -153,12 +102,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         return this;
     }
 
-    /**
-     * Add a single dependency, if this subtask has not yet been executed.
-     *
-     * @param dependency the dependency to add
-     * @return this builder
-     */
+    @Override
     public TaskBuilderImpl<T> addDependency(final TaskController<?> dependency) throws IllegalStateException {
         if (dependency == null) {
             throw TXN.methodParameterIsNull("dependency");
@@ -167,16 +111,11 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         return this;
     }
 
-    /**
-     * Release this task to begin execution.  The given listener is called upon completion or failure, or immediately
-     * if this task was already released.
-     *
-     * @return the new controller
-     */
+    @Override
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<T>(parent, dependenciesArray, executable, revertible, validatable, classLoader);
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, revertible, classLoader);
         controller.install();
         return controller;
     }

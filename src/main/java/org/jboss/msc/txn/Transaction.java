@@ -21,11 +21,9 @@ package org.jboss.msc.txn;
 import static java.lang.Thread.holdsLock;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -45,54 +43,46 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         MSCLogger.ROOT.greeting(Version.getVersionString());
     }
 
-    private static final int FLAG_ROLLBACK_REQ = 1 << 3; // set if rollback of the current txn was requested
-    private static final int FLAG_PREPARE_REQ  = 1 << 4; // set if prepare of the current txn was requested
-    private static final int FLAG_COMMIT_REQ   = 1 << 5; // set if commit of the current txn was requested
-    private static final int FLAG_DO_PREPARE_LISTENER = 1 << 6;
-    private static final int FLAG_DO_COMMIT_LISTENER = 1 << 7;
+    private static final int FLAG_ROLLBACK_REQ         = 1 << 3; // set if rollback of the current txn was requested
+    private static final int FLAG_PREPARE_REQ          = 1 << 4; // set if prepare of the current txn was requested
+    private static final int FLAG_COMMIT_REQ           = 1 << 5; // set if commit of the current txn was requested
+    private static final int FLAG_DO_PREPARE_LISTENER  = 1 << 6;
+    private static final int FLAG_DO_COMMIT_LISTENER   = 1 << 7;
     private static final int FLAG_DO_ROLLBACK_LISTENER = 1 << 8;
-    private static final int FLAG_SEND_CANCEL_REQ = 1 << 9;
-    private static final int FLAG_SEND_VALIDATE_REQ = 1 << 10;
-    private static final int FLAG_SEND_COMMIT_REQ = 1 << 11;
-    private static final int FLAG_SEND_ROLLBACK_REQ = 1 << 12;
-    private static final int FLAG_CLEAN_UP = 1 << 13;
-    private static final int FLAG_USER_THREAD = 1 << 31;
+    private static final int FLAG_SEND_CANCEL_REQ      = 1 << 9;
+    private static final int FLAG_SEND_COMMIT_REQ      = 1 << 10;
+    private static final int FLAG_SEND_ROLLBACK_REQ    = 1 << 11;
+    private static final int FLAG_CLEAN_UP             = 1 << 12;
+    private static final int FLAG_USER_THREAD          = 1 << 31;
 
-    private static final int STATE_ACTIVE           = 0x0; // adding tasks and subtransactions; counts = # added
-    private static final int STATE_PREPARING        = 0x1; // preparing all our tasks
-    private static final int STATE_PREPARED         = 0x2; // prepare finished, wait for commit/abort decision from user or parent
-    private static final int STATE_ROLLBACK         = 0x3; // rolling back all our tasks; count = # remaining
-    private static final int STATE_COMMITTING       = 0x4; // performing commit actions
-    private static final int STATE_ROLLED_BACK      = 0x5; // "dead" state
-    private static final int STATE_COMMITTED        = 0x6; // "success" state
-    private static final int STATE_MASK = 0x07;
+    private static final int STATE_ACTIVE      = 0x0; // adding tasks and subtransactions; counts = # added
+    private static final int STATE_PREPARED    = 0x1; // prepare finished, wait for commit/abort decision from user or parent
+    private static final int STATE_ROLLBACK    = 0x2; // rolling back all our tasks; count = # remaining
+    private static final int STATE_COMMITTING  = 0x3; // performing commit actions
+    private static final int STATE_ROLLED_BACK = 0x4; // "dead" state
+    private static final int STATE_COMMITTED   = 0x5; // "success" state
+    private static final int STATE_MASK        = 0x07;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER | FLAG_DO_ROLLBACK_LISTENER;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_ROLLBACK_REQ | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
 
-    private static final int T_NONE = 0;
-    private static final int T_ACTIVE_to_PREPARING  = 1;
-    private static final int T_ACTIVE_to_ROLLBACK   = 2;
-    private static final int T_PREPARING_to_PREPARED        = 3;
-    private static final int T_PREPARING_to_ROLLBACK = 4;
-    private static final int T_PREPARED_to_COMMITTING   = 5;
-    private static final int T_PREPARED_to_ROLLBACK     = 6;
-    private static final int T_ROLLBACK_to_ROLLED_BACK  = 7;
-    private static final int T_COMMITTING_to_COMMITTED  = 8;
-    final TransactionController controller;
+    private static final int T_NONE                    = 0;
+    private static final int T_ACTIVE_to_PREPARED      = 1;
+    private static final int T_ACTIVE_to_ROLLBACK      = 2;
+    private static final int T_PREPARED_to_COMMITTING  = 3;
+    private static final int T_PREPARED_to_ROLLBACK    = 4;
+    private static final int T_ROLLBACK_to_ROLLED_BACK = 5;
+    private static final int T_COMMITTING_to_COMMITTED = 6;
+    final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private Set<TransactionalLock> locks = Collections.newSetFromMap(new IdentityHashMap<TransactionalLock, Boolean>());
-    private final List<TaskControllerImpl<?>> topLevelTasks = new CopyOnWriteArrayList<TaskControllerImpl<?>>();
+    private final Queue<TaskControllerImpl<?>> topLevelTasks = new ConcurrentLinkedQueue<>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
-    private final ProblemReport problemReport = new ProblemReport();
+    private final ProblemReport transactionReport = new ProblemReport();
+    private final ProblemReport rollbackReport = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
         public void childExecuted(final boolean userThread) {
             doChildExecuted(userThread);
-        }
-
-        public void childValidated(final boolean userThread) {
-            doChildValidated(userThread);
         }
 
         public void childTerminated(final boolean userThread) {
@@ -109,53 +99,52 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     };
     private final TaskFactory taskFactory = new TaskFactory() {
         public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
-            return new TaskBuilderImpl<T>(Transaction.this, topParent, task);
+            return new TaskBuilderImpl<>(Transaction.this, topParent, task);
         }
 
+        @SuppressWarnings("unchecked")
         public TaskBuilder<Void> newTask() throws IllegalStateException {
-            return new TaskBuilderImpl<Void>(Transaction.this, topParent);
+            return new TaskBuilderImpl<>(Transaction.this, topParent);
         }
     };
     private long endTime;
     private int state;
-    private int uncanceledChildren;
-    private int unfinishedChildren;
-    private int unvalidatedChildren;
+    private int uncancelledChildren;
+    private int unexecutedChildren;
     private int unterminatedChildren;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private Listener<? super AbortResult<? extends Transaction>> abortListener;
     private Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
-    private List<TerminationListener> terminateListeners = new ArrayList<>(0);
+    private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
+    private List<TerminateCompletionListener> terminateCompletionListeners = new ArrayList<>(0);
     private volatile boolean isRollbackRequested;
     private volatile boolean isPrepareRequested;
 
-    Transaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
-        this.controller = controller;
+    Transaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+        this.txnController = txnController;
         this.taskExecutor = taskExecutor;
         this.maxSeverity = maxSeverity;
     }
 
-    final void addLock(final TransactionalLock lock) {
-        final boolean reverted;
+    final void addListener(final PrepareCompletionListener listener) {
         synchronized (this) {
-            if (locks != null) {
-                locks.add(lock);
+            if (prepareCompletionListeners != null) {
+                prepareCompletionListeners.add(listener);
                 return;
             }
-            reverted = isRollbackRequested;
         }
-        lock.unlock(this, reverted);
+        throw new InvalidTransactionStateException();
     }
 
-    final void addTerminationListener(final TerminationListener listener) {
+    final void addListener(final TerminateCompletionListener listener) {
         synchronized (this) {
-            if (terminateListeners != null) {
-                terminateListeners.add(listener);
+            if (terminateCompletionListeners != null) {
+                terminateCompletionListeners.add(listener);
                 return;
             }
         }
-        safeCallTerminateListener(listener);
+        throw new InvalidTransactionStateException();
     }
 
     final void forceStateRolledBack() {
@@ -195,16 +184,16 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    final TransactionController getController() {
-        return controller;
-    }
-
     final Executor getExecutor() {
         return taskExecutor;
     }
 
-    public final ProblemReport getProblemReport() {
-        return problemReport;
+    public final ProblemReport getTransactionReport() {
+        return transactionReport;
+    }
+
+    public final ProblemReport getRollbackReport() {
+        return rollbackReport;
     }
 
     /**
@@ -218,19 +207,10 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
                     return T_ACTIVE_to_ROLLBACK;
-                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unfinishedChildren == 0 && uncanceledChildren == 0) {
-                    return T_ACTIVE_to_PREPARING;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_PREPARING: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                    return T_PREPARING_to_ROLLBACK;
-                } else if (unvalidatedChildren == 0) {
-                    return T_PREPARING_to_PREPARED;
+                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
+                    return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
                 }
@@ -280,20 +260,12 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             int t = getTransition(state);
             switch (t) {
                 case T_NONE: return state;
-                case T_ACTIVE_to_PREPARING: {
-                    state = newState(STATE_PREPARING, state | FLAG_SEND_VALIDATE_REQ);
+                case T_ACTIVE_to_PREPARED: {
+                    state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
                     continue;
                 }
                 case T_ACTIVE_to_ROLLBACK: {
                     state = newState(STATE_ROLLBACK, state);
-                    continue;
-                }
-                case T_PREPARING_to_PREPARED: {
-                    state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
-                    continue;
-                }
-                case T_PREPARING_to_ROLLBACK: {
-                    state = newState(STATE_ROLLBACK, state | FLAG_SEND_ROLLBACK_REQ);
                     continue;
                 }
                 case T_PREPARED_to_COMMITTING: {
@@ -325,54 +297,32 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateRollback(userThread);
-            }
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_VALIDATE_REQ)) {
-            for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateValidate(userThread);
+                task.childRollback(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childInitiateCommit(userThread);
+                task.childCommit(userThread);
             }
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
-            Transactions.unregister(this);
-            final boolean reverted;
-            final Set<TransactionalLock> locks;
-            final List<TerminationListener> listeners;
-            synchronized (this) {
-                reverted = isRollbackRequested;
-                locks = this.locks;
-                this.locks = null;
-                listeners = terminateListeners;
-                terminateListeners = null;
-            }
-            // free all locks
-            for (final TransactionalLock lock : locks) {
-                lock.unlock(this, reverted);
-            }
-            locks.clear();
-            // transaction completion notifications
-            for (final TerminationListener listener : listeners) {
-                safeCallTerminateListener(listener);
-            }
-            listeners.clear();
+            Transactions.unregister();
         }
         if (userThread) {
             if (Bits.anyAreSet(state, LISTENERS_MASK)) {
                 safeExecute(new AsyncTask(state & (PERSISTENT_STATE | LISTENERS_MASK)));
             }
         } else {
-            if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
-                callCommitListener(state);
-            }
             if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
+                callPrepareCompletionListeners();
                 callPrepareListener(state);
             }
+            if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
+                callTerminateCompletionListeners();
+                callCommitListener(state);
+            }
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
+                callTerminateCompletionListeners();
                 callTerminateListeners(state);
             }
         }
@@ -386,11 +336,19 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
     }
 
-    static void safeCallTerminateListener(final TerminationListener listener) {
+    static void safeCallListener(final PrepareCompletionListener listener) {
+        try {
+            listener.transactionPrepared();
+        } catch (final Throwable t) {
+            MSCLogger.ROOT.prepareCompletionListenerFailed(t);
+        }
+    }
+
+    static void safeCallListener(final TerminateCompletionListener listener) {
         try {
             listener.transactionTerminated();
-        } catch (Throwable t) {
-            MSCLogger.ROOT.terminationListenerFailed(t);
+        } catch (final Throwable t) {
+            MSCLogger.ROOT.terminateCompletionListenerFailed(t);
         }
     }
 
@@ -482,10 +440,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    final boolean isRollbackRequested() {
-        return isRollbackRequested;
-    }
-
     final boolean canCommit() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         synchronized (this) {
@@ -497,7 +451,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     private boolean reportIsCommittable() {
-        return problemReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
+        return transactionReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
     protected void finalize() {
@@ -528,22 +482,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            unexecutedChildren--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unfinishedChildren--;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    private void doChildValidated(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            unvalidatedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -554,9 +495,9 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
+            unterminatedChildren--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
-            unterminatedChildren--;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -577,8 +518,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
                 state |= FLAG_SEND_CANCEL_REQ;
             }
             topLevelTasks.add(child);
-            unfinishedChildren++;
-            unvalidatedChildren++;
+            unexecutedChildren++;
             unterminatedChildren++;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -594,7 +534,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
-            uncanceledChildren++;
+            uncancelledChildren++;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -610,7 +550,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
             }
-            uncanceledChildren--;
+            uncancelledChildren--;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -618,14 +558,13 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         executeTasks(state);
     }
 
-    void adoptGrandchildren(final List<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unfinishedGreatGrandchildren, final int unvalidatedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
+    void adoptGrandchildren(final Queue<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
         final boolean sendRollbackRequest;
         synchronized (this) {
             topLevelTasks.addAll(grandchildren);
-            unfinishedChildren += unfinishedGreatGrandchildren;
-            unvalidatedChildren += unvalidatedGreatGrandchildren;
+            unexecutedChildren += unexecutedGreatGrandchildren;
             unterminatedChildren += unterminatedGreatGrandchildren;
             state = this.state;
             sendRollbackRequest = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);
@@ -635,10 +574,47 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         }
         if (sendRollbackRequest) {
             for (final TaskControllerImpl<?> grandchild : grandchildren) {
-                grandchild.childInitiateRollback(userThread);
+                grandchild.childRollback(userThread);
             }
         }
         executeTasks(state);
+    }
+
+    boolean isActive() {
+        assert ! holdsLock(this);
+        synchronized (this) {
+            return stateOf(state) == STATE_ACTIVE;
+        }
+    }
+
+    void ensureIsActive() {
+        if (!isActive()) {
+            throw MSCLogger.TXN.inactiveTransaction();
+        }
+    }
+
+    private void callPrepareCompletionListeners() {
+        final List<PrepareCompletionListener> prepareCompletionListeners;
+        synchronized (this) {
+            prepareCompletionListeners = this.prepareCompletionListeners;
+            this.prepareCompletionListeners = null;
+        }
+        for (final PrepareCompletionListener listener : prepareCompletionListeners) {
+            safeCallListener(listener);
+        }
+        prepareCompletionListeners.clear();
+    }
+
+    private void callTerminateCompletionListeners() {
+        final List<TerminateCompletionListener> terminateCompletionListeners;
+        synchronized (this) {
+            terminateCompletionListeners = this.terminateCompletionListeners;
+            this.terminateCompletionListeners = null;
+        }
+        for (final TerminateCompletionListener listener : terminateCompletionListeners) {
+            safeCallListener(listener);
+        }
+        terminateCompletionListeners.clear();
     }
 
     private void callPrepareListener(final int state) {
@@ -661,25 +637,20 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
     }
 
     private void callTerminateListeners(final int state) {
-        final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
-        final Listener<? super CommitResult<? extends Transaction>> commitListener;
         final Listener<? super AbortResult<? extends Transaction>> abortListener;
         final Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
         synchronized (this) {
             endTime = System.nanoTime();
-            prepareListener = this.prepareListener;
-            this.prepareListener = null;
-            commitListener = this.commitListener;
-            this.commitListener = null;
             abortListener = this.abortListener;
             this.abortListener = null;
             rollbackListener = this.rollbackListener;
             this.rollbackListener = null;
         }
-        callListeners(state, prepareListener, commitListener, abortListener, rollbackListener);
+        callListeners(state, null, null, abortListener, rollbackListener);
     }
 
-    private void callListeners(final int state, final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
+    private void callListeners(final int state,
+            final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
             final Listener<? super CommitResult<? extends Transaction>> commitListener,
             final Listener<? super AbortResult<? extends Transaction>> abortListener,
             final Listener<? super RollbackResult<? extends Transaction>> rollbackListener) {
@@ -742,14 +713,6 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
         return taskFactory;
     }
 
-    final <T> TaskBuilder<T> newTask(final Executable<T> task) throws IllegalStateException {
-        return taskFactory.newTask(task);
-    }
-
-    final TaskBuilder<Void> newTask() throws IllegalStateException {
-        return taskFactory.newTask();
-    }
-
     class AsyncTask implements Runnable {
         private final int state;
 
@@ -763,7 +726,7 @@ public abstract class Transaction extends SimpleAttachable implements Attachable
 
         @Override
         public String toString() {
-            return Transaction.this.toString() + ".AsyncTask@" + System.identityHashCode(this);
+            return Transaction.this + ".AsyncTask@" + System.identityHashCode(this);
         }
     }
 }

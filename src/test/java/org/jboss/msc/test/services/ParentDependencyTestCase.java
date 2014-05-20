@@ -28,21 +28,16 @@ import static org.jboss.msc.service.ServiceMode.ON_DEMAND;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.CommitResult;
-import org.jboss.msc.txn.CompletionListener;
-import org.jboss.msc.txn.Problem.Severity;
-import org.jboss.msc.txn.ReportableContext;
-import org.jboss.msc.txn.ServiceContext;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,175 +52,140 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     private static final ServiceName secondSN = ServiceName.of("second");
     private static final ServiceName thirdSN = ServiceName.of("third");
 
-    protected final TestService addChildService(final ServiceContext parentServiceContext, final ServiceName serviceName,
-            final ServiceMode serviceMode, final ServiceName parentDependency) {
-        // new transaction
-        final BasicTransaction txn = newTransaction();
+//    protected final TestService addChildService(final ServiceContext parentServiceContext,
+//            final StartContext<Void> startContext, final ServiceName serviceName,
+//            final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException, ExecutionException {
+//        // new transaction
+//        final BasicTransaction txn = newTransaction();
+//        try {
+//            // obtain service builder from >> parent<< service context
+//            final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn, startContext);
+//            // create and set test service
+//            final TestService service = new TestService(serviceName, serviceBuilder, false);
+//            serviceBuilder.setService(service);
+//            // set mode
+//            if (serviceMode != null)
+//                serviceBuilder.setMode(serviceMode);
+//            // install
+//            serviceBuilder.install();
+//            // prepare transaction
+//            prepare(txn);
+//            // commit transaction
+//            commit(txn);
+//            // check that parent service is there, and that child service is installed and up
+//            final TestService parentService = (TestService) serviceRegistry.getService(parentDependency).getService();
+//            if (service.isUp() || (parentService != null && parentService.isUp())) throws InterruptedException, ExecutionException {
+//                assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
+//            } else {
+//                assertNull(serviceRegistry.getService(serviceName));
+//            }
+//            return service;
+//        } catch (final Exception e) throws InterruptedException, ExecutionException {
+//            // always clear transaction if exception is detected
+//            rollback(txn);
+//            throw e;
+//        }
+//    }
+
+    /**
+     * Usecase:
+     * <UL>
+     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
+     * <LI>attempt to remove parent before container is shut down</LI>
+     * </UL>
+     */
+    @Test
+    public void usecase1() throws InterruptedException, ExecutionException {
+        final TestService firstService = addService(firstSN, ON_DEMAND);
+        assertFalse(firstService.isUp());
+
+        // request first service to add second service as a child
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
+
+        final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
+        assertTrue(firstService.isUp());
+        assertTrue(thirdService.isUp());
+
+        final TestService secondService = secondServiceFuture.get();
+        assertFalse(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
+        assertTrue(removeService(firstSN, firstService));
+        assertFalse(firstService.isUp());
+        assertFalse(secondService.isUp());
+        assertFalse(thirdService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
+    }
+
+    /**
+     * Usecase:
+     * <UL>
+     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
+     * <LI>attempt to remove parent before container is shut down</LI>
+     * </UL>
+     */
+    @Test
+    public void usecase2() throws InterruptedException, ExecutionException {
+        final TestService firstService = addService(firstSN, LAZY);
+        assertFalse(firstService.isUp());
+
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
+
+        final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
+        assertTrue(firstService.isUp());
+        assertTrue(thirdService.isUp());
+
+        final TestService secondService = secondServiceFuture.get();
+        assertFalse(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
+        assertTrue(removeService(firstSN, firstService));
+        assertFalse(firstService.isUp());
+        assertFalse(secondService.isUp());
+        assertFalse(thirdService.isUp());
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
+    }
+
+    /**
+     * Usecase:
+     * <UL>
+     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
+     * <LI>attempt to remove parent before container is shut down</LI>
+     * </UL>
+     */
+    @Test
+    public void usecase3() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
         try {
-            // obtain service builder from >> parent<< service context
-            final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn);
-            // create and set test service
-            final TestService service = new TestService(serviceName, serviceBuilder, false);
-            serviceBuilder.setService(service);
-            // set mode
-            if (serviceMode != null)
-                serviceBuilder.setMode(serviceMode);
-            // install
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
             serviceBuilder.install();
-            // prepare transaction
-            prepare(txn);
-            // commit transaction
-            commit(txn);
-            // check that parent service is there, and that child service is installed and up
-            final TestService parentService = (TestService) serviceRegistry.getService(parentDependency).getService();
-            if (service.isUp() || (parentService != null && parentService.isUp())) {
-                assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
-            } else {
-                assertNull(serviceRegistry.getService(serviceName));
-            }
-            return service;
-        } catch (final Exception e) {
-            // always clear transaction if exception is detected
-            rollback(txn);
-            throw e;
+        } finally {
+            prepare(txn1);
+            commit(txn1);
         }
-    }
-
-    /**
-     * Usecase:
-     * <UL>
-     * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     * <LI>attempt to remove parent before container is shut down</LI>
-     * </UL>
-     */
-    @Test
-    public void usecase1() {
-        final TestService firstService = addService(firstSN, ON_DEMAND);
-        assertFalse(firstService.isUp());
-
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
-
-        final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
-        assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
+        // remove first service
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-        assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-    }
-
-    /**
-     * Usecase:
-     * <UL>
-     * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     * <LI>attempt to remove parent before container is shut down</LI>
-     * </UL>
-     */
-    @Test
-    public void usecase2() {
-        final TestService firstService = addService(firstSN, LAZY);
-        assertFalse(firstService.isUp());
-
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
-
-        final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
-        assertTrue(firstService.isUp());
-        assertTrue(thirdService.isUp());
-
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
-        assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
-
-        assertTrue(removeService(firstSN, firstService));
-        assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
-        assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-    }
-
-    /**
-     * Usecase:
-     * <UL>
-     * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), <B>first service</B>'s child</LI>
-     * <LI>attempt to remove parent before container is shut down</LI>
-     * </UL>
-     */
-    @Test
-    public void usecase3() {
-        final TestService firstService = addService(firstSN, ACTIVE);
-        assertTrue(firstService.isUp());
-
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
-        assertFalse(secondService.isUp());
-        assertTrue(removeService(firstSN, firstService));
-        assertFalse(firstService.isUp());
-        assertFalse(secondService.isUp());
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
@@ -233,51 +193,32 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * <UL>
      * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
      * <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase4() {
+    public void usecase4() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN,  LAZY,  serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
+        assertNotNull(secondService);
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service now
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        serviceRegistry.getRequiredService(thirdSN);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
@@ -285,52 +226,32 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * <UL>
      * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
      * <LI><B>second service</B> (LAZY mode), <B> first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase5() {
+    public void usecase5() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, LAZY, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
+        assertNotNull(secondService);
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
-        ;
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service with parent removed
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        serviceRegistry.getRequiredService(thirdSN);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
@@ -342,28 +263,30 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase6() {
-        final TestService firstService = addService(firstSN, ACTIVE);
+    public void usecase6() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
+        try {
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, LAZY, serviceRegistry);
+            serviceBuilder.install();
+        } finally {
+            prepare(txn1);
+            commit(txn1);
+        }
         assertTrue(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
@@ -371,50 +294,28 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * <UL>
      * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
      * <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase7() {
+    public void usecase7() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, ON_DEMAND);
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service now
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
     }
 
     /**
@@ -422,51 +323,31 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * <UL>
      * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
      * <LI><B>second service</B> (ACTIVE mode), <B> first service</B>'s child</LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase8() {
+    public void usecase8() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture =  firstService.addChild(secondSN, ACTIVE, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service now
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
@@ -478,349 +359,258 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * </UL>
      */
     @Test
-    public void usecase9() {
-        final TestService firstService = addService(firstSN, ACTIVE);
+    public void usecase9() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
+        try {
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
+            serviceBuilder.install();
+        } finally {
+            prepare(txn1);
+            commit(txn1);
+        }
         assertTrue(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase10() {
+    public void usecase10() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service now
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase11() {
+    public void usecase11() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        // cannot add child service now
-        expected = null;
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     * <LI><B>second service</B> (ON_DEMAND mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (ON_DEMAND mode), depends on <B>first service</B></LI>
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase12() {
-        final TestService firstService = addService(firstSN, ACTIVE);
+    public void usecase12() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
+        try {
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
+            serviceBuilder.install();
+        } finally {
+            prepare(txn1);
+            commit(txn1);
+        }
         assertTrue(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-
-        // cannot add child service now
-        IllegalStateException expected = null;
-        try {
-            addChildService(parentContext, secondSN, ON_DEMAND, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase13() {
+    public void usecase13() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, ON_DEMAND);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, LAZY, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
-     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase14() {
+    public void usecase14() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, LAZY, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
 
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     * <LI><B>second service</B> (LAZY mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (LAZY mode), depends on <B>first service</B></LI>
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase15() {
-        final TestService firstService = addService(firstSN, ACTIVE);
+    public void usecase15() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
+        try {
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
+            serviceBuilder.install();
+        } finally {
+            prepare(txn1);
+            commit(txn1);
+        }
         assertTrue(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, LAZY, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertFalse(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, LAZY, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ON_DEMAND mode), no dependencies</LI>
-     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase16() {
+    public void usecase16() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, ON_DEMAND);
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
@@ -828,99 +618,65 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
      * <UL>
      * <LI><B>first service</B> (LAZY mode), no dependencies</LI>
      * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>third service</B>, (ACTIVE mode), <B>first service</B>'s dependent
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase17() {
+    public void usecase17() throws InterruptedException, ExecutionException {
         final TestService firstService = addService(firstSN, LAZY);
         assertFalse(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-        assertFalse(firstService.isUp());
+        final Future<TestService> secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
 
         final TestService thirdService = addService(thirdSN, ACTIVE, unrequiredFlag, firstSN);
         assertTrue(firstService.isUp());
         assertTrue(thirdService.isUp());
 
-        assertServiceContext(parentContext);
-
-        // now we can add second service
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
-        assertTrue(thirdService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
-
-        expected = null;
-        // cannot add a child service using a removed service context
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
+        assertNull(serviceRegistry.getService(secondSN));
+        serviceRegistry.getRequiredService(thirdSN);
     }
 
     /**
      * Usecase:
      * <UL>
      * <LI><B>first service</B> (ACTIVE mode), no dependencies</LI>
-     * <LI><B>second service</B> (ACTIVE mode), depends on unrequired <B>first service</B></LI>
+     * <LI><B>second service</B> (ACTIVE mode), depends on <B>first service</B></LI>
      * <LI>parent removed before container is shut down</LI>
      * </UL>
      */
     @Test
-    public void usecase18() {
-        final TestService firstService = addService(firstSN, ACTIVE);
+    public void usecase18() throws InterruptedException, ExecutionException {
+        final TestService firstService;
+        final Future<TestService> secondServiceFuture;
+        final BasicTransaction txn1 = newTransaction();
+        try {
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            firstService = new TestService(firstSN, serviceBuilder, false);
+            serviceBuilder.setService(firstService);
+            secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
+            serviceBuilder.install();
+        } finally {
+            prepare(txn1);
+            commit(txn1);
+        }
         assertTrue(firstService.isUp());
 
-        final ServiceContext parentContext = firstService.getServiceContext();
-        assertServiceContext(parentContext);
-
-        final TestService secondService = addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        assertTrue(firstService.isUp());
+        final TestService secondService = secondServiceFuture.get();
         assertTrue(secondService.isUp());
+        serviceRegistry.getRequiredService(secondSN);
+
         assertTrue(removeService(firstSN, firstService));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
-
-        IllegalStateException expected = null;
-        // cannot add a child service using a down service context
-        try {
-            addChildService(parentContext, secondSN, ACTIVE, firstSN);
-        } catch (IllegalStateException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-    }
-
-    @Ignore
-    @Test
-    // TODO fix this
-    public void problemReport() {
-        final TestService firstService = addService(firstSN, ACTIVE);
-        final BasicTransaction transaction = txnController.create(defaultExecutor);
-        final ServiceContext serviceContext = firstService.getServiceContext();
-        assertServiceContext(serviceContext);
-
-        final ReportableContext reportableContext = serviceContext.getReportableContext(transaction);
-        assertNotNull(reportableContext);
-
-        reportableContext.addProblem(Severity.ERROR, "test error");
-        final CompletionListener<CommitResult<BasicTransaction>> listener = new CompletionListener<>();
-        txnController.commit(transaction, listener);
+        assertNull(serviceRegistry.getService(secondSN));
     }
 }

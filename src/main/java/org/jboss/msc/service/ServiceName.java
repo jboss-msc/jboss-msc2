@@ -171,8 +171,8 @@ public final class ServiceName implements Comparable<ServiceName>, Serializable 
      */
     public ServiceName commonAncestorOf(ServiceName other) {
         if (other == null) return null;
-        final Deque<ServiceName> myAncestry = new ArrayDeque<ServiceName>();
-        final Deque<ServiceName> otherAncestry = new ArrayDeque<ServiceName>();
+        final Deque<ServiceName> myAncestry = new ArrayDeque<>();
+        final Deque<ServiceName> otherAncestry = new ArrayDeque<>();
         ServiceName i = this;
         do {
             myAncestry.addFirst(i);
@@ -305,7 +305,7 @@ public final class ServiceName implements Comparable<ServiceName>, Serializable 
      */
     public static ServiceName parse(String original) throws IllegalArgumentException {
         final int originalLength = original.length();
-        final List<String> segments = new ArrayList<String>();
+        final List<String> segments = new ArrayList<>();
         final StringBuilder builder = new StringBuilder();
         int state = 0;
         char escapedChar = '\0';

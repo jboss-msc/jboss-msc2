@@ -19,43 +19,13 @@
 package org.jboss.msc.txn;
 
 /**
- * Context for a task that may succeed or fail which may also produce a consumable result.
+ * Context for a task that may also create new tasks.
  *
  * @param <T> the result type of the associated task
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends CancellableContext, LockingContext, ReportableContext, SimpleWorkContext {
+public interface ExecuteContext<T> extends WorkContext<T>, CancellableContext, TaskFactory {
 
-    /**
-     * Register the completion of this task with a value.  This method returns without blocking.
-     *
-     * @param result the result of the task, or {@code null} if the execution type is {@link Void}
-     */
-    void complete(T result);
-
-    /**
-     * Register the completion of this task with a {@code null} value.  This method returns without blocking.
-     */
-    void complete();
-
-    /**
-     * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
-     * 
-     * @param task the task
-     * @param <R> the result value type (may be {@link Void})
-     * @return the builder for the task
-     * @throws IllegalStateException if this context is not accepting new tasks
-     */
-    <R> TaskBuilder<R> newTask(Executable<R> task) throws IllegalStateException;
-
-    /**
-     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
-     * 
-     * @return the builder for the task
-     * @throws IllegalStateException if this context is not accepting new tasks
-     */
-    TaskBuilder<Void> newTask() throws IllegalStateException;
 }

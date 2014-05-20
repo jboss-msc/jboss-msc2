@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "//W3C//DTD HTML 4.01//EN">
+<HTML>
+  <HEAD>
+    <TITLE>Cycle Elimination</TITLE>
+  </HEAD>
+  <BODY>
+    <H1>Introduction</H1>
+    <P>
+      Before <B>Service</B> is put into service its associated <B>Service Controller</B> must be successfully installed into <B>MSC2</B> runtime.
+      <B>Service Controller</B> keeps all necessary information such as its <U>primary registration</U>, optional <U>alias registrations</U>
+      and optional <U>dependencies</U> referencing dependency registrations.
+    </P>
+    <H2>Definitions</H2>
+    <H3>1.1 Service Controller Installation</H3>
+    <P>
+      <B>Service Controller Installation</B> is a <U>sequence undivisible process</U> executed from single thread.
+      Such single thread will be called <B>service installing thread</B>.
+      <B>Service Controller Installation</B> process consists of the following phases executed in this order:
+      <OL>
+        <LI>
+          <B>Controller Registration Phase</B> - consists of associating controller with <U>required primary registration</U> and with 
+          <U>optional alias registrations</U>. The association with registration is atomic operation. Association of controller with either
+          primary or alias registration will fail if and only if there is already associated controller with the registration. This failure
+          process is fast fail i.e. on first failure currently executing <B>Controller Registration Phase</B> will be immediately terminated,
+          the second <B>Cycle Detection Phase</B> will be omitted and <B>Controller Unregistration Phase</B> will be initiated.
+          Upon <B>Controller Deregistration Phase</B> completion <B>DuplicateServiceException</B> will be thrown.
+        </LI>
+        <LI>
+          <B>Cycle Detection Phase</B> - verifies whether succesfully installed <B>Service Controller</B> in previous phase didn't introduce a 
+          <U>dependencies cycle</U>. This phase is completely omitted if there was a <U>duplicit service</U> installation attempt detected in previous step.
+          If <U>dependencies cycle</U> containing currently installed <B>Service Controller</B> is detected then currently executing <B>Cycle Detection Phase</B> will be immediately terminated and 
+          <B>Controller Deregistration Phase</B> will be initiated. Upon <B>Controller Deregistration Phase</B> completion <B>CircularDependencyException</B> will be thrown.
+        </LI>
+        <LI>
+          <B>Controller Unregistration Phase</B> - rolls back all successful controller registration associations achieved in <B>Controller Registration Phase</B>.
+          Controller unregistration is atomic operation that associates <B>null</B> with all affected registrations.
+          This phase is executed if either <B>Controller Registration Phase</B> detected an attempt to install <U>duplicit service</U>
+          or if <U>dependencies cycle</U> was detected at <B>Cycle Detection Phase</B>. This phase is omitted if and only if both
+          previous phases were successfully completely executed. This last phase if executed can never fail.
+        </LI>
+      </OL>
+    </P>
+    <H3>1.2 Service Controller Removal</H3>
+    <P>
+      <B>Service Controller Removal</B> is an <U>undivisible process</U> executed from single thread.
+      Such thread will be called <B>service removing thread</B>.
+      <B>Service Controller Removal</B> can be executed if and only if there was a successful preceding <B>Service Controller Installation</B>.
+      <B>Service Controller Removal</B> process consists of single phase:
+      <OL>
+        <LI>
+          <B>Controller Removal Phase</B> - associates <B>null</B> with all registrations referencing currently removing controller.
+        </LI>
+      </OL>
+    </P>
+    <H3>1.3 Dependencies Service Graph</H3>
+    <P>
+      <U>Dependencies Cycle Detection Algorithm</U> will operate on
+      <B>Dependencies Service Graph</B> whose representation is as follows:
+      <UL>
+        <LI><U>Service Controllers</U> represent <B>vertices</B>. Vertices have unique names.</LI>
+        <LI><U>Dependencies</U> represent <B>edges</B>.</LI>
+      </UL>
+      In current implementation, <U>Dependencies</U> reference <U>Registrations</U>,
+      but registrations have a 1 to 1 mapping to controllers. If registration
+      has no associated controller with it, we will say such vertex is <U>UNDEFINED</U>.
+      If registration has associated controller, we will say such vertex is <U>DEFINED</U>.
+      Both <U>UNDEFINED</U> and <U>DEFINED</U> vertices are part of
+      <B>Dependencies Service Graph</B> representation.
+      We can distinguish them by e.g. two different colours.
+    </P>
+    <H3>1.4 Dependencies Service Graph Construction</H3>
+    <P>
+      <B>Dependencies Service Graph</B> can be and many times will be updated concurrently.
+      We define two possible atomic <U>update operations</U> on it:
+      <UL>
+        <LI><U>Service Controller Installation</U> - installs service controller into MSC2 runtime (including its aliases and dependencies if any)
+        <LI><U>Service Controller Removal</U> - removes service controller from MSC2 runtime (including its aliases and dependencies if any)
+      </UL>
+      At the beginning there is always an <U>empty graph</U>.
+    </P>
+    <P>
+      If service <B>A</B> with aliases <B>A1, ..., An</B> without dependencies is installed into <U>empty graph</U> <B>G</B>,
+      we will add new <U>DEFINED</U> vertex <B>A</B> for service name
+      and also new <U>DEFINED</U> vertices <B>A1, ..., An</B> for every service alias into <B>G</B>.
+    </P>
+    <P>
+      If service <B>A</B> with aliases <B>A1, ..., An</B> and with dependencies <B>D1, ..., Dm</B> is installed into <U>empty graph</U> <B>G</B>,
+      we will add new <U>DEFINED</U> vertex <B>A</B> for service name
+      and new <U>DEFINED</U> vertices <B>A1, ..., An</B> for every service alias into <B>G</B>.
+      Next we will add new <U>UNDEFINED</U> vertices <B>D1, ..., Dm</B> into <B>G</B>.
+      Finally we will add the following edges into <B>G</B>:<BR/>
+      A -&gt; D1, ..., A -&gt; Dm</BR>
+      A1 -&gt; D1, ..., A1 -&gt; Dm<BR/>
+      A2 -&gt; D1, ..., A2 -&gt; Dm<BR/>
+      ...<BR/>
+      An -&gt; D1, ..., An -&gt; Dm<BR/>
+    </P>
+    <P>
+      If service <B>A</B> with aliases <B>A1, ..., An</B> without dependencies is installed into <U>non empty graph</U> <B>G</B>, we will:
+      <UL>
+        <LI>switch every existing vertex <B>Ai</B> from <U>UNDEFINED</U> to <U>DEFINED</U> state in graph <B>G</B>: <B>Ai</B> from <B>{ A, A1, ..., An }</B>.
+        <LI>create new <U>DEFINED</U> vertices <B>Ai</B>, if <B>Ai</B> was not present in <B>G</B>: <B>Ai</B> from <B>{ A, A1, ..., An }</B>
+      </UL>
+    </P>
+    <P>
+      If service <B>A</B> with aliases <B>A1, ..., An</B> with dependencies <B>D1, ...., Dm</B> is installed into <U>non empty graph</U> <B>G</B>, we will:
+      <UL>
+        <LI>switch every existing vertex <B>Ai</B> from <U>UNDEFINED</U> to <U>DEFINED</U> state in graph <B>G</B>: <B>Ai</B> from <B>{ A, A1, ..., An }</B></LI>
+        <LI>add new <U>DEFINED</U> vertices <B>Ai</B>, if <B>Ai</B> was not present in <B>G</B>: <B>Ai</B> from <B>{ A, A1, ..., An }</B></LI>
+        <LI>add new <U>UNDEFINED</U> vertices <B>Dj</B>, if <B>Dj</B> was not present in <B>G</B>: <B>Dj</B> from <B>{ D1, ..., Dm }</B></LI>
+        <LI>Finally add the following edges into <B>G</B>:<BR/>
+      A -&gt; D1, ..., A -&gt; Dm</BR>
+      A1 -&gt; D1, ..., A1 -&gt; Dm<BR/>
+      A2 -&gt; D1, ..., A2 -&gt; Dm<BR/>
+      ...<BR/>
+      An -&gt; D1, ..., An -&gt; Dm<BR/>
+        </LI>
+      </UL>
+    </P>
+    <P>
+      If service <B>A</B> with aliases <B>A1, ..., An</B> with dependencies <B>D1, ...., Dm</B> is removed from <U>non empty graph</U> <B>G</B>, we will:
+      <UL>
+        <LI>remove the following edges from <B>G</B>:<BR/>
+      A -&gt; D1, ..., A -&gt; Dm</BR>
+      A1 -&gt; D1, ..., A1 -&gt; Dm<BR/>
+      A2 -&gt; D1, ..., A2 -&gt; Dm<BR/>
+      ...<BR/>
+      An -&gt; D1, ..., An -&gt; Dm<BR/>
+        <LI>Finally switch all vertices <B>Ai</B> from <U>DEFINED</U> to <U>UNDEFINED</U> state in graph <B>G</B>: <B>Ai</B> from <B>{ A, A1, ..., An }</B></LI>
+      </UL>
+    </P>
+    <H2>2 Proposition</H2>
+    <P>
+      Let's assume there will be a <U>dependencies cycle</U> created in <B>Dependencies Service Graph</B> and there will be no <B>service removing thread</B> 
+      that would eliminate the cycle concurrently. Such <U>dependencies cycle</U> will be eliminated shortly by at least one <B>service installing thread</B>
+      that participated on its creation. Further more such <B>service installing thread</B> will throw an exception upon <B>Controller Unregistration Phase</B> completion.
+    </P>
+    <P>
+      <B>Proof.</B> Let's say <U>dependencies cycle</U> was created at time <B>t_cc</B> in <B>Dependencies Service Graph</B>.
+      The fact cycle was created means there exists a path <B>C = { V_1, V_2, ..., V_n, V_1 }</B> at time <B>t_cc</B>.
+      For every <B>V_i: i = 1, ..., n</B> exists an <U>service installing thread</U> <B>T_i</B> that created it.
+      Let's mark <B>T_cc</B> an <B>service installing thread</B> that created <B>V_1</B> - the vertex causing a cycle.
+      Let's assume none <B>T_i</B> which created <B>V_i != V_1: i = 1, ..., n</B> will eliminate the cycle. This implies vertices <B>V_i: V_i != V1</B> will be succesfully installed.
+      This implies <B>T_i</B>'s <B>Controller Registration Phase</B> and <B>Cycle Detection Phase</B> will be succesfully executed.<BR/><BR/>
+      Now let's reason about <B>T_cc</B> in which state it can be at time <B>t_cc</B>.
+      Since <B>V_1</B> was succesfully installed this means its <B>Controller Registration Phase</B> was at least partially executed.
+      Next are the only two possibilities of <B>T_cc</B>'s execution flow:
+      <UL>
+        <LI>
+          Let's assume both primary <B>P</B> and optional alias registrations  <B>A1, ..., An</B> will be succesfully installed.
+          <B>V1</B> represents one of <B>{ P, A1, ..., An }</B> vertices. This implies <B>T_cc</B>'s <B>Controller Registration Phase</B>
+          will be succesfully completed. When its <B>Cycle Detection Phase</B> will be executing, it will detect the cycle.
+          Once cycle is detected, <B>Cycle Detection Phase</B> will be immediately terminated and <B>service installing thread</B>
+          will initiate <B>Controller Unregistration Phase</B>. According to definition above, this phase will <B>UNDEFINE</B>
+          all <B>P</B> and <B>A1, ..., An</B> plus it will remove all their outgoing edges. But one of these <B>{ P, A1, ..., An }</B> outgoing edges was participating in the cycle.
+          Thus as the final result cycle is eliminated. Later upon <B>Controller Registration Phase</B> completion <B>CircularDependencyException</B> will be thrown.
+        </LI>
+        <LI>
+          Let's assume either primary <B>P</B> or one of alias registrations <B>A1, ..., An</B> will detect <U>duplicit service</U> installation (the only way this phase may fail).
+          <B>V1</B> represents one of <B>{ P, A1, ..., An }</B> vertices and it was installed before <U>duplicit service</U> was detected.
+          According to definition above, this implies <B>T_cc</B>'s
+          <B>Controller Registration Phase</B> will be immediately terminated, its <B>Cycle Detection Phase</B> will be omitted
+          and its <B>Controller Registration Phase</B> will be initiated. According to definition above, this third phase will <B>UNDEFINE</B>
+          all <B>P</B> and <B>A1, ..., An</B> plus it will remove all their outgoing edges. But one of these <B>{ P, A1, ..., An }</B> outgoing edges was participating in the cycle.
+          Thus as the final result cycle is eliminated. Later upon <B>Controller Registration Phase</B> completion <B>DuplicateServiceException</B> will be thrown.
+        </LI>
+      </UL>
+      Q.E.D.
+    </P>
+  </BODY>
+</HTML>
+

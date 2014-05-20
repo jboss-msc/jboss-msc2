@@ -23,6 +23,6 @@ package org.jboss.msc.txn;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface SimpleWorkContext {
+interface SimpleWorkContext {
     void complete();
 }

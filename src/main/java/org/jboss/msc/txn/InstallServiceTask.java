@@ -1,7 +1,7 @@
 /*
  * JBoss, Home of Professional Open Source
  *
- * Copyright 2013 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2014 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class ServiceInstallTask implements Executable<Void>, Revertible {
+final class InstallServiceTask implements Executable<Void>, Revertible {
     private final Transaction transaction;
     private final ServiceControllerImpl<?> serviceController;
     boolean installed;
 
-    ServiceInstallTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
+    InstallServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
         this.transaction = transaction;
         this.serviceController = serviceController;
     }
@@ -38,7 +38,7 @@ final class ServiceInstallTask implements Executable<Void>, Revertible {
     public void execute(ExecuteContext<Void> context) {
         assert context instanceof TaskFactory;
         try {
-            installed = serviceController.install(transaction, (TaskFactory) context, context);
+            installed = serviceController.completeInstallation(transaction, context);
         } finally {
             context.complete();
         }

@@ -36,6 +36,6 @@ public interface Dependency<T> {
      *
      * @return the value associated with this object
      */
-    public T get();
+    T get();
 
 }

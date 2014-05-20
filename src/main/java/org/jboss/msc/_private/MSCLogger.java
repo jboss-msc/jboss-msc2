@@ -27,6 +27,7 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
+import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Executable;
@@ -85,51 +86,30 @@ public interface MSCLogger {
 
     // id = 10: failed mbean registration (N/A)
 
-    @Message(id = 11, value = "Service not started")
-    IllegalStateException serviceNotStarted();
-
     @LogMessage(level = ERROR)
-    @Message(id = 12, value = "Execution of task \"%s\" caused an exception")
+    @Message(id = 11, value = "Execution of task \"%s\" caused an exception")
     void taskExecutionFailed(@Cause Throwable cause, Executable<?> task);
 
     @LogMessage(level = ERROR)
-    @Message(id = 13, value = "Validation of task \"%s\" caused an exception")
-    void taskValidationFailed(@Cause Throwable cause, Object task);
-
-    @LogMessage(level = ERROR)
-    @Message(id = 14, value = "Rollback of task \"%s\" caused an exception")
+    @Message(id = 12, value = "Rollback of task \"%s\" caused an exception")
     void taskRollbackFailed(@Cause Throwable cause, Revertible task);
 
     @LogMessage(level = FATAL)
-    @Message(id = 15, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
+    @Message(id = 13, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
     void runnableExecuteFailed(@Cause Throwable cause, Runnable command);
 
-    @Message(id = 16, value ="Service %s has a required dependency on service %s that is missing")
+    @Message(id = 14, value ="Service %s has a required dependency on service %s that is missing")
     String requiredDependency(ServiceName dependentName, ServiceName dependencyName);
 
-    @Message(id = 17, value="Dependency cycle found: %s")
-    String dependencyCycle(ServiceName[] cycle);
+    @LogMessage(level = FATAL)
+    @Message(id = 15, value = "Transaction prepare completion listener failed")
+    void prepareCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 18, value = "Lock cleanup failed")
-    void lockCleanupFailed(@Cause Throwable cause);
-
-    @LogMessage(level = FATAL)
-    @Message(id = 19, value = "Transaction termination listener execution failed")
-    void terminationListenerFailed(@Cause Throwable cause);
-
-    @LogMessage(level = FATAL)
-    @Message(id = 20, value = "Lock request listener execution failed")
-    void lockListenerFailed(@Cause Throwable cause);
+    @Message(id = 16, value = "Transaction terminate completion listener failed")
+    void terminateCompletionListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
-
-    /*
-     * This method is for uninjection failures which are not service-related.  See also id = 6
-     */
-    @LogMessage(level = Logger.Level.WARN)
-    @Message(id = 100, value = "Unexpected failure to uninject %s")
-    void uninjectFailed(@Cause Throwable cause, Object target);
 
     @Message(id = 101, value = "Parameter %s is null")
     IllegalArgumentException methodParameterIsNull(final String parameterName);
@@ -146,71 +126,89 @@ public interface MSCLogger {
     @Message(id = 105, value = "Parameter %s is invalid")
     IllegalArgumentException methodParameterIsInvalid(final String parameterName);
 
-    @Message(id = 106, value = "Service parameter implements ServiceStartExecutable: invoke ServiceBuilder.setService(ServiceStartExecutable) instead")
-    IllegalArgumentException serviceParameterIsStartExecutable();
-
-    @Message (id = 107, value = "ServiceRegistry is removed")
+    @Message (id = 106, value = "ServiceRegistry is removed")
     IllegalStateException removedServiceRegistry();
 
-    @Message (id = 108, value = "Transaction cannot prepare: rollback requested")
+    @Message (id = 107, value = "Transaction cannot prepare: rollback requested")
     InvalidTransactionStateException cannotPrepareRolledbackTxn();
 
-    @Message (id = 109, value = "Transaction must be in active state to prepare")
+    @Message (id = 108, value = "Transaction must be in active state to prepare")
     InvalidTransactionStateException cannotPrepareNonActiveTxn();
 
-    @Message (id = 110, value = "Transaction cannot prepare: prepare already called")
+    @Message (id = 109, value = "Transaction cannot prepare: prepare already called")
     InvalidTransactionStateException cannotPreparePreparedTxn();
 
-    @Message (id = 111, value = "Transaction cannot commit: rollback requested")
+    @Message (id = 110, value = "Transaction cannot commit: rollback requested")
     InvalidTransactionStateException cannotCommitRolledbackTxn();
 
-    @Message (id = 112, value = "Transaction must be in prepared state to commit ")
+    @Message (id = 111, value = "Transaction must be in prepared state to commit ")
     InvalidTransactionStateException cannotCommitUnpreparedTxn();
 
-    @Message (id = 113, value = "Transaction cannot commit: problem reported")
+    @Message (id = 112, value = "Transaction cannot commit: problem reported")
     InvalidTransactionStateException cannotCommitProblematicTxn();
 
-    @Message (id = 114, value = "Transaction cannot commit: commit already called")
+    @Message (id = 113, value = "Transaction cannot commit: commit already called")
     InvalidTransactionStateException cannotCommitCommittedTxn();
 
-    @Message (id = 115, value = "Transaction must be in prepared state to abort")
+    @Message (id = 114, value = "Transaction must be in prepared state to abort")
     InvalidTransactionStateException cannotAbortUnpreparedTxn();
 
-    @Message (id = 116, value = "Transaction cannot abort: abort or rollback already called")
+    @Message (id = 115, value = "Transaction cannot abort: abort or rollback already called")
     InvalidTransactionStateException cannotAbortAbortedTxn();
 
-    @Message (id = 117, value = "Transaction must not be in prepared state to rollback")
+    @Message (id = 116, value = "Transaction must not be in prepared state to rollback")
     InvalidTransactionStateException cannotRollbackPreparedTxn();
 
-    @Message (id = 118, value = "Transaction cannot rollback: abort or rollback already called")
+    @Message (id = 117, value = "Transaction cannot rollback: abort or rollback already called")
     InvalidTransactionStateException cannotRollbackRolledbackTxn();
 
-    @Message (id = 119, value = "Transaction must be in prepared state to inspect commitable status")
+    @Message (id = 118, value = "Transaction must be in prepared state to inspect commitable status")
     InvalidTransactionStateException cannotInspectUnpreparedTxn();
 
-    @Message (id = 120, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
+    @Message (id = 119, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotAddChildToInactiveTxn(final int state);
 
-    @Message (id = 121, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
+    @Message (id = 120, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotCancelChildOnInactiveTxn(final int state);
 
-    @Message (id = 122, value = "No result is available")
+    @Message (id = 121, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message (id = 123, value = "Task may not be completed now")
+    @Message (id = 122, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message (id = 124, value = "Task may not be cancelled now")
+    @Message (id = 123, value = "Task may not be cancelled now")
     IllegalStateException taskCannotCancel();
 
-    @Message (id = 125, value = "Task may not be reverted now")
+    @Message (id = 124, value = "Task may not be reverted now")
     IllegalStateException taskCannotRollback();
 
-    @Message (id = 126, value = "Dependent may not be added at this point")
+    @Message (id = 125, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
 
-    @Message (id = 127, value = "A service named %s is already installed")
+    @Message (id = 126, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
+
+    @Message (id = 127, value = "Cannot add new tasks to inactive transaction")
+    InvalidTransactionStateException inactiveTransaction();
+
+    @Message (id = 128, value = "Cannot add new tasks with revertible component to inactive transaction")
+    InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
+
+    @Message (id = 129, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
+
+    @Message (id = 130, value = "Transaction controller mismatch.")
+    IllegalArgumentException transactionControllerMismatch();
+
+    @Message (id = 131, value = "ServiceBuilder.install() have been already called")
+    IllegalStateException cannotCallInstallTwice();
+
+    @Message (id = 132, value = "%s service installation failed because it introduced the following cycle: %s")
+    CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
+
+    @Message(id = 133, value = "%s service  is not started yet")
+    IllegalStateException serviceNotStarted(final ServiceName name); 
 
     /*
      * Location nesting types.

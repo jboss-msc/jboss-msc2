@@ -18,11 +18,12 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.validateTransaction;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 
@@ -33,23 +34,24 @@ import org.jboss.msc.service.ServiceRegistry;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public // << TODO Remove this
 final class ServiceContainerImpl implements ServiceContainer {
 
-
+    private final TransactionController txnController;
     private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
 
+    ServiceContainerImpl(final TransactionController txnController) {
+        this.txnController = txnController;
+    }
+
     public ServiceRegistry newRegistry() {
-        final ServiceRegistryImpl returnValue = new ServiceRegistryImpl();
+        final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(txnController);
         registries.add(returnValue);
         return returnValue;
     }
 
     @Override
-    public void shutdown(final Transaction txn) {
-        if (txn == null) {
-            throw MSCLogger.SERVICE.methodParameterIsNull("txn");
-        }
+    public void shutdown(final Transaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(txn, txnController);
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

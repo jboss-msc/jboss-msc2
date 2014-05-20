@@ -21,6 +21,9 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 
 import java.util.concurrent.Executor;
 
+import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceContainer;
+
 /**
  * A transaction controller, creates transactions and manages them.
  
@@ -50,8 +53,8 @@ public final class TransactionController extends SimpleAttachable {
      * @param executor the executor to use to run tasks
      * @return the transaction
      */
-    public BasicTransaction create(final Executor executor) {
-        return create(executor, Problem.Severity.WARNING);
+    public BasicTransaction createTransaction(final Executor executor) {
+        return createTransaction(executor, Problem.Severity.WARNING);
     }
 
     /**
@@ -61,7 +64,7 @@ public final class TransactionController extends SimpleAttachable {
      * @param maxSeverity the maximum severity to allow
      * @return the transaction
      */
-    public BasicTransaction create(final Executor executor, final Problem.Severity maxSeverity) {
+    public BasicTransaction createTransaction(final Executor executor, final Problem.Severity maxSeverity) {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
         }
@@ -76,12 +79,21 @@ public final class TransactionController extends SimpleAttachable {
 
     BasicTransaction registerTransaction(final BasicTransaction transaction) {
         try {
-            Transactions.register(transaction);
+            Transactions.register();
         } catch (final IllegalStateException e) {
             transaction.forceStateRolledBack();
             throw e;
         }
         return transaction;
+    }
+
+    /**
+     * Create a new service container.
+     *
+     * @return new service container.
+     */
+    public ServiceContainer createServiceContainer() {
+        return new ServiceContainerImpl(this);
     }
 
     /**
@@ -103,9 +115,21 @@ public final class TransactionController extends SimpleAttachable {
      * @return the transaction report
      * @throws SecurityException if transaction was not created by this controller
      */
-    public ProblemReport getProblemReport(final BasicTransaction transaction) throws SecurityException {
+    public ProblemReport getTransactionReport(final BasicTransaction transaction) throws SecurityException {
         validateTransaction(transaction);
-        return transaction.getProblemReport();
+        return transaction.getTransactionReport();
+    }
+
+    /**
+     * Get the transaction rollback problem report.
+     *
+     * @param transaction the transaction
+     * @return the transaction rollback report
+     * @throws SecurityException if transaction was not created by this controller
+     */
+    public ProblemReport getRollbackReport(final BasicTransaction transaction) throws SecurityException {
+        validateTransaction(transaction);
+        return transaction.getRollbackReport();
     }
 
     /**
@@ -118,16 +142,8 @@ public final class TransactionController extends SimpleAttachable {
     }
     
     /**
-     * Creates a new transaction aware lock. Only one transaction at a time can own the lock.
-     * @return new transaction aware lock
-     */
-    public TransactionalLock newTransactionalLock() {
-        return new TransactionalLock();
-    }
-
-    /**
-     * Adds a task with an executable component to {@code transaction}.  If the task implements any of the supplementary
-     * interfaces {@link Revertible} or {@link Validatable}, the corresponding builder properties will be pre-initialized.
+     * Adds a task with an executable component to {@code transaction}.  If the task implements
+     * {@link Revertible} interface, the corresponding builder property will be pre-initialized.
      *
      * @param transaction the transaction
      * @param task        the task
@@ -137,7 +153,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public <T> TaskBuilder<T> newTask(final BasicTransaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
-        return transaction.newTask(task);
+        return transaction.getTaskFactory().newTask(task);
     }
 
     /**
@@ -150,7 +166,7 @@ public final class TransactionController extends SimpleAttachable {
      */
     public TaskBuilder<Void> newTask(final BasicTransaction transaction) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
-        return transaction.newTask();
+        return transaction.getTaskFactory().newTask();
     }
 
     /**
@@ -228,27 +244,15 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Indicate that the current operation on {@code transaction} depends on the completion of the given {@code other}
-     * transaction.
-     * 
-     * @param transaction transaction containing current operation
-     * @param other the other transaction
-     * @throws DeadlockException if this wait would cause a deadlock
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public void waitFor(final BasicTransaction transaction, final BasicTransaction other) throws DeadlockException, SecurityException {
-        validateTransaction(transaction);
-        validateTransaction(other);
-        Transactions.waitFor(transaction, other);
-    }
-
-    /**
      * Determines whether the specified transaction have been created by this controller.
      * @param transaction to be checked
      * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
      */
     public boolean owns(final Transaction transaction) {
-        return this == transaction.getController();
+        if (transaction == null) {
+            throw TXN.methodParameterIsNull("transaction");
+        }
+        return this == transaction.txnController;
     }
 
     void validateTransaction(final BasicTransaction transaction) throws SecurityException {

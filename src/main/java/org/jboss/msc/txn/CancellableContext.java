@@ -24,7 +24,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface CancellableContext {
+interface CancellableContext {
 
     /**
      * Determine if this task has been requested to be cancelled.
@@ -34,7 +34,9 @@ public interface CancellableContext {
     boolean isCancelRequested();
 
     /**
-     * Acknowledge the cancellation of this task.
+     * Acknowledge the cancellation of this task. Before calling this method
+     * task must ensure everything it did (if anything) was reverted.
+     * Child tasks are excluded from the acknowledgement, these are considered autonomous entities.
      */
     void cancelled();
 

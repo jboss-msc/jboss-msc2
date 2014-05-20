@@ -18,19 +18,23 @@
 
 package org.jboss.msc.txn;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
+import org.jboss.msc.service.DuplicateServiceException;
+import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.service.ServiceStartExecutable;
 
 /**
  * A service builder.
@@ -41,6 +45,9 @@ import org.jboss.msc.service.ServiceStartExecutable;
  */
 final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
+    private static final Registration[] NO_ALIASES = new Registration[0];
+    private static final DependencyImpl<?>[] NO_DEPENDENCIES = new DependencyImpl<?>[0];
+
     static final DependencyFlag[] noFlags = new DependencyFlag[0];
 
     // the transaction controller
@@ -50,13 +57,15 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service name
     private final ServiceName name;
     // service aliases
-    private final Set<ServiceName> aliases = new HashSet<ServiceName>(0);
+    private final Set<ServiceName> aliases = new HashSet<>(0);
     // service itself
-    private Object service;
+    private Service<T> service;
     // dependencies
-    private final Map<ServiceName, DependencyImpl<?>> dependencies= new LinkedHashMap<ServiceName, DependencyImpl<?>>();
+    private final Map<ServiceName, DependencyImpl<?>> dependencies= new HashMap<>(); // TODO: why not set but map?
     // active transaction
     private final Transaction transaction;
+    // the task factory to be used for service installation
+    private TaskFactory taskFactory;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -71,13 +80,22 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final Transaction transaction) {
         this.transactionController = transactionController;
         this.transaction = transaction;
-        this.registry = (ServiceRegistryImpl) registry;
+        this.registry = registry;
+        this.taskFactory = transaction.getTaskFactory();
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
     }
 
     ServiceName getServiceName() {
         return name;
+    }
+
+    void setTaskFactory(TaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
+    }
+
+    void addDependency(ServiceName serviceName, DependencyImpl<?> dependency) {
+        dependencies.put(serviceName, dependency);
     }
 
     /**
@@ -87,7 +105,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     public ServiceBuilder<T> setMode(final ServiceMode mode) {
         checkAlreadyInstalled();
         if (mode == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("mode");
+            throw MSCLogger.SERVICE.methodParameterIsNull("mode");
         }
         this.mode = mode;
         return this;
@@ -97,28 +115,11 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public ServiceBuilder<T> setService(final ServiceStartExecutable<T> service) {
+    public ServiceBuilder<T> setService(final Service<T> service) {
         assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
         checkAlreadyInstalled();
         if (service == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("service");
-        }
-        this.service = service;
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ServiceBuilder<T> setService(final Object service) {
-        assert ! calledFromConstructorOf(service) : "setService() must not be called from the service constructor";
-        checkAlreadyInstalled();
-        if (service == null) {
-            MSCLogger.SERVICE.methodParameterIsNull("service");
-        }
-        if (service instanceof ServiceStartExecutable) {
-            MSCLogger.SERVICE.serviceParameterIsStartExecutable();
+            throw MSCLogger.SERVICE.methodParameterIsNull("service");
         }
         this.service = service;
         return this;
@@ -159,7 +160,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     @Override
     public <D> Dependency<D> addDependency(final ServiceRegistry registry, final ServiceName name) {
-        return addDependencyInternal(registry, name, (DependencyFlag[])null);
+        return addDependencyInternal((ServiceRegistryImpl)registry, name, (DependencyFlag[])null);
     }
 
     /**
@@ -167,10 +168,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      */
     @Override
     public <D> Dependency<D> addDependency(final ServiceRegistry registry, final ServiceName name, final DependencyFlag... flags) {
-        return addDependencyInternal(registry, name, flags);
+        return addDependencyInternal((ServiceRegistryImpl)registry, name, flags);
     }
 
-    private <D> Dependency<D> addDependencyInternal(final ServiceRegistry registry, final ServiceName name, final DependencyFlag... flags) {
+    private <D> Dependency<D> addDependencyInternal(final ServiceRegistryImpl registry, final ServiceName name, final DependencyFlag... flags) {
         checkAlreadyInstalled();
         if (registry == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("registry");
@@ -178,19 +179,18 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (name == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
-        final Registration dependencyRegistration = ((ServiceRegistryImpl) registry).getOrCreateRegistration(transaction, name);
-        final DependencyImpl<D> dependency = new DependencyImpl<D>(dependencyRegistration, transaction, flags != null ? flags : noFlags);
+        if (this.registry.txnController != registry.txnController) {
+            throw MSCLogger.SERVICE.cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
+        }
+        final Registration dependencyRegistration = registry.getOrCreateRegistration(transaction, name);
+        final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
         dependencies.put(name, dependency);
         return dependency;
     }
 
-    void setParentDependency(Registration parentRegistration) {
-        dependencies.put(name, new ParentDependency<Void>(parentRegistration, transaction));
-    }
-
     @Override
     public ServiceContext getServiceContext() {
-        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name), transactionController);
+        return new ParentServiceContext<T>(registry.getOrCreateRegistration(transaction, name), transactionController);
     }
 
     private static boolean calledFromConstructorOf(Object obj) {
@@ -204,6 +204,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         }
         return false;
     }
+
     private void checkAlreadyInstalled() {
         if (installed) {
             throw new IllegalStateException("ServiceBuilder installation already requested.");
@@ -214,32 +215,36 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public ServiceController install() {
+    public ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException {
         assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
         if (installed) {
-            return null;
+            throw MSCLogger.SERVICE.cannotCallInstallTwice();
         }
+        installed = true;
+
         // create primary registration
         final Registration registration = registry.getOrCreateRegistration(transaction, name);
-        registration.preinstallService(transaction);
 
         // create alias registrations
-        final ServiceName[] aliasArray = aliases.toArray(new ServiceName[aliases.size()]);
-        final Registration[] aliasRegistrations = new Registration[aliasArray.length];
-        int i = 0; 
-        for (ServiceName alias: aliases) {
-            aliasRegistrations[i] = registry.getOrCreateRegistration(transaction, alias);
-            aliasRegistrations[i++].preinstallService(transaction);
+        final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
+        if (aliasRegistrations.length > 0) {
+            int i = 0;
+            for (final ServiceName alias: aliases) {
+                aliasRegistrations[i++] = registry.getOrCreateRegistration(transaction, alias);
+            }
         }
 
         // create dependencies
-        final DependencyImpl<?>[] dependenciesArray = new DependencyImpl<?>[dependencies.size()];
-        dependencies.values().toArray(dependenciesArray);
+        final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
+        if (dependenciesArray.length > 0) {
+            dependencies.values().toArray(dependenciesArray);
+        }
+
         // create and install service controller
-        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<T>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
-        transaction.getTaskFactory().newTask(new ServiceInstallTask(serviceController, transaction)).release();
-        CheckDependencyCycleTask.checkDependencyCycle(serviceController, transaction);
+        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
+        serviceController.beginInstallation();
+        transaction.getTaskFactory().newTask(new InstallServiceTask(serviceController, transaction)).release();
         return serviceController;
     }
 }

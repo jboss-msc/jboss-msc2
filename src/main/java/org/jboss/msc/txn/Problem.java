@@ -22,192 +22,145 @@ import java.io.Serializable;
 
 /**
  * A description of a subtask execution failure.  Subtask failures should be described without exceptions whenever
- * possible, and should always include a clear and complete message.
+ * possible, and should always include a clear and complete message. If severity is not provided then it will default to ERROR.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public final class Problem implements Serializable {
 
     private static final long serialVersionUID = 7378993289655554246L;
 
-    private final TaskController taskController;
+    private final Severity severity;
     private final String message;
     private final Throwable cause;
-    private final Severity severity;
     private final Location location;
 
     /**
      * Construct a new instance.
      *
-     * @param taskController the task that failed
+     * @param severity the severity of the problem
      * @param message the error description
      * @param cause the optional exception cause
-     * @param severity the severity of the problem
      * @param location the location description of the problem
      */
-    public Problem(final TaskController taskController, final String message, final Throwable cause, final Severity severity, final Location location) {
-        if (taskController == null) {
-            throw new IllegalArgumentException("task is null");
-        }
-        if (message == null) {
-            throw new IllegalArgumentException("message is null");
-        }
-        if (severity == null) {
-            throw new IllegalArgumentException("severity is null");
-        }
-        this.taskController = taskController;
+    public Problem(final Severity severity, final String message, final Throwable cause, final Location location) {
+        this.severity = severity != null ? severity : Severity.ERROR;
         this.message = message;
         this.cause = cause;
-        this.severity = severity;
         this.location = location;
     }
 
     /**
      * Construct a new instance.
      *
-     * @param taskController the task that failed
+     * @param severity the severity of the problem
      * @param message the error description
      * @param cause the optional exception cause
-     * @param severity the severity of the problem
      */
-    public Problem(final TaskController taskController, final String message, final Throwable cause, final Severity severity) {
-        if (taskController == null) {
-            throw new IllegalArgumentException("task is null");
-        }
-        if (message == null) {
-            throw new IllegalArgumentException("message is null");
-        }
-        if (severity == null) {
-            throw new IllegalArgumentException("severity is null");
-        }
-        this.severity = severity;
-        this.cause = cause;
-        this.message = message;
-        this.taskController = taskController;
-        location = null;
+    public Problem(final Severity severity, final String message, final Throwable cause) {
+        this(severity, message, cause, null);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
-     * @param cause the optional exception cause
      * @param severity the severity of the problem
+     * @param cause the optional exception cause
      * @param location the location description of the problem
      */
-    public Problem(final TaskController task, final Throwable cause, final Severity severity, final Location location) {
-        this(task, "Task failed due to exception", cause, severity, location);
-        if (cause == null) {
-            throw new IllegalArgumentException("cause is null");
-        }
+    public Problem(final Severity severity, final Throwable cause, final Location location) {
+        this(severity, null, cause, location);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
-     * @param cause the optional exception cause
      * @param severity the severity of the problem
+     * @param cause the optional exception cause
      */
-    public Problem(final TaskController task, final Throwable cause, final Severity severity) {
-        this(task, cause, severity, null);
+    public Problem(final Severity severity, final Throwable cause) {
+        this(severity, null, cause, null);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
      * @param message the error description
      * @param cause the optional exception cause
      */
-    public Problem(final TaskController task, final String message, final Throwable cause) {
-        this(task, message, cause, Severity.ERROR);
+    public Problem(final String message, final Throwable cause) {
+        this(Severity.ERROR, message, cause, null);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
      * @param message the error description
      * @param cause the optional exception cause
      * @param location the location description of the problem
      */
-    public Problem(final TaskController task, final String message, final Throwable cause, final Location location) {
-        this(task, message, cause, Severity.ERROR, location);
+    public Problem(final String message, final Throwable cause, final Location location) {
+        this(Severity.ERROR, message, cause, location);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
-     * @param message the error description
      * @param severity the severity of the problem
+     * @param message the error description
      */
-    public Problem(final TaskController task, final String message, final Severity severity) {
-        this(task, message, null, severity);
+    public Problem(final Severity severity, final String message) {
+        this(severity, message, null, null);
     }
 
     /**
      * Construct a new instance.
      *
-     * @param task the task that failed
-     * @param message the error description
      * @param severity the severity of the problem
-     * @param location the location description of the problem
-     */
-    public Problem(final TaskController task, final String message, final Severity severity, final Location location) {
-        this(task, message, null, severity, location);
-    }
-
-    /**
-     * Construct a new instance.
-     *
-     * @param task the task that failed
-     * @param message the error description
-     */
-    public Problem(final TaskController task, final String message) {
-        this(task, message, null, Severity.ERROR);
-    }
-
-    /**
-     * Construct a new instance.
-     *
-     * @param task the task that failed
      * @param message the error description
      * @param location the location description of the problem
      */
-    public Problem(final TaskController task, final String message, final Location location) {
-        this(task, message, null, Severity.ERROR, location);
+    public Problem(final Severity severity, final String message, final Location location) {
+        this(severity, message, null, location);
+    }
+
+    /**
+     * Construct a new instance.
+     *
+     * @param message the error description
+     */
+    public Problem(final String message) {
+        this(Severity.ERROR, message, null, null);
+    }
+
+    /**
+     * Construct a new instance.
+     *
+     * @param message the error description
+     * @param location the location description of the problem
+     */
+    public Problem(final String message, final Location location) {
+        this(Severity.ERROR, message, null, location);
     }
 
     /**
      * Construct a new instance.  The exception must not be {@code null}.
      *
-     * @param task the task that failed
      * @param cause the exception cause
      */
-    public Problem(final TaskController task, final Throwable cause) {
-        this(task, cause, Severity.ERROR);
+    public Problem(final Throwable cause) {
+        this(Severity.ERROR, null, cause, null);
     }
 
     /**
      * Construct a new instance.  The exception must not be {@code null}.
      *
-     * @param task the task that failed
      * @param cause the exception cause
      * @param location the location description of the problem
      */
-    public Problem(final TaskController task, final Throwable cause, final Location location) {
-        this(task, cause, Severity.ERROR, location);
-    }
-
-    /**
-     * Get the task that failed.  Will not be {@code null}.
-     *
-     * @return the task that failed
-     */
-    public TaskController getTask() {
-        return taskController;
+    public Problem(final Throwable cause, final Location location) {
+        this(Severity.ERROR, null, cause, location);
     }
 
     /**
@@ -281,8 +234,8 @@ public final class Problem implements Serializable {
          * @param severities the list
          * @return {@code true} if this is found, {@code false} otherwise
          */
-        public boolean in(Severity... severities) {
-            for (Severity severity : severities) {
+        public boolean in(final Severity... severities) {
+            for (final Severity severity : severities) {
                 if (this == severity) return true;
             }
             return false;
