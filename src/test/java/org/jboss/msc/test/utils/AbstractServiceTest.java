@@ -18,11 +18,6 @@
 
 package org.jboss.msc.test.utils;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
@@ -30,10 +25,16 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.TransactionController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.After;
 import org.junit.Before;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 /**
  * Test base used for service test cases.
@@ -74,7 +75,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final void removeRegistry(final ServiceRegistry serviceRegistry) {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
@@ -85,7 +86,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final void enableRegistry(final ServiceRegistry serviceRegistry) {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
@@ -96,7 +97,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final void disableRegistry(final ServiceRegistry serviceRegistry) {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
         prepare(txn);
         commit(txn);
@@ -107,7 +108,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     }
 
     protected final void shutdownContainer(final ServiceContainer serviceContainer) {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             serviceContainer.shutdown(txn);
         } finally {
@@ -124,7 +125,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         // new transaction
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         // create service builder
         final TestServiceBuilder serviceBuilder = new TestServiceBuilder(txn, serviceRegistry, serviceName, failToStart,
                 serviceMode, dependencies);
@@ -167,7 +168,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         // new transaction
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         TestService service = null;
         final boolean committed;
         try {
@@ -239,7 +240,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
         if (attemptToCommit(txn)) {
             assertNull(serviceRegistry.getService(serviceName));
@@ -256,7 +257,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
         prepare(txn);
         commit(txn);
@@ -269,7 +270,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
         prepare(txn);
         commit(txn);
@@ -293,7 +294,9 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         assertNotNull(serviceContext);
         // try to use with wrong transactions
         final TransactionController outsiderController = TransactionController.createInstance();
-        final BasicTransaction outsiderTransaction = outsiderController.createTransaction(defaultExecutor);
+        final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
+        outsiderController.createUpdateTransaction(defaultExecutor, listener);
+        final UpdateTransaction outsiderTransaction = listener.awaitCompletionUninterruptibly();
         final ServiceName serviceName = ServiceName.of("non", "existent");
         try {
             IllegalArgumentException expected = null;
@@ -331,7 +334,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         }
         assertNotNull(expected);
 
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             expected = null;
             try {

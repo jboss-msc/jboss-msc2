@@ -18,20 +18,7 @@
 
 package org.jboss.msc.test.utils;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import org.jboss.msc.txn.AbortResult;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CommitResult;
 import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Executable;
@@ -44,9 +31,23 @@ import org.jboss.msc.txn.Problem.Severity;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.After;
 import org.junit.Before;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test base providing some utility methods.
@@ -58,7 +59,7 @@ public abstract class AbstractTransactionTest {
     protected static final TransactionController txnController = TransactionController.createInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
-    private List<BasicTransaction> createdTransactions = new ArrayList<BasicTransaction>();
+    private List<Transaction> createdTransactions = new ArrayList<Transaction>();
 
     @Before
     public void setUp() {
@@ -68,7 +69,7 @@ public abstract class AbstractTransactionTest {
     @After
     public void tearDown() {
         try {
-            for (BasicTransaction transaction : createdTransactions) {
+            for (Transaction transaction : createdTransactions) {
                 assertTrue("Unterminated transaction", transaction.isTerminated());
             }
         } finally {
@@ -95,7 +96,7 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static <T> TaskController<T> newTask(final BasicTransaction transaction, final Executable<T> e,
+    protected static <T> TaskController<T> newTask(final Transaction transaction, final Executable<T> e,
             final Revertible r, final TaskController<?>... dependencies) {
         return txnController.newTask(transaction, e).addDependencies(dependencies).setRevertible(r).release();
     }
@@ -105,27 +106,27 @@ public abstract class AbstractTransactionTest {
         return ctx.newTask(e).addDependencies(dependencies).setRevertible(r).release();
     }
 
-    protected static void prepare(BasicTransaction transaction, Listener<PrepareResult<BasicTransaction>> listener) {
+    protected static void prepare(Transaction transaction, Listener<PrepareResult<? extends Transaction>> listener) {
         txnController.prepare(transaction, listener);
     }
 
-    protected static boolean canCommit(BasicTransaction transaction) {
+    protected static boolean canCommit(Transaction transaction) {
         return txnController.canCommit(transaction);
     }
 
-    protected static void commit(BasicTransaction transaction, Listener<CommitResult<BasicTransaction>> listener) {
+    protected static void commit(Transaction transaction, Listener<CommitResult<? extends Transaction>> listener) {
         txnController.commit(transaction, listener);
     }
 
-    protected static void abort(BasicTransaction transaction, Listener<AbortResult<BasicTransaction>> listener) {
+    protected static void abort(Transaction transaction, Listener<AbortResult<? extends Transaction>> listener) {
         txnController.abort(transaction, listener);
     }
 
-    protected static void rollback(BasicTransaction transaction, Listener<RollbackResult<BasicTransaction>> listener) {
+    protected static void rollback(Transaction transaction, Listener<RollbackResult<? extends Transaction>> listener) {
         txnController.rollback(transaction, listener);
     }
 
-    protected static boolean attemptToCommit(final BasicTransaction txn) {
+    protected static boolean attemptToCommit(final Transaction txn) {
         prepare(txn);
         if (txnController.canCommit(txn)) {
             commit(txn);
@@ -136,16 +137,22 @@ public abstract class AbstractTransactionTest {
         }
     }
 
-    protected BasicTransaction newTransaction() {
+    protected UpdateTransaction newUpdateTransaction() {
         assertNotNull(defaultExecutor);
-        final BasicTransaction transaction = txnController.createTransaction(defaultExecutor);
+        final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
+        txnController.createUpdateTransaction(defaultExecutor, listener);
+        final UpdateTransaction transaction = listener.awaitCompletionUninterruptibly();
         createdTransactions.add(transaction);
         return transaction;
     }
 
-    protected BasicTransaction newTransaction(final Executor executor) {
+    protected UpdateTransaction newUpdateTransaction(final Executor executor) {
         assertNotNull(executor);
-        return txnController.createTransaction(executor);
+        final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
+        txnController.createUpdateTransaction(executor, listener);
+        final UpdateTransaction transaction = listener.awaitCompletionUninterruptibly();
+        createdTransactions.add(transaction);
+        return transaction;
     }
 
     protected static void assertCalled(final TestTask task) {
@@ -176,7 +183,7 @@ public abstract class AbstractTransactionTest {
         }
     }
 
-    protected static void assertPrepared(final BasicTransaction transaction) {
+    protected static void assertPrepared(final Transaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
@@ -195,7 +202,7 @@ public abstract class AbstractTransactionTest {
         }
     }
 
-    protected static void assertAborted(final BasicTransaction transaction) {
+    protected static void assertAborted(final Transaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
@@ -224,7 +231,7 @@ public abstract class AbstractTransactionTest {
         assertTrue(transaction.isTerminated());
     }
 
-    protected static void assertRolledBack(final BasicTransaction transaction) {
+    protected static void assertRolledBack(final Transaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
@@ -253,7 +260,7 @@ public abstract class AbstractTransactionTest {
         assertTrue(transaction.isTerminated());
     }
 
-    protected static void assertCommitted(final BasicTransaction transaction) {
+    protected static void assertCommitted(final Transaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
@@ -282,24 +289,24 @@ public abstract class AbstractTransactionTest {
         assertTrue(transaction.isTerminated());
     }
 
-    protected static void prepare(final BasicTransaction transaction) {
+    protected static void prepare(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<PrepareResult<BasicTransaction>> prepareListener = new CompletionListener<>();
+        final CompletionListener<PrepareResult<? extends Transaction>> prepareListener = new CompletionListener<>();
         txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletionUninterruptibly();
         assertPrepared(transaction);
     }
 
-    protected static void commit(final BasicTransaction transaction) {
+    protected static void commit(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<CommitResult<BasicTransaction>> commitListener = new CompletionListener<>();
+        final CompletionListener<CommitResult<? extends Transaction>> commitListener = new CompletionListener<>();
         txnController.commit(transaction, commitListener);
         commitListener.awaitCompletionUninterruptibly();
         assertNoCriticalProblem(transaction);
         assertCommitted(transaction);
     }
 
-    private static void assertNoCriticalProblem(final BasicTransaction txn) {
+    private static void assertNoCriticalProblem(final Transaction txn) {
         List<Problem> problems = txnController.getTransactionReport(txn).getProblems();
         for (final Problem problem : problems) {
             if (problem.getSeverity() == Severity.CRITICAL) {
@@ -311,23 +318,23 @@ public abstract class AbstractTransactionTest {
         }
     }
 
-    protected static void rollback(final BasicTransaction transaction) {
+    protected static void rollback(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
+        final CompletionListener<RollbackResult<? extends Transaction>> rollbackListener = new CompletionListener<>();
         txnController.rollback(transaction, rollbackListener);
         rollbackListener.awaitCompletionUninterruptibly();
         assertRolledBack(transaction);
     }
 
-    protected static void abort(final BasicTransaction transaction) {
+    protected static void abort(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<AbortResult<BasicTransaction>> abortListener = new CompletionListener<>();
+        final CompletionListener<AbortResult<? extends Transaction>> abortListener = new CompletionListener<>();
         txnController.abort(transaction, abortListener);
         abortListener.awaitCompletionUninterruptibly();
         assertAborted(transaction);
     }
 
-    protected static void prepareAndRollbackFromListener(final BasicTransaction transaction) {
+    protected static void prepareAndRollbackFromListener(final Transaction transaction) {
         assertNotNull(transaction);
         final AbortingListener transactionListener = new AbortingListener(txnController);
         txnController.prepare(transaction, transactionListener);
@@ -335,7 +342,7 @@ public abstract class AbstractTransactionTest {
         assertAborted(transaction);
     }
 
-    protected static void prepareAndCommitFromListener(final BasicTransaction transaction) {
+    protected static void prepareAndCommitFromListener(final Transaction transaction) {
         assertNotNull(transaction);
         final CommittingListener transactionListener = new CommittingListener(txnController);
         txnController.prepare(transaction, transactionListener);

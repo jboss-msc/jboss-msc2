@@ -17,13 +17,13 @@
  */
 package org.jboss.msc.test.utils;
 
-import static org.junit.Assert.assertNotNull;
-
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Utilitary dependency info class used by {@link TestService} and {@link SimpleTestService} classes.

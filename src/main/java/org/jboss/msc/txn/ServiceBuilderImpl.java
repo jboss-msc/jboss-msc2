@@ -18,11 +18,6 @@
 
 package org.jboss.msc.txn;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.Dependency;
@@ -35,6 +30,13 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * A service builder.
@@ -64,8 +66,6 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     private final Map<ServiceName, DependencyImpl<?>> dependencies= new HashMap<>(); // TODO: why not set but map?
     // active transaction
     private final Transaction transaction;
-    // the task factory to be used for service installation
-    private TaskFactory taskFactory;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -81,17 +81,12 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         this.transactionController = transactionController;
         this.transaction = transaction;
         this.registry = registry;
-        this.taskFactory = transaction.getTaskFactory();
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
     }
 
     ServiceName getServiceName() {
         return name;
-    }
-
-    void setTaskFactory(TaskFactory taskFactory) {
-        this.taskFactory = taskFactory;
     }
 
     void addDependency(ServiceName serviceName, DependencyImpl<?> dependency) {
@@ -244,7 +239,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
         serviceController.beginInstallation();
-        transaction.getTaskFactory().newTask(new InstallServiceTask(serviceController, transaction)).release();
+        getAbstractTransaction(transaction).getTaskFactory().newTask(new InstallServiceTask(serviceController, transaction)).release();
         return serviceController;
     }
 }

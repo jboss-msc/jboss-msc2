@@ -19,7 +19,7 @@
 package org.jboss.msc.service;
 
 import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A service registry.
@@ -57,7 +57,7 @@ public interface ServiceRegistry {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      * @throws java.lang.IllegalStateException if registry have been removed.
      */
-    void disable(Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+    void disable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Enables this registry. As a result, its services may start, depending on their
@@ -71,7 +71,7 @@ public interface ServiceRegistry {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      * @throws java.lang.IllegalStateException if registry have been removed.
      */
-    void enable(Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+    void enable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Removes this registry from the container.
@@ -82,6 +82,6 @@ public interface ServiceRegistry {
      * is not the same as the one associated with this service registry.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void remove(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+    void remove(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
 }

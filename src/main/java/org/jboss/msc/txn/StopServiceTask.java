@@ -17,9 +17,6 @@
  */
 package org.jboss.msc.txn;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
@@ -29,6 +26,9 @@ import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
+
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Task that stops service.
@@ -309,7 +309,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(valueType,  registry,  name, transaction, context);
+                return ((ParentServiceContext<?>) parentContext).addService(valueType,  registry,  name, (BasicUpdateTransaction)transaction, context);
             }
 
             @Override
@@ -323,7 +323,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(registry,  name, transaction, context);
+                return ((ParentServiceContext<?>) parentContext).addService(registry,  name, (BasicUpdateTransaction)transaction, context);
             }
         });
     }

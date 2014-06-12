@@ -18,12 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+
+import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.
@@ -67,7 +68,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
     @Override
     public TaskBuilderImpl<T> setRevertible(final Revertible revertible) {
-        if (!transaction.isActive()) {
+        if (!getAbstractTransaction(transaction).isActive()) {
             throw TXN.cannotAddRevertibleToInactiveTransaction();
         }
         this.revertible = revertible;

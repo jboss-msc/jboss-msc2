@@ -18,19 +18,20 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.util.concurrent.CountDownLatch;
-
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.RollbackResult;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import java.util.concurrent.CountDownLatch;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -47,7 +48,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      */
     @Test
     public void usecase1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
         final TestExecutable<Void> child1e = new TestExecutable<Void>(signal);
@@ -65,7 +66,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
         // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
+        final CompletionListener<RollbackResult<? extends Transaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletionUninterruptibly();
@@ -88,7 +89,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      */
     @Test
     public void usecase2() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
         final TestExecutable<Void> child1e = new TestExecutable<Void>(true, signal);
@@ -106,7 +107,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
         // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
+        final CompletionListener<RollbackResult<? extends Transaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletionUninterruptibly();
@@ -129,7 +130,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      */
     @Test
     public void usecase3() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
         final TestExecutable<Void> child1e = new TestExecutable<Void>(true, signal);
@@ -147,7 +148,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
         // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
+        final CompletionListener<RollbackResult<? extends Transaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletionUninterruptibly();
@@ -169,7 +170,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
      */
     @Test
     public void usecase4() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         final CountDownLatch signal = new CountDownLatch(1);
         // preparing child task
         final TestExecutable<Void> child1e = new TestExecutable<Void>(signal);
@@ -187,7 +188,7 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnReverted_TestCase
         final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
         assertNotNull(parentController);
         // reverting transaction
-        final CompletionListener<RollbackResult<BasicTransaction>> rollbackListener = new CompletionListener<>();
+        final CompletionListener<RollbackResult<? extends Transaction>> rollbackListener = new CompletionListener<>();
         rollback(transaction, rollbackListener);
         signal.countDown();
         rollbackListener.awaitCompletionUninterruptibly();

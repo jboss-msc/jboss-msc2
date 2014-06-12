@@ -18,17 +18,17 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.util.concurrent.CountDownLatch;
-
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import java.util.concurrent.CountDownLatch;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Check how MSC2 handles complex task dependency chains, that could lead to cyclic behavior and result in hangs.
@@ -51,7 +51,7 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
      */
     @Test
     public void usecase1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>("0");
         final TaskController<Void> task0Controller = newTask(transaction, e0, null);

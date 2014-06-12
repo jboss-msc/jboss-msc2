@@ -18,16 +18,16 @@
 
 package org.jboss.msc.test.services;
 
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.test.utils.AbstractServiceTest;
+import org.jboss.msc.test.utils.TestService;
+import org.junit.Test;
+
 import static org.jboss.msc.service.ServiceMode.ACTIVE;
 import static org.jboss.msc.service.ServiceMode.LAZY;
 import static org.jboss.msc.service.ServiceMode.ON_DEMAND;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.test.utils.TestService;
-import org.junit.Test;
 
 /**
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>

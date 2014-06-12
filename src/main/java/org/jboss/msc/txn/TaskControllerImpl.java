@@ -18,14 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import static java.lang.Thread.holdsLock;
+import org.jboss.msc._private.MSCLogger;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.jboss.msc._private.MSCLogger;
+import static java.lang.Thread.holdsLock;
 
 /**
  * A controller for an installed subtask.
@@ -265,6 +264,15 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         return parent.getTransaction();
     }
 
+    private AbstractTransaction getInternalTransaction() {
+        return getAbstractTransaction(parent.getTransaction());
+    }
+
+    private static AbstractTransaction getAbstractTransaction(final Transaction transaction) {
+        if (transaction instanceof BasicUpdateTransaction) return ((BasicUpdateTransaction)transaction).getDelegate();
+        else return (BasicReadTransaction)transaction;
+    }
+
     public T getResult() throws IllegalStateException {
         final T result = this.result;
         if (result == NO_RESULT) {
@@ -491,7 +499,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
         if (Bits.allAreSet(state,  FLAG_SEND_CANCEL_REQUESTED)) {
-            getTransaction().childCancelRequested(userThread);
+            getInternalTransaction().childCancelRequested(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_RENOUNCE_CHILDREN)) {
             renounceChildren(userThread);
@@ -531,7 +539,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             parent.childTerminated(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
-            getTransaction().childCancelled(userThread);
+            getInternalTransaction().childCancelled(userThread);
         }
         if (Bits.allAreSet(state, FLAG_SEND_DEPENDENT_TERMINATED)) {
             for (TaskControllerImpl<?> dependency : dependencies) {
@@ -570,7 +578,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             unexecutedChildren = this.unexecutedChildren;
             unterminatedChildren = this.unterminatedChildren;
             children = this.children;
-            adopter = getTransaction().topParent;
+            adopter = getInternalTransaction().topParent;
             for (final TaskControllerImpl<?> child : this.children) {
                 child.parent.setDelegate(adopter);
             }
@@ -581,13 +589,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
-        getTransaction().adoptGrandchildren(children, userThread, unexecutedChildren, unterminatedChildren);
+        getInternalTransaction().adoptGrandchildren(children, userThread, unexecutedChildren, unterminatedChildren);
         executeTasks(state);
     }
 
     private void safeExecute(final Runnable command) {
         try {
-            getTransaction().getExecutor().execute(command);
+            getInternalTransaction().getExecutor().execute(command);
         } catch (Throwable t) {
             MSCLogger.ROOT.runnableExecuteFailed(t, command);
         }

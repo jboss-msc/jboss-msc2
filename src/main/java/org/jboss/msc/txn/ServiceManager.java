@@ -17,13 +17,13 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
+import org.jboss.msc.service.ServiceMode;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.jboss.msc.service.ServiceMode;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * Performs disable/enable management operations over a set of one or more services.
@@ -68,7 +68,7 @@ abstract class ServiceManager {
      * Management operation for disabling one or more services. As a result, the affected services will stop if they are
      * {@code UP}.
      */
-    public void disable(final Transaction transaction) {
+    public void disable(final UpdateTransaction transaction) {
         // retrieve enable task if available
         final Map<ServiceManager, TaskController<Void>>[] tasks = transaction.getAttachment(MANAGEMENT_TASKS);
         final TaskControllerImpl<Void> enableTask;
@@ -78,7 +78,7 @@ abstract class ServiceManager {
             // create a disable task
             if (enableTask == null && !tasks[DISABLE].containsKey(this)){
                 final DisableServiceTask task = new DisableServiceTask(transaction);
-                final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
+                final TaskController<Void> taskController = getAbstractTransaction(transaction).getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[DISABLE] == Collections.EMPTY_MAP) {
                     tasks[DISABLE] = new ConcurrentHashMap<>();
                 }
@@ -95,7 +95,7 @@ abstract class ServiceManager {
      * their {@link ServiceMode mode} rules.
      * <p> Services are enabled by default.
      */
-    public void enable(final Transaction transaction) {
+    public void enable(final UpdateTransaction transaction) {
         final Map<ServiceManager, TaskController<Void>>[] tasks = transaction.getAttachment(MANAGEMENT_TASKS);
         // retrieve disable task if available
         final TaskControllerImpl<Void> disableTask;
@@ -105,7 +105,7 @@ abstract class ServiceManager {
             // create a enable task
             if (disableTask == null && !tasks[ENABLE].containsKey(this)) {
                 final EnableServiceTask task = new EnableServiceTask(transaction);
-                final TaskController<Void> taskController = transaction.getTaskFactory().newTask(task).setRevertible(task).release();
+                final TaskController<Void> taskController = getAbstractTransaction(transaction).getTaskFactory().newTask(task).setRevertible(task).release();
                 if (tasks[ENABLE] == Collections.EMPTY_MAP) {
                     tasks[ENABLE] = new ConcurrentHashMap<>();
                 }

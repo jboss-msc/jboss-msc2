@@ -19,7 +19,7 @@
 package org.jboss.msc.service;
 
 import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A service context can be used to add new tasks, and to create and remove services and registries.
@@ -47,7 +47,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    <T> ServiceBuilder<T> addService(Class<T> valueType, ServiceRegistry registry, ServiceName name, Transaction transaction)
+    <T> ServiceBuilder<T> addService(Class<T> valueType, ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
@@ -62,7 +62,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
@@ -76,7 +76,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    void removeService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
@@ -92,7 +92,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, Transaction transaction)
+    <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
@@ -106,7 +106,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction)
+    ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
 }

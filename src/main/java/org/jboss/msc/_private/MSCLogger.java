@@ -18,10 +18,6 @@
 
 package org.jboss.msc._private;
 
-import static org.jboss.logging.Logger.Level.ERROR;
-import static org.jboss.logging.Logger.Level.FATAL;
-import static org.jboss.logging.Logger.Level.INFO;
-
 import org.jboss.logging.Logger;
 import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
@@ -33,6 +29,10 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.Revertible;
+
+import static org.jboss.logging.Logger.Level.ERROR;
+import static org.jboss.logging.Logger.Level.FATAL;
+import static org.jboss.logging.Logger.Level.INFO;
 
 /**
  * MSC2 logging utilities.
@@ -108,6 +108,10 @@ public interface MSCLogger {
     @LogMessage(level = FATAL)
     @Message(id = 16, value = "Transaction terminate completion listener failed")
     void terminateCompletionListenerFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 17, value = "Transaction create completion listener failed")
+    void transactionCreationCompletionListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
 
@@ -207,8 +211,14 @@ public interface MSCLogger {
     @Message (id = 132, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
-    @Message(id = 133, value = "%s service  is not started yet")
-    IllegalStateException serviceNotStarted(final ServiceName name); 
+    @Message(id = 133, value = "%s service is not started yet")
+    IllegalStateException serviceNotStarted(final ServiceName name);
+
+    @Message (id = 134, value = "Transaction was downgraded to read-only transaction")
+    InvalidTransactionStateException invalidatedUpdateTransaction();
+
+    @Message (id = 135, value = "Illegal transaction argument")
+    IllegalArgumentException illegalTransaction();
 
     /*
      * Location nesting types.

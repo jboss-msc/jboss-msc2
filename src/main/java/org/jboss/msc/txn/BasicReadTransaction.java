@@ -24,9 +24,11 @@ import java.util.concurrent.Executor;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class BasicTransaction extends Transaction {
+final class BasicReadTransaction extends AbstractTransaction implements ReadTransaction {
 
-    BasicTransaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+    BasicReadTransaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
         super(controller, taskExecutor, maxSeverity);
+        setWrappingTransaction(this);
     }
+
 }

@@ -23,8 +23,8 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TransactionController;
+import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A TestServiceBuilder allows building a TestService for more complex test scenarios, where the transaction is provided by the
@@ -61,36 +61,36 @@ public class TestServiceBuilder {
         return dependencyInfos;
     }
 
-    public TestServiceBuilder(BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+    public TestServiceBuilder(UpdateTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final boolean failToStart, final ServiceMode serviceMode, final ServiceName... dependencies) {
         this(txn, serviceRegistry, serviceName, failToStart, serviceMode, createDependencyInfos(dependencies));
     }
 
-    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+    public TestServiceBuilder(UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart,
             final ServiceMode serviceMode, final ServiceName... dependencies) {
         this(txn, registry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
+    public TestServiceBuilder(UpdateTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
             final ServiceName... dependencies) {
         this(txn, registry, serviceName, false, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+    public TestServiceBuilder(UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart,
             final ServiceName... dependencies) {
         this(txn, registry, serviceName, failToStart, null, dependencies);
     }
 
-    public TestServiceBuilder(BasicTransaction txn, final ServiceName serviceName, final ServiceName... dependencies) {
+    public TestServiceBuilder(UpdateTransaction txn, final ServiceName serviceName, final ServiceName... dependencies) {
         this(txn, registry, serviceName, false, null, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         this(txn, txnController.getServiceContext(), serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, ServiceContext serviceContext, final ServiceRegistry serviceRegistry,
+    public TestServiceBuilder(final UpdateTransaction txn, ServiceContext serviceContext, final ServiceRegistry serviceRegistry,
             final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode,
             final DependencyInfo<?>... dependencies) {
         // create service builder
@@ -104,40 +104,40 @@ public class TestServiceBuilder {
             serviceBuilder.setMode(serviceMode);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart,
             final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, failToStart, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode,
             final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, false, serviceMode, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart,
             final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, failToStart, null, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName,
             final DependencyInfo<?>... dependencies) {
         this(txn, registry, serviceName, false, null, dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart,
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart,
             final ServiceMode serviceMode) {
         this(txn, registry, serviceName, failToStart, serviceMode, no_dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode) {
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final ServiceMode serviceMode) {
         this(txn, registry, serviceName, false, serviceMode, no_dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName, final boolean failToStart) {
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName, final boolean failToStart) {
         this(txn, registry, serviceName, failToStart, null, no_dependencies);
     }
 
-    public TestServiceBuilder(final BasicTransaction txn, final ServiceName serviceName) {
+    public TestServiceBuilder(final UpdateTransaction txn, final ServiceName serviceName) {
         this(txn, registry, serviceName, false, null, no_dependencies);
     }
 

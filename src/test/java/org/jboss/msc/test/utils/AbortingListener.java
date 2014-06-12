@@ -19,10 +19,10 @@
 package org.jboss.msc.test.utils;
 
 import org.jboss.msc.txn.AbortResult;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.CompletionListener;
 import org.jboss.msc.txn.Listener;
 import org.jboss.msc.txn.PrepareResult;
+import org.jboss.msc.txn.Transaction;
 import org.jboss.msc.txn.TransactionController;
 
 /**
@@ -31,17 +31,17 @@ import org.jboss.msc.txn.TransactionController;
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class AbortingListener implements Listener<PrepareResult<BasicTransaction>> {
+public final class AbortingListener implements Listener<PrepareResult<? extends Transaction>> {
 
     private final TransactionController transactionController;
-    private final CompletionListener<AbortResult<BasicTransaction>> listener = new CompletionListener<>();
+    private final CompletionListener<AbortResult<? extends Transaction>> listener = new CompletionListener<>();
 
     public AbortingListener(TransactionController transactionController) {
         this.transactionController = transactionController;
     }
 
     @Override
-    public void handleEvent(final PrepareResult<BasicTransaction> subject) {
+    public void handleEvent(final PrepareResult<? extends Transaction> subject) {
         transactionController.abort(subject.getTransaction(), listener);
     }
 

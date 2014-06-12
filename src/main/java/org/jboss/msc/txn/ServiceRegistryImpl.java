@@ -18,16 +18,18 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
-import static org.jboss.msc.txn.Helper.validateTransaction;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+import static org.jboss.msc.txn.Helper.setModified;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * A service registry.  Registries can return services by name, or get a collection of service names.
@@ -90,7 +92,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             if (appearing != null) {
                 registration = appearing;
             } else if (Bits.anyAreSet(state, ENABLED)){
-                registration.enableRegistry(transaction, transaction.getTaskFactory());
+                registration.enableRegistry(transaction, getAbstractTransaction(transaction).getTaskFactory());
             }
         }
         return registration;
@@ -109,21 +111,23 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 return;
             }
         }
+        setModified(transaction);
         final RemoveTask removeTask = new RemoveTask(transaction);
-        transaction.getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
+        getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).setRevertible(removeTask).release();
     }
 
     @Override
-    public void disable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+    public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
         checkRemoved();
+        setModified(transaction);
         super.disable(transaction);
     }
 
@@ -142,9 +146,10 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     }
 
     @Override
-    public void enable(final Transaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+    public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
         checkRemoved();
+        setModified(transaction);
         super.enable(transaction);
     }
 

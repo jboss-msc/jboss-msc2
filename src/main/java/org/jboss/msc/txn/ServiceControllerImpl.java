@@ -18,21 +18,23 @@
 
 package org.jboss.msc.txn;
 
-import static java.lang.Thread.holdsLock;
-import static org.jboss.msc._private.MSCLogger.SERVICE;
-import static org.jboss.msc.txn.Helper.validateTransaction;
+import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.service.CircularDependencyException;
+import org.jboss.msc.service.DuplicateServiceException;
+import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceMode;
+import org.jboss.msc.service.ServiceName;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.jboss.msc.service.CircularDependencyException;
-import org.jboss.msc.service.DuplicateServiceException;
-import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc._private.MSCLogger;
-import org.jboss.msc.service.ServiceMode;
-import org.jboss.msc.service.ServiceName;
+import static java.lang.Thread.holdsLock;
+import static org.jboss.msc._private.MSCLogger.SERVICE;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+import static org.jboss.msc.txn.Helper.setModified;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * A service controller implementation.
@@ -274,8 +276,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void disable(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
         super.disable(transaction);
     }
 
@@ -292,8 +295,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void enable(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
         super.enable(transaction);
     }
 
@@ -340,21 +344,24 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void retry(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void retry(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
         initTransactionalInfo(transaction);
         transactionalInfo.retry(transaction);
     }
     
     @Override
-    public void remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
-        remove(transaction, transaction.getTaskFactory());
+        setModified(transaction);
+        remove(transaction, getAbstractTransaction(transaction).getTaskFactory());
     }
 
     @Override
-    public void restart(Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void restart(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
         initTransactionalInfo(transaction);
         transactionalInfo.restart(transaction);
     }
@@ -542,7 +549,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     private synchronized void initTransactionalInfo(final Transaction transaction) {
         if (transactionalInfo == null) {
             transactionalInfo = new TransactionalInfo();
-            transaction.addListener(new TerminateCompletionListener() {
+            getAbstractTransaction(transaction).addListener(new TerminateCompletionListener() {
                 @Override
                 public void transactionTerminated() {
                     clean();
@@ -595,7 +602,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             if (transactionalState != STATE_FAILED) {
                 return;
             }
-            startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, transaction.getTaskFactory());
+            startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, getAbstractTransaction(transaction).getTaskFactory());
         }
 
         private synchronized TaskController<?> transition(Transaction transaction, TaskFactory taskFactory) {
@@ -612,7 +619,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                             break;
                         }
                         if (taskFactory == null) {
-                            taskFactory = transaction.getTaskFactory();
+                            taskFactory = getAbstractTransaction(transaction).getTaskFactory();
                         }
                         transactionalState = STATE_STARTING;
                         startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
@@ -651,9 +658,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
         private synchronized void restart(Transaction transaction) {
             if (state == STATE_UP || state == STATE_STARTING) {
-                final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, transaction.getTaskFactory());
+                final Collection<TaskController<?>> dependentTasks = notifyServiceDown(transaction, getAbstractTransaction(transaction).getTaskFactory());
                 transactionalState = STATE_RESTARTING;
-                StopServiceTask.create(ServiceControllerImpl.this, startTask, dependentTasks, transaction, transaction.getTaskFactory());
+                StopServiceTask.create(ServiceControllerImpl.this, startTask, dependentTasks, transaction, getAbstractTransaction(transaction).getTaskFactory());
             }
         }
 

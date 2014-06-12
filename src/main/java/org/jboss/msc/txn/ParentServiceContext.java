@@ -17,14 +17,14 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.Helper.validateTransaction;
-
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * Parent service context: behaves just like service context super class except that newly created services are
@@ -42,19 +42,17 @@ class ParentServiceContext<T> extends ServiceContextImpl {
         this.parentRegistration = parentRegistration;
     }
 
-    <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction, final TaskFactory taskFactory) {
+    <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction, final TaskFactory taskFactory) {
         validateParentUp(transaction);
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(valueType, registry, name, transaction);
-        serviceBuilder.setTaskFactory(taskFactory);
         final ServiceName parentName = parentRegistration.getServiceName();
         serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
         return serviceBuilder;
     }
 
-    ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final Transaction transaction, final TaskFactory taskFactory) {
+    ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction, final TaskFactory taskFactory) {
         validateParentUp(transaction);
         final ServiceBuilderImpl<Void> serviceBuilder = (ServiceBuilderImpl<Void>) super.addService(registry, name, transaction);
-        serviceBuilder.setTaskFactory(taskFactory);
         final ServiceName parentName = parentRegistration.getServiceName();
         serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
         return serviceBuilder;

@@ -18,16 +18,16 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -46,7 +46,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestRevertible child0r = new TestRevertible();
@@ -107,7 +107,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase2() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>(true);
         final TestRevertible child0r = new TestRevertible();
@@ -168,7 +168,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase3() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestRevertible child0r = new TestRevertible();
@@ -229,7 +229,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase4() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>(true);
         final TestRevertible child0r = new TestRevertible();
@@ -290,7 +290,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase5() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestRevertible child0r = new TestRevertible();
@@ -351,7 +351,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase6() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>(true);
         final TestRevertible child0r = new TestRevertible();
@@ -412,7 +412,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase7() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>(true);
         final TestRevertible child0r = new TestRevertible();
@@ -473,7 +473,7 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnAborted_TestCa
      */
     @Test
     public void usecase8() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
         final TestExecutable<Void> child0e = new TestExecutable<Void>();
         final TestRevertible child0r = new TestRevertible();

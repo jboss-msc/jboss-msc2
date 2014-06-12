@@ -18,12 +18,12 @@
 
 package org.jboss.msc.test.utils;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackContext;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A simple transaction task that tracks task calls. It provides utility methods:

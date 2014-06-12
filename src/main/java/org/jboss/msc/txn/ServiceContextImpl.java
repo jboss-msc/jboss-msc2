@@ -17,15 +17,17 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.SERVICE;
-import static org.jboss.msc.txn.Helper.validateRegistry;
-import static org.jboss.msc.txn.Helper.validateTransaction;
-
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+
+import static org.jboss.msc._private.MSCLogger.SERVICE;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+import static org.jboss.msc.txn.Helper.setModified;
+import static org.jboss.msc.txn.Helper.validateRegistry;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * ServiceContext implementation.
@@ -42,7 +44,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final Transaction transaction)
+    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -50,12 +52,12 @@ class ServiceContextImpl implements ServiceContext {
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        
+        setModified(transaction);
         return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
-    public void removeService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    public void removeService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -71,11 +73,12 @@ class ServiceContextImpl implements ServiceContext {
         if (controller == null) {
             return;
         }
-        controller.remove(transaction, transaction.getTaskFactory());
+        setModified(transaction);
+        controller.remove(transaction, getAbstractTransaction(transaction).getTaskFactory());
     }
 
     @Override
-    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, Transaction transaction)
+    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -83,11 +86,12 @@ class ServiceContextImpl implements ServiceContext {
         if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
+        setModified(transaction);
         return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
     @Override
-    public <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, Transaction transaction)
+    public <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -97,7 +101,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, Transaction transaction)
+    public ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);

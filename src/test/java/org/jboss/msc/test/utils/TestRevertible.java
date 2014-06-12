@@ -18,10 +18,10 @@
 
 package org.jboss.msc.test.utils;
 
-import java.util.concurrent.CountDownLatch;
-
 import org.jboss.msc.txn.Revertible;
 import org.jboss.msc.txn.RollbackContext;
+
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>

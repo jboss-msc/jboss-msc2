@@ -17,8 +17,6 @@
  */
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.SERVICE;
-
 import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.ServiceName;
 
@@ -26,6 +24,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Set;
+
+import static org.jboss.msc._private.MSCLogger.SERVICE;
 
 /**
  * Non-recursive lock-free cycle detection helper.

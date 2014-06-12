@@ -17,19 +17,15 @@
  */
 package org.jboss.msc.test.services;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.txn.BasicTransaction;
-import org.jboss.msc.txn.Problem;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
-import java.util.List;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Service dependencies cycle detection tests.
@@ -56,7 +52,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase0() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, A);
         } catch (final CircularDependencyException e) {
@@ -68,7 +64,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase1() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, A);
@@ -82,7 +78,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase2() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C);
@@ -97,7 +93,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase3() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C, E);
@@ -113,7 +109,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase4() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C, E);
@@ -130,7 +126,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase5() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C, E);
@@ -149,7 +145,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase6() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C, E);
@@ -167,7 +163,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase7() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, A, B);
             addService(txn, B, C, E);
@@ -189,7 +185,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase8() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, B, new ServiceName[] {B_ALIAS}, C_ALIAS);
             addService(txn, C, new ServiceName[] {C_ALIAS}, A);
@@ -204,7 +200,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
 
     @Test
     public void usecase9() {
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             addService(txn, B, new ServiceName[] {B_ALIAS}, C_ALIAS);
             addService(txn, C, new ServiceName[] {C_ALIAS}, A_ALIAS);
@@ -221,11 +217,11 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         assertTrue(e.getMessage().indexOf(" service installation failed because it introduced the following cycle: " + expectedCycle) > 0);
     }
 
-    private void addService(final BasicTransaction txn, final ServiceName name, final ServiceName... dependencies) {
+    private void addService(final UpdateTransaction txn, final ServiceName name, final ServiceName... dependencies) {
         addService(txn, name, null, dependencies);
     }
 
-    private void addService(final BasicTransaction txn, final ServiceName name, final ServiceName[] aliases, final ServiceName... dependencies) {
+    private void addService(final UpdateTransaction txn, final ServiceName name, final ServiceName[] aliases, final ServiceName... dependencies) {
         ServiceBuilder sb = txnController.getServiceContext().addService(serviceRegistry, name, txn);
         sb.addAliases(aliases);
         for (int i = 0; i < dependencies.length; i++) {

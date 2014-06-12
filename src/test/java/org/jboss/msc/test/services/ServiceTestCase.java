@@ -17,21 +17,21 @@
  */
 package org.jboss.msc.test.services;
 
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceMode;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.test.utils.AbstractServiceTest;
+import org.jboss.msc.test.utils.DependencyInfo;
+import org.jboss.msc.test.utils.TestService;
+import org.jboss.msc.txn.UpdateTransaction;
+import org.junit.Test;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceMode;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.test.utils.DependencyInfo;
-import org.jboss.msc.test.utils.TestService;
-import org.jboss.msc.txn.BasicTransaction;
-import org.junit.Test;
 
 /**
  * Test for {@code Service}.
@@ -46,7 +46,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void installAndRemoveService() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService service;
         final ServiceController firstServiceController;
         try {
@@ -62,7 +62,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         try {
             firstServiceController.remove(txn2);
         } finally {
@@ -75,7 +75,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void installAndRemoveServiceDependent() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService firstService;
         final TestService secondService;
         final ServiceController firstServiceController;
@@ -101,7 +101,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn2);
             firstServiceController.remove(txn2);
@@ -117,7 +117,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void installAndRemoveServiceDependentMultipleTxns() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
@@ -133,7 +133,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(secondServiceController);
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         final TestService firstService;
         final ServiceController firstServiceController;
         try {
@@ -149,7 +149,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             firstServiceController.remove(txn3);
         } finally {
@@ -161,7 +161,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
         assertTrue(secondService.isUp());
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn4);
         } finally {
@@ -174,7 +174,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void abortServiceDependent() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
@@ -191,7 +191,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(secondServiceController);
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         final TestService firstService;
         final ServiceController firstServiceController;
         try {
@@ -209,7 +209,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertNull(serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn3);
         } finally {
@@ -219,7 +219,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn4);
         } finally {
@@ -232,7 +232,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void abortServiceDependent2() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
@@ -249,7 +249,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(secondServiceController);
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         final TestService firstService;
         final ServiceController firstServiceController;
         try {
@@ -266,7 +266,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn3);
         } finally {
@@ -276,7 +276,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             firstServiceController.remove(txn4);
             secondServiceController.remove(txn4);
@@ -290,7 +290,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void rollbackServiceDependent() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
@@ -307,7 +307,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(secondServiceController);
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         TestService firstService;
         ServiceController firstServiceController;
         try {
@@ -325,7 +325,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertNull(serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn3);
             firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
@@ -340,7 +340,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn4);
         } finally {
@@ -351,7 +351,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn5 = newTransaction();
+        final UpdateTransaction txn5 = newUpdateTransaction();
         try {
             firstServiceController.remove(txn5);
         } finally {
@@ -363,7 +363,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNull(serviceRegistry.getService(firstSN));
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn6 = newTransaction();
+        final UpdateTransaction txn6 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn6);
         } finally {
@@ -372,7 +372,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn7 = newTransaction();
+        final UpdateTransaction txn7 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn7);
         } finally {
@@ -385,7 +385,7 @@ public class ServiceTestCase extends AbstractServiceTest {
 
     @Test
     public void idempotentRollback() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
@@ -402,7 +402,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(secondServiceController);
         assertSame(secondServiceController, serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         TestService firstService;
         ServiceController firstServiceController;
         try {
@@ -420,7 +420,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertNull(serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN, txn3);
             firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
@@ -435,7 +435,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNotNull(firstServiceController);
         assertSame(firstServiceController, serviceRegistry.getService(firstSN));
 
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn4);
             firstServiceController.remove(txn4);
@@ -448,7 +448,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertNull(serviceRegistry.getService(firstSN));
         assertNull(serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn6 = newTransaction();
+        final UpdateTransaction txn6 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn6);
         } finally {
@@ -457,7 +457,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
 
-        final BasicTransaction txn7 = newTransaction();
+        final UpdateTransaction txn7 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn7);
         } finally {

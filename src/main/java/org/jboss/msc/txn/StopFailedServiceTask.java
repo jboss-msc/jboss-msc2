@@ -23,7 +23,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-public class StopFailedServiceTask implements Executable<Void>, Revertible {
+final class StopFailedServiceTask implements Executable<Void>, Revertible {
 
     /**
      * Creates stop failed service task.

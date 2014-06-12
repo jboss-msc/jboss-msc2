@@ -18,21 +18,21 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.Random;
-
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TrackingTask;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.TaskBuilder;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import java.util.Random;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -42,27 +42,27 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void emptyTransactionRollback() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         rollback(transaction);
     }
 
     @Test
     public void emptyTransactionPrepareCommit() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         prepare(transaction);
         commit(transaction);
     }
 
     @Test
     public void emptyTransactionPrepareAbort() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         prepare(transaction);
         abort(transaction);
     }
 
     @Test
     public void testCommitFromListener() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
@@ -78,7 +78,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testSimplePrepareCommit() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
@@ -96,7 +96,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testRollbackFromListener() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
@@ -112,7 +112,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testSimplePrepareAbort() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
@@ -130,7 +130,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testSimpleRollback() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
@@ -146,7 +146,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testSimpleChildren() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         class Task extends TrackingTask {
             private final int n;
             private final int d;
@@ -181,7 +181,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void testSimpleRollbackWithDependency() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // instal first task
         final TrackingTask task1 = new TrackingTask();
         final TaskBuilder<Object> taskBuilder1 = txnController.newTask(transaction, task1);
@@ -205,7 +205,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void installNewTaskToPreparedTransaction() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
@@ -232,7 +232,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void installNewTaskToCommitedTransaction() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
@@ -257,7 +257,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void installNewTaskToRevertedTransaction() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
         final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
@@ -282,7 +282,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
     public void simpleDependencies() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         TrackingTask[][] tasks = new TrackingTask[8][8];
         TaskController<?>[][] controllers = new TaskController<?>[8][8];

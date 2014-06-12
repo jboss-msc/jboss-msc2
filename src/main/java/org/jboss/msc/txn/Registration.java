@@ -18,7 +18,7 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
+import org.jboss.msc.service.ServiceName;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -27,7 +27,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.jboss.msc.service.ServiceName;
+import static org.jboss.msc._private.MSCLogger.TXN;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * A service registration.
@@ -120,7 +121,7 @@ final class Registration {
     }
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
-        installDependenciesValidateTask(transaction, transaction.getTaskFactory());
+        installDependenciesValidateTask(transaction, getAbstractTransaction(transaction).getTaskFactory());
         final TaskController<?> startTask;
         final boolean up;
         synchronized (this) {
@@ -128,7 +129,7 @@ final class Registration {
             up = Bits.anyAreSet(state,  UP);
             startTask = up? holderRef.get().getStartTask(transaction): null;
             if (up) {
-                dependency.dependencyUp(transaction, transaction.getTaskFactory(), startTask);
+                dependency.dependencyUp(transaction, getAbstractTransaction(transaction).getTaskFactory(), startTask);
             }
         }
     }
@@ -257,7 +258,7 @@ final class Registration {
             task = new RequiredDependenciesCheck(transaction.getTransactionReport());
             final RequiredDependenciesCheck appearing = transaction.putAttachmentIfAbsent(REQUIRED_DEPENDENCIES_CHECK_TASK, task);
             if (appearing == null) {
-                transaction.addListener(task);
+                getAbstractTransaction(transaction).addListener(task);
             } else {
                 task = appearing;
             }

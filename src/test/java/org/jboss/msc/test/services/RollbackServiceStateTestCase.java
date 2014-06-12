@@ -17,12 +17,6 @@
  */
 package org.jboss.msc.test.services;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
@@ -33,8 +27,14 @@ import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.DependencyInfo;
 import org.jboss.msc.test.utils.TestService;
 import org.jboss.msc.test.utils.TestServiceBuilder;
-import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for rolling back transactions that affect the state of one or more services.
@@ -55,10 +55,10 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
     @Test
     public void revertServiceInstallation() {
         // new transaction
-        final BasicTransaction txn = newTransaction();
         // create service builder
         final ServiceContext serviceContext = txnController.getServiceContext();
         assertServiceContext(serviceContext);
+        UpdateTransaction txn = newUpdateTransaction();
         final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, firstSN, txn);
         // create test service
         final TestService firstService = new TestService(firstSN, serviceBuilder, false);
@@ -88,7 +88,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final TestService firstService, secondService;
         final ServiceController secondServiceController;
         // new transaction
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             // create service builder
             final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(
@@ -111,7 +111,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         }
 
         // atempt to remove second service, transaction will rollback
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn2);
             secondService.waitStop();
@@ -133,7 +133,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final ServiceController firstServiceController;
 
         // new transaction
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         try {
             // create service builder
             final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn, firstSN, new DependencyInfo<Void>(secondSN, DependencyFlag.UNREQUIRED));
@@ -157,7 +157,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
         // atempt to remove second service, transaction will rollback
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         try {
             secondServiceController.remove(txn2);
             secondService.waitStop();
@@ -168,7 +168,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertTrue(firstService.isUp());
         assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
-        final BasicTransaction txn3 = newTransaction();
+        final UpdateTransaction txn3 = newUpdateTransaction();
         try {
             secondServiceController.disable(txn3);
         } finally {
@@ -180,7 +180,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertSame(firstServiceController, serviceRegistry.getRequiredService(firstSN));
         assertSame(secondServiceController, serviceRegistry.getRequiredService(secondSN));
 
-        final BasicTransaction txn4 = newTransaction();
+        final UpdateTransaction txn4 = newUpdateTransaction();
         try {
             secondServiceController.enable(txn4);
         } finally {
@@ -207,12 +207,13 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN, ServiceMode.ON_DEMAND);
         assertFalse(firstService.isUp());
         // add a dependent and rollback
-        final BasicTransaction txn = newTransaction();
+        UpdateTransaction txn = null;
         final TestService secondService;
         try {
             // create service builder
             final ServiceContext serviceContext = txnController.getServiceContext();
             assertServiceContext(serviceContext);
+            txn = newUpdateTransaction();
             final ServiceBuilder<Void> serviceBuilder = serviceContext.addService(serviceRegistry, secondSN, txn);
             secondService = new TestService(secondSN, serviceBuilder, false);
             serviceBuilder.setService(secondService);
@@ -239,7 +240,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
      */
     @Test
     public void revertServiceStopAndRemoval() {
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final TestServiceBuilder firstServiceBuilder = new TestServiceBuilder(txn1, firstSN, ServiceMode.ON_DEMAND);
         final TestServiceBuilder secondServiceBuilder = new TestServiceBuilder(txn1, secondSN, firstSN);
         firstServiceBuilder.install();
@@ -251,7 +252,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         assertTrue(firstService.isUp());
         assertTrue(secondService.isUp());
         // remove second service and rollback
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         try {
             secondController.remove(txn2);
             firstService.waitStop();
@@ -274,7 +275,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable service and rollback
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         serviceRegistry.getRequiredService(firstSN).disable(txn);
         firstService.waitStop();
         assertFalse(firstService.isUp());
@@ -295,7 +296,7 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable and enable service, then rollback
-        final BasicTransaction txn = newTransaction();
+        final UpdateTransaction txn = newUpdateTransaction();
         final ServiceController controller = serviceRegistry.getRequiredService(firstSN);
         controller.disable(txn);
         firstService.waitStop();
@@ -318,13 +319,13 @@ public class RollbackServiceStateTestCase extends AbstractServiceTest {
         final TestService firstService = addService(firstSN);
         assertTrue(firstService.isUp());
         // disable service
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         final ServiceController controller = serviceRegistry.getRequiredService(firstSN);
         controller.disable(txn1);
         prepare(txn1);
         commit(txn1);
         // enable service and rollback
-        final BasicTransaction txn2 = newTransaction();
+        final UpdateTransaction txn2 = newUpdateTransaction();
         controller.enable(txn2);
         rollback(txn2);
         // check service is down

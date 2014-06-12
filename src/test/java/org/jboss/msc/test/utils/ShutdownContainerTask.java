@@ -21,7 +21,7 @@ package org.jboss.msc.test.utils;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A task that shuts down the container.
@@ -31,9 +31,9 @@ import org.jboss.msc.txn.Transaction;
 final class ShutdownContainerTask implements Executable<Void> {
 
     private final ServiceContainer container;
-    private final Transaction transaction;
+    private final UpdateTransaction transaction;
 
-    ShutdownContainerTask(final ServiceContainer container, final Transaction transaction) {
+    ShutdownContainerTask(final ServiceContainer container, final UpdateTransaction transaction) {
         this.container = container;
         this.transaction = transaction;
     }

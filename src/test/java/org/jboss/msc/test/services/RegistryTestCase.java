@@ -17,11 +17,6 @@
  */
 package org.jboss.msc.test.services;
 
-import static org.jboss.msc.service.DependencyFlag.UNREQUIRED;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
@@ -30,9 +25,14 @@ import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.test.utils.AbstractServiceTest;
 import org.jboss.msc.test.utils.DependencyInfo;
 import org.jboss.msc.test.utils.TestService;
-import org.jboss.msc.txn.BasicTransaction;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.jboss.msc.service.DependencyFlag.UNREQUIRED;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * ManagementContext test case.
@@ -94,7 +94,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableServiceA() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry1.getRequiredService(serviceAName);
             controller.disable(transaction);
@@ -115,7 +115,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableServiceB() {
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         final ServiceController controller;
         try {
             controller = registry1.getRequiredService(serviceBName);
@@ -136,7 +136,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         // idempotent
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             controller.disable(transaction);
         } finally {
@@ -156,7 +156,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableServiceC() throws Exception {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry1.getRequiredService(serviceCName);
             controller.enable(transaction);
@@ -180,7 +180,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     public void enableServiceCInTwoSteps() throws Exception {
         final ServiceController controller = registry1.getRequiredService(serviceCName);
         // operation that will be ignored, services are already enabled
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         try {
 
             controller.enable(transaction);
@@ -198,7 +198,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         // disable service C
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             controller.disable(transaction);
         } finally {
@@ -215,7 +215,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertFalse(serviceH.isUp());
 
         // enable service C
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             controller.enable(transaction);
         } finally {
@@ -234,7 +234,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableServiceD() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry2.getRequiredService(serviceDName);
             controller.disable(transaction);
@@ -257,7 +257,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     public void enableServiceDInTwoSteps() {
         final ServiceController controller = registry2.getRequiredService(serviceDName);
 
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         try {
             controller.disable(transaction);
         } finally {
@@ -273,7 +273,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
 
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             controller.enable(transaction);
         } finally {
@@ -293,7 +293,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableServiceA() {
         disableServiceA();
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry1.getRequiredService(serviceAName);
             controller.enable(transaction);
@@ -313,7 +313,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableRegistry1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             registry1.disable(transaction);
         } finally {
@@ -332,7 +332,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableRegistry2() {
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         try {
             registry2.disable(transaction);
             // idempotent
@@ -351,7 +351,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertFalse(serviceH.isUp());
 
         // idempotent
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             registry2.disable(transaction);
         } finally {
@@ -370,7 +370,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableRegistry3() {
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         try {
             registry3.enable(transaction);
         } finally {
@@ -387,7 +387,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
 
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             registry3.disable(transaction);
         } finally {
@@ -408,7 +408,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         TestService serviceI = addService(registry3, serviceIName);
         assertFalse(serviceI.isUp()); // as registry 3 is disabled, serviceI won't start
 
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             registry3.enable(transaction);
         } finally {
@@ -430,7 +430,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableRegistry1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             registry1.enable(transaction);
             registry1.disable(transaction);
@@ -452,7 +452,7 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Test
     public void enableRegistry1InTwoSteps() {
         // enable registry1: nothing happens, it is already enabled
-        BasicTransaction transaction = newTransaction();
+        UpdateTransaction transaction = newUpdateTransaction();
         try {
             registry1.enable(transaction);
         } finally {
@@ -469,7 +469,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceH.isUp());
 
         // disable registry 1
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             registry1.disable(transaction);
         } finally {
@@ -486,7 +486,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertFalse(serviceH.isUp());
 
         // reenable registry 1
-        transaction = newTransaction();
+        transaction = newUpdateTransaction();
         try {
             registry1.enable(transaction);
         } finally {
@@ -505,7 +505,7 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void outsiderService() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         try {
             ServiceNotFoundException expected = null;
             try {

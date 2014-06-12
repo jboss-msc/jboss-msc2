@@ -22,6 +22,16 @@
 
 package org.jboss.msc.test.services;
 
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.test.utils.AbstractServiceTest;
+import org.jboss.msc.test.utils.TestService;
+import org.jboss.msc.txn.UpdateTransaction;
+import org.junit.Test;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import static org.jboss.msc.service.ServiceMode.ACTIVE;
 import static org.jboss.msc.service.ServiceMode.LAZY;
 import static org.jboss.msc.service.ServiceMode.ON_DEMAND;
@@ -29,16 +39,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.test.utils.AbstractServiceTest;
-import org.jboss.msc.test.utils.TestService;
-import org.jboss.msc.txn.BasicTransaction;
-import org.junit.Test;
 
 /**
  * Parent dependencies test case
@@ -56,7 +56,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
 //            final StartContext<Void> startContext, final ServiceName serviceName,
 //            final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException, ExecutionException {
 //        // new transaction
-//        final BasicTransaction txn = newTransaction();
+//        final UpdateTransaction txn = newUpdateTransaction();
 //        try {
 //            // obtain service builder from >> parent<< service context
 //            final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn, startContext);
@@ -164,7 +164,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase3() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);
@@ -266,7 +266,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase6() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);
@@ -362,7 +362,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase9() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);
@@ -460,7 +460,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase12() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);
@@ -559,7 +559,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase15() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);
@@ -657,7 +657,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     public void usecase18() throws InterruptedException, ExecutionException {
         final TestService firstService;
         final Future<TestService> secondServiceFuture;
-        final BasicTransaction txn1 = newTransaction();
+        final UpdateTransaction txn1 = newUpdateTransaction();
         try {
             final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
             firstService = new TestService(firstSN, serviceBuilder, false);

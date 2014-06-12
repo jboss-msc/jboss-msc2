@@ -18,12 +18,13 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc._private.MSCLogger.SERVICE;
-
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.txn.Problem.Severity;
+
+import static org.jboss.msc._private.MSCLogger.SERVICE;
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * Dependency implementation.
@@ -112,7 +113,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction  the active transaction
      */
     void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
-        setDependent(dependent, transaction, transaction.getTaskFactory());
+        setDependent(dependent, transaction, getAbstractTransaction(transaction).getTaskFactory());
     }
 
     private void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction, TaskFactory taskFactory) {

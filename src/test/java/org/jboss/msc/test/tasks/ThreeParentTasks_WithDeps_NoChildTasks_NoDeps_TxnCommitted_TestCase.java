@@ -18,15 +18,15 @@
 
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
 import org.jboss.msc.test.utils.TestRevertible;
-import org.jboss.msc.txn.BasicTransaction;
 import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -45,7 +45,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase1() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestRevertible r0 = new TestRevertible();
@@ -87,7 +87,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase2() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestRevertible r0 = new TestRevertible();
@@ -130,7 +130,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase3() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestRevertible r0 = new TestRevertible();
@@ -172,7 +172,7 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
      */
     @Test
     public void usecase4() {
-        final BasicTransaction transaction = newTransaction();
+        final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<Void>();
         final TestRevertible r0 = new TestRevertible();

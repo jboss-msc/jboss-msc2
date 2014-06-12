@@ -18,10 +18,10 @@
 
 package org.jboss.msc.test.utils;
 
-import java.util.concurrent.CountDownLatch;
-
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
+
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>

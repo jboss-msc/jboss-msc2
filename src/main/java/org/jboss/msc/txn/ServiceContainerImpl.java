@@ -18,14 +18,15 @@
 
 package org.jboss.msc.txn;
 
-import static org.jboss.msc.txn.Helper.validateTransaction;
+import org.jboss.msc.service.ServiceContainer;
+import org.jboss.msc.service.ServiceRegistry;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceRegistry;
+import static org.jboss.msc.txn.Helper.setModified;
+import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * A transactional service container.
@@ -50,8 +51,9 @@ final class ServiceContainerImpl implements ServiceContainer {
     }
 
     @Override
-    public void shutdown(final Transaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void shutdown(final UpdateTransaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(txn, txnController);
+        setModified(txn);
         synchronized(registries) {
             for (final ServiceRegistryImpl registry : registries) {
                 registry.remove(txn);

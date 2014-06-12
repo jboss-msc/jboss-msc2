@@ -16,10 +16,17 @@ final class Helper {
         if (txn == null) {
             throw TXN.methodParameterIsNull("txn");
         }
-        if (txnController != txn.txnController) {
+        final AbstractTransaction abstractTxn = getAbstractTransaction(txn);
+        if (txnController != abstractTxn.txnController) {
             throw TXN.transactionControllerMismatch();
         }
-        txn.ensureIsActive();
+        abstractTxn.ensureIsActive();
+    }
+
+    static AbstractTransaction getAbstractTransaction(final Transaction transaction) throws IllegalArgumentException {
+        if (transaction instanceof BasicUpdateTransaction) return ((BasicUpdateTransaction)transaction).getDelegate();
+        if (transaction instanceof BasicReadTransaction) return (BasicReadTransaction)transaction;
+        throw TXN.illegalTransaction();
     }
 
     static void validateRegistry(final ServiceRegistry registry) {
@@ -29,6 +36,10 @@ final class Helper {
         if (!(registry instanceof ServiceRegistryImpl)) {
             throw TXN.methodParameterIsInvalid("registry");
         }
+    }
+
+    static void setModified(final UpdateTransaction transaction) {
+        ((BasicUpdateTransaction)transaction).setModified();
     }
 
 }

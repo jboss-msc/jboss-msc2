@@ -22,7 +22,7 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Transaction;
+import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A task that enables the service.
@@ -33,9 +33,9 @@ final class EnableServiceTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
-    private final Transaction txn;
+    private final UpdateTransaction txn;
 
-    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final Transaction txn) {
+    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final UpdateTransaction txn) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.txn = txn;
