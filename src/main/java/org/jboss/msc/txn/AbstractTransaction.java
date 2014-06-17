@@ -155,12 +155,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         throw new InvalidTransactionStateException();
     }
 
-    final void forceStateRolledBack() {
-        synchronized (this) {
-            state = STATE_ROLLED_BACK;
-        }
-    }
-
     private static int stateOf(final int val) {
         return val & STATE_MASK;
     }
@@ -323,15 +317,15 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         } else {
             if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
                 callPrepareCompletionListeners();
-                callPrepareListener(state);
+                callPrepareListener();
             }
             if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
                 callTerminateCompletionListeners();
-                callCommitListener(state);
+                callCommitListener();
             }
             if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
                 callTerminateCompletionListeners();
-                callTerminateListeners(state);
+                callTerminateListeners();
             }
         }
     }
@@ -625,26 +619,26 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         terminateCompletionListeners.clear();
     }
 
-    private void callPrepareListener(final int state) {
+    private void callPrepareListener() {
         final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
         synchronized (this) {
             prepareListener = this.prepareListener;
             this.prepareListener = null;
         }
-        callListeners(state, prepareListener, null, null, null);
+        callListeners(prepareListener, null, null, null);
     }
 
-    private void callCommitListener(final int state) {
+    private void callCommitListener() {
         final Listener<? super CommitResult<? extends Transaction>> commitListener;
         synchronized (this) {
             endTime = System.nanoTime();
             commitListener = this.commitListener;
             this.commitListener = null;
         }
-        callListeners(state, null, commitListener, null, null);
+        callListeners(null, commitListener, null, null);
     }
 
-    private void callTerminateListeners(final int state) {
+    private void callTerminateListeners() {
         final Listener<? super AbortResult<? extends Transaction>> abortListener;
         final Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
         synchronized (this) {
@@ -654,10 +648,10 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             rollbackListener = this.rollbackListener;
             this.rollbackListener = null;
         }
-        callListeners(state, null, null, abortListener, rollbackListener);
+        callListeners(null, null, abortListener, rollbackListener);
     }
 
-    private void callListeners(final int state,
+    private void callListeners(
             final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
             final Listener<? super CommitResult<? extends Transaction>> commitListener,
             final Listener<? super AbortResult<? extends Transaction>> abortListener,
@@ -668,11 +662,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     @Override
                     public Transaction getTransaction() {
                         return wrappingTxn;
-                    }
-
-                    @Override
-                    public boolean isPrepared() {
-                        return STATE_PREPARED == stateOf(state);
                     }
                 });
             } catch (final Throwable ignored) {

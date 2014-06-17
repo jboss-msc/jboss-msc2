@@ -20,8 +20,6 @@ package org.jboss.msc.txn;
 
 /**
  * Transaction's commit phase result.
- * <br/><br/>
- * The result of transaction's commit request can be only committed transaction.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * 
