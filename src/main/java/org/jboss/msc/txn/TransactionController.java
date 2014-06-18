@@ -21,6 +21,7 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,7 +49,7 @@ public final class TransactionController extends SimpleAttachable {
     // count of running TXNs in this round
     private static int runningTxns;
     // TXNs that are pending execution, each item is either single updating TXN or set of reading TXNs
-    private static final List<PendingTxnEntry> pendingTxns = new LinkedList<>();
+    private static final Deque<PendingTxnEntry> pendingTxns = new LinkedList<>();
 
     private TransactionController() {}
 
@@ -191,7 +192,7 @@ public final class TransactionController extends SimpleAttachable {
             assert runningTxns == 1;
             updatingTxnRunning = false;
             if (pendingTxns.size() > 0) {
-                pendingTxns.add(new PendingTxnEntry(basicReadTxn, listener));
+                pendingTxns.addFirst(new PendingTxnEntry(basicReadTxn, listener));
                 runningTxns--;
                 notifications = getNotifications();
             }
@@ -323,7 +324,7 @@ public final class TransactionController extends SimpleAttachable {
     private List<PendingTxnEntry> getNotifications() {
         assert Thread.holdsLock(txnLock);
         final List<PendingTxnEntry> notifications = new LinkedList<>();
-        PendingTxnEntry entry = pendingTxns.remove(0);
+        PendingTxnEntry entry = pendingTxns.removeFirst();
         notifications.add(entry);
         runningTxns++;
         if (entry.txn instanceof UpdateTransaction) {
