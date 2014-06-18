@@ -450,9 +450,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void prepare(final Transaction transaction, final Listener<? super PrepareResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
+    public <T extends Transaction> void prepare(final T transaction, final Listener<? super PrepareResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        getAbstractTransaction(transaction).prepare(completionListener);
+        getAbstractTransaction(transaction).prepare((Listener<? super PrepareResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -464,9 +464,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void commit(final Transaction transaction, final Listener<? super CommitResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
+    public <T extends Transaction> void commit(final T transaction, final Listener<? super CommitResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        getAbstractTransaction(transaction).commit(completionListener);
+        getAbstractTransaction(transaction).commit((Listener<? super CommitResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -479,9 +479,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void abort(final Transaction transaction, final Listener<? super AbortResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
+    public <T extends Transaction> void abort(final T transaction, final Listener<? super AbortResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        getAbstractTransaction(transaction).abort(completionListener);
+        getAbstractTransaction(transaction).abort((Listener<? super AbortResult<? extends Transaction>>)completionListener);
     }
 
     /**
@@ -494,9 +494,9 @@ public final class TransactionController extends SimpleAttachable {
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void rollback(final Transaction transaction, final Listener<? super RollbackResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException, SecurityException {
+    public <T extends Transaction> void rollback(final T transaction, final Listener<? super RollbackResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
-        getAbstractTransaction(transaction).rollback(completionListener);
+        getAbstractTransaction(transaction).rollback((Listener<? super RollbackResult<? extends Transaction>>)completionListener);
     }
 
     /**
