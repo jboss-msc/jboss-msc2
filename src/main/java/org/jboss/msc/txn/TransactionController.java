@@ -209,8 +209,8 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Upgrades read-only <B>readTxn</B> transaction to updating transaction.
-     * This operation succeeds iff <B>readTxn</B> isn't instance of <B>UpdateTransaction</B>
-     * and there's no pending <B>UpdateTransaction</B> (waiting in the transaction creation request queue).
+     * This operation succeeds iff  there's no pending <B>UpdateTransaction</B>
+     * (waiting in the transaction creation request queue).
      * If upgrade is not successful, the completion listener will never be called.
      * If upgrade is successful (indicated by returning <B>true</B> from the method)
      * <B>readTxn</B> remains still valid and can be used by user anytime. Further more
@@ -246,9 +246,12 @@ public final class TransactionController extends SimpleAttachable {
      */
     public boolean upgradeTransaction(final ReadTransaction readTxn, final Listener<UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
         final BasicReadTransaction basicReadTxn = validateTransaction(readTxn);
-        if (readTxn instanceof UpdateTransaction) return false;
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
+        }
+        if (readTxn instanceof UpdateTransaction) {
+            safeCallListener(listener, readTxn);
+            return true;
         }
         synchronized (txnLock) {
             assert runningTxns > 0;

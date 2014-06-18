@@ -50,18 +50,22 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         txnController.createReadTransaction(defaultExecutor, createListener);
         final ReadTransaction readTxn = createListener.awaitCompletion();
         assertNotNull(readTxn);
-        final CompletionListener<UpdateTransaction> upgradeListener = new CompletionListener<>();
-        boolean upgraded = txnController.upgradeTransaction(readTxn, upgradeListener);
+        final CompletionListener<UpdateTransaction> upgradeListener1 = new CompletionListener<>();
+        boolean upgraded = txnController.upgradeTransaction(readTxn, upgradeListener1);
         assertTrue(upgraded);
-        final UpdateTransaction updateTxn = upgradeListener.awaitCompletion();
-        assertNotNull(updateTxn);
-        assertTrue(updateTxn != readTxn);
-        upgraded = txnController.upgradeTransaction(updateTxn, new CompletionListener<UpdateTransaction>());
-        assertFalse(upgraded); // already upgraded transaction cannot be upgraded again
+        final UpdateTransaction updateTxn1 = upgradeListener1.awaitCompletion();
+        assertNotNull(updateTxn1);
+        assertTrue(updateTxn1 != readTxn);
+        final CompletionListener<UpdateTransaction> upgradeListener2 = new CompletionListener<>();
+        upgraded = txnController.upgradeTransaction(updateTxn1, upgradeListener2);
+        assertTrue(upgraded); // already upgraded transaction can be always upgraded
+        final UpdateTransaction updateTxn2 = upgradeListener2.awaitCompletion();
+        assertNotNull(updateTxn2);
+        assertTrue(updateTxn1 == updateTxn2);
         prepare(readTxn);
-        commit(updateTxn); // users can call transaction lifecycle methods on both Read and Update transaction interchangeably (in upgrade case)
+        commit(updateTxn1); // users can call transaction lifecycle methods on both Read and Update transaction interchangeably (in upgrade case)
         assertTrue(readTxn.isTerminated());
-        assertTrue(updateTxn.isTerminated());
+        assertTrue(updateTxn1.isTerminated());
     }
 
     @Test
