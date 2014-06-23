@@ -255,7 +255,7 @@ final class Registration {
         }
         RequiredDependenciesCheck task = transaction.getAttachmentIfPresent(REQUIRED_DEPENDENCIES_CHECK_TASK);
         if (task == null) {
-            task = new RequiredDependenciesCheck(transaction.getTransactionReport());
+            task = new RequiredDependenciesCheck(transaction.getReport());
             final RequiredDependenciesCheck appearing = transaction.putAttachmentIfAbsent(REQUIRED_DEPENDENCIES_CHECK_TASK, task);
             if (appearing == null) {
                 getAbstractTransaction(transaction).addListener(task);

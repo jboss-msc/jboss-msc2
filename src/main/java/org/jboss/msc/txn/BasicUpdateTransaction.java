@@ -71,15 +71,9 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     }
 
     @Override
-    public ProblemReport getTransactionReport() {
+    public ProblemReport getReport() {
         assertState();
-        return delegate.getTransactionReport();
-    }
-
-    @Override
-    public ProblemReport getRollbackReport() {
-        assertState();
-        return delegate.getRollbackReport();
+        return delegate.getReport();
     }
 
     @Override

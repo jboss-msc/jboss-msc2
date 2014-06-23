@@ -384,21 +384,9 @@ public final class TransactionController extends SimpleAttachable {
      * @return the transaction report
      * @throws SecurityException if transaction was not created by this controller
      */
-    public ProblemReport getTransactionReport(final Transaction transaction) throws SecurityException {
+    public ProblemReport getReport(final Transaction transaction) throws SecurityException {
         validateTransaction(transaction);
-        return transaction.getTransactionReport();
-    }
-
-    /**
-     * Get the transaction rollback problem report.
-     *
-     * @param transaction the transaction
-     * @return the transaction rollback report
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public ProblemReport getRollbackReport(final Transaction transaction) throws SecurityException {
-        validateTransaction(transaction);
-        return transaction.getRollbackReport();
+        return transaction.getReport();
     }
 
     /**

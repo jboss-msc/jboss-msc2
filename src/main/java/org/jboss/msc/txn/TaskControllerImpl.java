@@ -718,7 +718,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void rollback() {
-        final ProblemReport problemReport = getTransaction().getRollbackReport();
+        final ProblemReport problemReport = getTransaction().getReport();
         final Revertible rev = revertible;
         if (rev != null) try {
             setClassLoader();
@@ -766,7 +766,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     }
 
     void execute() {
-        final ProblemReport problemReport = getTransaction().getTransactionReport();
+        final ProblemReport problemReport = getTransaction().getReport();
         final Executable<T> exec = executable;
         if (exec != null) try {
             setClassLoader();

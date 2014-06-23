@@ -56,10 +56,10 @@ public interface Transaction extends Attachable {
      */
     long getDuration(TimeUnit unit);
 
-    // TODO: write javadoc when rollback phase is eliminated from MSC2
-    ProblemReport getTransactionReport();
-
-    // TODO: write javadoc when rollback phase is eliminated from MSC2
-    ProblemReport getRollbackReport();
+    /**
+     * Returns transaction problem report.
+     * @return transaction problem report
+     */
+    ProblemReport getReport();
 
 }

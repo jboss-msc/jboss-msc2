@@ -78,8 +78,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private final long startTime = System.nanoTime();
     private final Queue<TaskControllerImpl<?>> topLevelTasks = new ConcurrentLinkedQueue<>();
     private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
-    private final ProblemReport transactionReport = new ProblemReport();
-    private final ProblemReport rollbackReport = new ProblemReport();
+    private final ProblemReport report = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
 
         public void childExecuted(final boolean userThread) {
@@ -190,12 +189,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         return taskExecutor;
     }
 
-    public final ProblemReport getTransactionReport() {
-        return transactionReport;
-    }
-
-    public final ProblemReport getRollbackReport() {
-        return rollbackReport;
+    public final ProblemReport getReport() {
+        return report;
     }
 
     /**
@@ -453,7 +448,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private boolean reportIsCommittable() {
-        return transactionReport.getMaxSeverity().compareTo(maxSeverity) <= 0;
+        return report.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
     protected void finalize() {
