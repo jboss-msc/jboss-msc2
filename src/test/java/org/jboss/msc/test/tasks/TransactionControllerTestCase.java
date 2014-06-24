@@ -200,14 +200,6 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         }
         assertNotNull(expected);
 
-        expected = null;
-        try {
-            rollback(outsiderTransaction);
-        } catch (SecurityException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
         outsiderController.prepare(outsiderTransaction, null);
         outsiderController.commit(outsiderTransaction, null);
         final UpdateTransaction transaction = newUpdateTransaction();

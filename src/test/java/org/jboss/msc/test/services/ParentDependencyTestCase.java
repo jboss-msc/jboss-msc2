@@ -52,41 +52,6 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
     private static final ServiceName secondSN = ServiceName.of("second");
     private static final ServiceName thirdSN = ServiceName.of("third");
 
-//    protected final TestService addChildService(final ServiceContext parentServiceContext,
-//            final StartContext<Void> startContext, final ServiceName serviceName,
-//            final ServiceMode serviceMode, final ServiceName parentDependency) throws InterruptedException, ExecutionException {
-//        // new transaction
-//        final UpdateTransaction txn = newUpdateTransaction();
-//        try {
-//            // obtain service builder from >> parent<< service context
-//            final ServiceBuilder<Void> serviceBuilder = parentServiceContext.addService(serviceRegistry, serviceName, txn, startContext);
-//            // create and set test service
-//            final TestService service = new TestService(serviceName, serviceBuilder, false);
-//            serviceBuilder.setService(service);
-//            // set mode
-//            if (serviceMode != null)
-//                serviceBuilder.setMode(serviceMode);
-//            // install
-//            serviceBuilder.install();
-//            // prepare transaction
-//            prepare(txn);
-//            // commit transaction
-//            commit(txn);
-//            // check that parent service is there, and that child service is installed and up
-//            final TestService parentService = (TestService) serviceRegistry.getService(parentDependency).getService();
-//            if (service.isUp() || (parentService != null && parentService.isUp())) throws InterruptedException, ExecutionException {
-//                assertSame(service, serviceRegistry.getRequiredService(serviceName).getService());
-//            } else {
-//                assertNull(serviceRegistry.getService(serviceName));
-//            }
-//            return service;
-//        } catch (final Exception e) throws InterruptedException, ExecutionException {
-//            // always clear transaction if exception is detected
-//            rollback(txn);
-//            throw e;
-//        }
-//    }
-
     /**
      * Usecase:
      * <UL>

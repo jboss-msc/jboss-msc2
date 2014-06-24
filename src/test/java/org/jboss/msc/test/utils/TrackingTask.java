@@ -20,8 +20,6 @@ package org.jboss.msc.test.utils;
 
 import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.Revertible;
-import org.jboss.msc.txn.RollbackContext;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,31 +27,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A simple transaction task that tracks task calls. It provides utility methods:
  * 
  * <UL>
- * <LI>{@link #isReverted()} - returns <code>true</code> if transaction have been aborted, <code>false</code> otherwise</LI>
  * <LI>{@link #isExecuted()} - returns <code>true</code> if transaction have been executed, <code>false</code> otherwise</LI>
  * </UL>
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class TrackingTask implements Executable<Object>, Revertible {
+public class TrackingTask implements Executable<Object> {
 
     private final AtomicBoolean executed = new AtomicBoolean();
-    private final AtomicBoolean reverted = new AtomicBoolean();
-
-    @Override
-    public void rollback(final RollbackContext context) {
-        reverted.set(true);
-        context.complete();
-    }
 
     @Override
     public void execute(final ExecuteContext<Object> context) {
         executed.set(true);
         context.complete();
-    }
-
-    public final boolean isReverted() {
-        return reverted.get();
     }
 
     public final boolean isExecuted() {

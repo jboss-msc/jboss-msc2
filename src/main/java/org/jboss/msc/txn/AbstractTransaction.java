@@ -383,9 +383,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotCommitUnpreparedTxn();
             }
-            if (!reportIsCommittable()) {
-                throw MSCLogger.TXN.cannotCommitProblematicTxn();
-            }
             if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                 throw MSCLogger.TXN.cannotCommitCommittedTxn();
             }

@@ -58,7 +58,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[A, A]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -72,7 +73,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[B, A, B]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -87,7 +89,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[C, A, B, C]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -103,7 +106,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[E, A, B, E]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -120,7 +124,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[F, A, B, E, F]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -139,7 +144,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[E, C, D, F, H, E]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -157,7 +163,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[H, A, B, C, D, F, H]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -179,7 +186,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[E, C, D, F, H, E]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -194,7 +202,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[A, \"B alias\", \"C alias\", A]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 
@@ -209,7 +218,8 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
         } catch (final CircularDependencyException e) {
             assertCycle(e, "[\"A alias\", \"B alias\", \"C alias\", \"A alias\"]");
         } finally {
-            rollback(txn);
+            prepare(txn);
+            commit(txn);
         }
     }
 

@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.UpdateTransaction;
@@ -53,16 +52,12 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
     public void usecase1() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
-        final TestExecutable<Void> e0 = new TestExecutable<Void>("0");
-        final TaskController<Void> task0Controller = newTask(transaction, e0, null);
+        final TestExecutable<Void> e0 = new TestExecutable<>("0");
+        final TaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
-        // installing task1
-        final TestRevertible r1 = new TestRevertible("1");
-        final TaskController<Void> task1Controller = newTask(transaction, null, r1);
-        assertNotNull(task1Controller);
         // installing task2
-        final TestExecutable<Void> e2 = new TestExecutable<Void>("2");
-        final TaskController<Void> task2Controller = newTask(transaction, e2, null);
+        final TestExecutable<Void> e2 = new TestExecutable<>("2");
+        final TaskController<Void> task2Controller = newTask(transaction, e2);
         assertNotNull(task2Controller);
         // installing task3
         final CountDownLatch task5Created = new CountDownLatch(1);
@@ -75,25 +70,25 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
                 } catch (Exception ignore) {
                 }
                 // installing task6
-                final TestExecutable<Void> e6 = new TestExecutable<Void>("6");
-                final TaskController<Void> task6Controller = newTask(ctx, e6, null, task5Controller);
+                final TestExecutable<Void> e6 = new TestExecutable<>("6");
+                final TaskController<Void> task6Controller = newTask(ctx, e6, task5Controller);
                 assertNotNull(task6Controller);
                 // installing task7
-                final TestExecutable<Void> e7 = new TestExecutable<Void>("7");
-                task7Controller = newTask(ctx, e7, null, task6Controller);
+                final TestExecutable<Void> e7 = new TestExecutable<>("7");
+                task7Controller = newTask(ctx, e7, task6Controller);
                 assertNotNull(task7Controller);
                 task7Created.countDown();
             }
         };
-        final TaskController<Void> task3Controller = newTask(transaction, parent3e, null, task2Controller);
+        final TaskController<Void> task3Controller = newTask(transaction, parent3e, task2Controller);
         assertNotNull(task3Controller);
         // installing task4
-        final TestExecutable<Void> e4 = new TestExecutable<Void>("4");
-        final TaskController<Void> task4Controller = newTask(transaction, e4, null, task2Controller, task3Controller);
+        final TestExecutable<Void> e4 = new TestExecutable<>("4");
+        final TaskController<Void> task4Controller = newTask(transaction, e4, task2Controller, task3Controller);
         assertNotNull(task4Controller);
         // installing task5
-        final TestExecutable<Void> e5 = new TestExecutable<Void>("5");
-        task5Controller = newTask(transaction, e5, null, task4Controller);
+        final TestExecutable<Void> e5 = new TestExecutable<>("5");
+        task5Controller = newTask(transaction, e5, task4Controller);
         assertNotNull(task5Controller);
         task5Created.countDown();
         // installing task 8
@@ -101,8 +96,8 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
             task7Created.await();
         } catch (Exception ignore) {
         }
-        final TestExecutable<Void> e8 = new TestExecutable<Void>("8");
-        final TaskController<Void> task8Controller = newTask(transaction, e8, null, task7Controller);
+        final TestExecutable<Void> e8 = new TestExecutable<>("8");
+        final TaskController<Void> task8Controller = newTask(transaction, e8, task7Controller);
         assertNotNull(task8Controller);
         prepare(transaction);
         commit(transaction);

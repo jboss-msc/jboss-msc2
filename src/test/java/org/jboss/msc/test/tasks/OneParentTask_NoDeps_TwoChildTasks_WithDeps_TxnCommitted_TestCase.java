@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.UpdateTransaction;
@@ -47,34 +46,28 @@ public final class OneParentTask_NoDeps_TwoChildTasks_WithDeps_TxnCommitted_Test
     public void usecase1() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<Void>();
-        final TestRevertible child0r = new TestRevertible();
+        final TestExecutable<Void> child0e = new TestExecutable<>();
         // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>();
-        final TestRevertible child1r = new TestRevertible();
+        final TestExecutable<Void> child1e = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0r);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r, child0Controller);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
                 assertNotNull(child1Controller);
             }
         };
-        final TestRevertible parent0r = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
+        final TaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         assertCalled(parent0e);
         assertCalled(child0e);
         assertCalled(child1e);
-        assertNotCalled(parent0r);
-        assertNotCalled(child0r);
-        assertNotCalled(child1r);
         assertCallOrder(parent0e, child0e, child1e);
         // committing transaction
         assertTrue(canCommit(transaction));

@@ -41,23 +41,10 @@ import static org.junit.Assert.fail;
 public class BasicTasksTestCase extends AbstractTransactionTest {
 
     @Test
-    public void emptyTransactionRollback() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        rollback(transaction);
-    }
-
-    @Test
     public void emptyTransactionPrepareCommit() {
         final UpdateTransaction transaction = newUpdateTransaction();
         prepare(transaction);
         commit(transaction);
-    }
-
-    @Test
-    public void emptyTransactionPrepareAbort() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        prepare(transaction);
-        abort(transaction);
     }
 
     @Test
@@ -71,7 +58,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         prepareAndCommitFromListener(transaction);
         // asserts
         assertTrue(task.isExecuted());
-        assertFalse(task.isReverted());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -89,57 +75,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         commit(transaction);
         // asserts
         assertTrue(task.isExecuted());
-        assertFalse(task.isReverted());
-        assertEquals(controller.getTransaction(), transaction);
-        controller.getResult();
-    }
-
-    @Test
-    public void testRollbackFromListener() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        // install task
-        final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
-        // prepare and roll back transaction from listener
-        prepareAndRollbackFromListener(transaction);
-        // asserts
-        assertTrue(task.isExecuted());
-        assertTrue(task.isReverted());
-        assertEquals(controller.getTransaction(), transaction);
-        controller.getResult();
-    }
-
-    @Test
-    public void testSimplePrepareAbort() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        // install task
-        final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
-        // prepare transaction
-        prepare(transaction);
-        // abort transaction
-        abort(transaction);
-        // asserts
-        assertTrue(task.isExecuted());
-        assertTrue(task.isReverted());
-        assertEquals(controller.getTransaction(), transaction);
-        controller.getResult();
-    }
-
-    @Test
-    public void testSimpleRollback() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        // install task
-        final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
-        // roll back transaction
-        rollback(transaction);
-        // asserts
-        assertTrue(task.isExecuted());
-        assertTrue(task.isReverted());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -174,33 +109,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         prepareAndCommitFromListener(transaction);
         // asserts
         assertTrue(task.isExecuted());
-        assertFalse(task.isReverted());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
-    }
-
-    @Test
-    public void testSimpleRollbackWithDependency() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        // instal first task
-        final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder1 = txnController.newTask(transaction, task1);
-        final TaskController<Object> controller1 = taskBuilder1.release();
-        // instal second task depending on first one
-        final TrackingTask task2 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder2 = txnController.newTask(transaction, task2).addDependency(controller1);
-        final TaskController<Object> controller2 = taskBuilder2.release();
-        // prepare and roll back transaction from listener
-        prepareAndRollbackFromListener(transaction);
-        // asserts
-        assertTrue(task1.isExecuted());
-        assertTrue(task1.isReverted());
-        assertEquals(controller1.getTransaction(), transaction);
-        controller1.getResult();
-        assertTrue(task2.isExecuted());
-        assertTrue(task2.isReverted());
-        assertEquals(controller2.getTransaction(), transaction);
-        controller2.getResult();
     }
 
     @Test
@@ -219,13 +129,11 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             fail("cannot add new tasks to prepared transaction");
         } catch (InvalidTransactionStateException expected) {
         }
-        // abort transaction
-        abort(transaction);
+        // commit transaction
+        commit(transaction);
         // asserts
         assertTrue(task1.isExecuted());
-        assertTrue(task1.isReverted());
         assertFalse(task2.isExecuted());
-        assertFalse(task2.isReverted());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -248,34 +156,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         }
         // asserts
         assertTrue(task1.isExecuted());
-        assertFalse(task1.isReverted());
         assertFalse(task2.isExecuted());
-        assertFalse(task2.isReverted());
-        assertEquals(controller.getTransaction(), transaction);
-        controller.getResult();
-    }
-
-    @Test
-    public void installNewTaskToRevertedTransaction() {
-        final UpdateTransaction transaction = newUpdateTransaction();
-        // install task 1
-        final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
-        final TaskController<Object> controller = taskBuilder.release();
-        // prepare and roll back transaction from listener
-        prepareAndRollbackFromListener(transaction);
-        // install task 2 - should fail because transaction have been aborted
-        final TrackingTask task2 = new TrackingTask();
-        try {
-            txnController.newTask(transaction, task2).release();
-            fail("cannot add new tasks to aborted transaction");
-        } catch (InvalidTransactionStateException expected) {
-        }
-        // asserts
-        assertTrue(task1.isExecuted());
-        assertTrue(task1.isReverted());
-        assertFalse(task2.isExecuted());
-        assertFalse(task2.isReverted());
         assertEquals(controller.getTransaction(), transaction);
         controller.getResult();
     }
@@ -310,7 +191,6 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             for (int j = 0; j < 8; j++) {
                 final TrackingTask task = tasks[i][j];
                 assertTrue(task.isExecuted());
-                assertFalse(task.isReverted());
                 final TaskController<?> controller = controllers[i][j];
                 assertEquals(controller.getTransaction(), transaction);
                 controller.getResult();

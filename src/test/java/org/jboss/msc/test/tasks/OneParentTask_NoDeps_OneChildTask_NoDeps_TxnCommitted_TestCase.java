@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.UpdateTransaction;
@@ -46,26 +45,22 @@ public final class OneParentTask_NoDeps_OneChildTask_NoDeps_TxnCommitted_TestCas
     public void usecase1() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child task
-        final TestExecutable<Void> e1 = new TestExecutable<Void>();
-        final TestRevertible r1 = new TestRevertible();
+        final TestExecutable<Void> e1 = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> e0 = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child task
-                final TaskController<Void> childController = newTask(ctx, e1, r1);
+                final TaskController<Void> childController = newTask(ctx, e1);
                 assertNotNull(childController);
             }
         };
-        final TestRevertible r0 = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, e0, r0);
+        final TaskController<Void> parentController = newTask(transaction, e0);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         assertCalled(e0);
-        assertNotCalled(r0);
         assertCalled(e1);
-        assertNotCalled(r1);
         assertCallOrder(e0, e1);
         // committing transaction
         assertTrue(canCommit(transaction));

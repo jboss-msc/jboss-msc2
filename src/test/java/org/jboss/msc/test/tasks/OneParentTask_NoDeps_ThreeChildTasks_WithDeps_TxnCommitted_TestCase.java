@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.test.utils.AbstractTransactionTest;
 import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.test.utils.TestRevertible;
 import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.TaskController;
 import org.jboss.msc.txn.UpdateTransaction;
@@ -48,46 +47,38 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
     public void usecase1() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<Void>();
-        final TestRevertible child0r = new TestRevertible();
+        final TestExecutable<Void> child0e = new TestExecutable<>();
         // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>();
-        final TestRevertible child1r = new TestRevertible();
+        final TestExecutable<Void> child1e = new TestExecutable<>();
         // preparing child2 task
-        final TestExecutable<Void> child2e = new TestExecutable<Void>();
-        final TestRevertible child2r = new TestRevertible();
+        final TestExecutable<Void> child2e = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0r);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TestRevertible parent0r = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
+        final TaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
-        assertNotCalled(parent0r);
         // assert child0 calls
         assertCalled(child0e);
-        assertNotCalled(child0r);
         // assert child1 calls
         assertCalled(child1e);
-        assertNotCalled(child1r);
         // assert child2 calls
         assertCalled(child2e);
-        assertNotCalled(child2r);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e);
         assertCallOrder(parent0e, child1e, child2e);
@@ -110,46 +101,38 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
     public void usecase2() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<Void>();
-        final TestRevertible child0r = new TestRevertible();
+        final TestExecutable<Void> child0e = new TestExecutable<>();
         // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>();
-        final TestRevertible child1r = new TestRevertible();
+        final TestExecutable<Void> child1e = new TestExecutable<>();
         // preparing child2 task
-        final TestExecutable<Void> child2e = new TestExecutable<Void>();
-        final TestRevertible child2r = new TestRevertible();
+        final TestExecutable<Void> child2e = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0r);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child0Controller, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TestRevertible parent0r = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
+        final TaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
-        assertNotCalled(parent0r);
         // assert child0 calls
         assertCalled(child0e);
-        assertNotCalled(child0r);
         // assert child1 calls
         assertCalled(child1e);
-        assertNotCalled(child1r);
         // assert child2 calls
         assertCalled(child2e);
-        assertNotCalled(child2r);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e);
         assertCallOrder(parent0e, child1e);
@@ -174,46 +157,38 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
     public void usecase3() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<Void>();
-        final TestRevertible child0r = new TestRevertible();
+        final TestExecutable<Void> child0e = new TestExecutable<>();
         // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>();
-        final TestRevertible child1r = new TestRevertible();
+        final TestExecutable<Void> child1e = new TestExecutable<>();
         // preparing child2 task
-        final TestExecutable<Void> child2e = new TestExecutable<Void>();
-        final TestRevertible child2r = new TestRevertible();
+        final TestExecutable<Void> child2e = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0r);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r, child0Controller);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TestRevertible parent0r = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
+        final TaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
-        assertNotCalled(parent0r);
         // assert child0 calls
         assertCalled(child0e);
-        assertNotCalled(child0r);
         // assert child1 calls
         assertCalled(child1e);
-        assertNotCalled(child1r);
         // assert child2 calls
         assertCalled(child2e);
-        assertNotCalled(child2r);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, child1e, child2e);
         // committing transaction
@@ -235,46 +210,38 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
     public void usecase4() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<Void>();
-        final TestRevertible child0r = new TestRevertible();
+        final TestExecutable<Void> child0e = new TestExecutable<>();
         // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<Void>();
-        final TestRevertible child1r = new TestRevertible();
+        final TestExecutable<Void> child1e = new TestExecutable<>();
         // preparing child2 task
-        final TestExecutable<Void> child2e = new TestExecutable<Void>();
-        final TestRevertible child2r = new TestRevertible();
+        final TestExecutable<Void> child2e = new TestExecutable<>();
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
             public void executeInternal(final ExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e, child0r);
+                final TaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child1r, child0Controller);
+                final TaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child2r, child0Controller, child1Controller);
+                final TaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TestRevertible parent0r = new TestRevertible();
-        final TaskController<Void> parentController = newTask(transaction, parent0e, parent0r);
+        final TaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
         // assert parent0 calls
         assertCalled(parent0e);
-        assertNotCalled(parent0r);
         // assert child0 calls
         assertCalled(child0e);
-        assertNotCalled(child0r);
         // assert child1 calls
         assertCalled(child1e);
-        assertNotCalled(child1r);
         // assert child2 calls
         assertCalled(child2e);
-        assertNotCalled(child2r);
         // assert tasks ordering
         assertCallOrder(parent0e, child0e, child1e, child2e);
         // committing transaction

@@ -28,48 +28,30 @@ import java.util.concurrent.CountDownLatch;
  */
 public class TestExecutable<T> extends TestTask implements Executable<T> {
 
-    private final boolean cancel;
     private final T result;
 
     public TestExecutable(final String name) {
-        this(name, false, null, null);
+        this(name, null, null);
     }
 
     public TestExecutable() {
-        this(false, null, null);
+        this(null, null, null);
     }
 
     public TestExecutable(final T result) {
-        this(false, result, null);
+        this(null, result, null);
     }
 
     public TestExecutable(final CountDownLatch signal) {
-        this(false, null, signal);
+        this(null, null, signal);
     }
 
     public TestExecutable(final T result, final CountDownLatch signal) {
-        this(false, result, signal);
+        this(null, result, signal);
     }
 
-    public TestExecutable(final boolean cancel) {
-        this(cancel, null, null);
-    }
-
-    public TestExecutable(final boolean cancel, final T result) {
-        this(cancel, result, null);
-    }
-
-    public TestExecutable(final boolean cancel, final CountDownLatch signal) {
-        this(cancel, null, signal);
-    }
-
-    public TestExecutable(final boolean cancel, final T result, final CountDownLatch signal) {
-        this(null, cancel, result, signal);
-    }
-
-    public TestExecutable(final String name, final boolean cancel, final T result, final CountDownLatch signal) {
+    public TestExecutable(final String name, final T result, final CountDownLatch signal) {
         super(name, signal);
-        this.cancel = cancel;
         this.result = result;
     }
 
@@ -77,11 +59,7 @@ public class TestExecutable<T> extends TestTask implements Executable<T> {
     public void execute(final ExecuteContext<T> ctx) {
         super.call();
         executeInternal(ctx);
-        if (cancel) {
-            ctx.cancelled();
-        } else {
-            ctx.complete(result);
-        }
+        ctx.complete(result);
     }
 
     protected void executeInternal(final ExecuteContext<T> ctx) {
