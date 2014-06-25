@@ -26,6 +26,6 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface ExecuteContext<T> extends WorkContext<T>, CancellableContext, TaskFactory {
+public interface ExecuteContext<T> extends WorkContext<T>, TaskFactory {
 
 }

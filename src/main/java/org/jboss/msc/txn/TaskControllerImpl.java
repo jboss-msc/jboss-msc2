@@ -48,48 +48,48 @@ import static java.lang.Thread.holdsLock;
  *          |                                                  |
  *          v                                                  |
  *  +---------------+                                          |
- *  |               |         SELF_CANCEL_REQ                  |
- *  |    EXECUTE    +---------------------------------+        |
- *  |               |                                 |        |
- *  +-------+-------+                                 |        |
- *          |                                         |        |
- *          |                                         |        |
- *          v                                         |        |
- *  +-----------------------+                         |        |
- *  |                       |                         |        |
- *  | EXECUTE_CHILDREN_WAIT +--------------+          |        |
- *  |                       |              |          |        |
- *  +-------+---------------+              |          |        |
- *          |                              |          |        |
- *          |                              |          |        |
- *          v                              |          |        |
- *  +---------------+                      |          |        |
- *  |               |                      |          |        |
- *  |  EXECUTE_DONE +-----------+          |          |        |
- *  |               |           |          |          |        |
- *  +-------+-------+           |          |          |        |
- *          |                   |          |          |        |
- *          |                                         |        |
- *          |            ROLLBACK_REQ or CANCEL_REQ   |        |
- *          |                                         |        |
- *          |                   |          |          |        |
- *          |                   v          v          |        |
- *          |             +----------------------+    |        |
- *          |             |                      |    |        |
- *          |             |    ROLLBACK_WAIT     |    |        |
- *          |             |                      |    |        |
- *          |             +-----------+----------+    |        |
- *                                    |               |        |
- *     COMMIT_REQ                     |               |        |
- *                                    v               |        |
- *          |             +----------------------+    |        |
- *          |             |                      |    |        |
- *          |             |       ROLLBACK       |    |        |
- *          |             |                      |    |        |
- *          |             +-----------+----------+    |        |
- *          |                         |               |        |
- *          |                         |               |        |
- *          v                         v               v        v
+ *  |               |                                          |
+ *  |    EXECUTE    +                                          |
+ *  |               |                                          |
+ *  +-------+-------+                                          |
+ *          |                                                  |
+ *          |                                                  |
+ *          v                                                  |
+ *  +-----------------------+                                  |
+ *  |                       |                                  |
+ *  | EXECUTE_CHILDREN_WAIT +--------------+                   |
+ *  |                       |              |                   |
+ *  +-------+---------------+              |                   |
+ *          |                              |                   |
+ *          |                              |                   |
+ *          v                              |                   |
+ *  +---------------+                      |                   |
+ *  |               |                      |                   |
+ *  |  EXECUTE_DONE +-----------+          |                   |
+ *  |               |           |          |                   |
+ *  +-------+-------+           |          |                   |
+ *          |                   |          |                   |
+ *          |                                                  |
+ *          |            ROLLBACK_REQ or CANCEL_REQ            |
+ *          |                                                  |
+ *          |                   |          |                   |
+ *          |                   v          v                   |
+ *          |             +----------------------+             |
+ *          |             |                      |             |
+ *          |             |    ROLLBACK_WAIT     |             |
+ *          |             |                      |             |
+ *          |             +-----------+----------+             |
+ *                                    |                        |
+ *     COMMIT_REQ                     |                        |
+ *                                    v                        |
+ *          |             +----------------------+             |
+ *          |             |                      |             |
+ *          |             |       ROLLBACK       |             |
+ *          |             |                      |             |
+ *          |             +-----------+----------+             |
+ *          |                         |                        |
+ *          |                         |                        |
+ *          v                         v                        v
  *  +------------------------------------------------------------+
  *  |                                                            |
  *  |                       TERMINATE_WAIT                       |
@@ -177,35 +177,34 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
      * A cancel request, due to rollback or dependency failure.
      */
     private static final int FLAG_CANCEL_REQ      = 1 << 4;
-    private static final int FLAG_SELF_CANCEL_REQ = 1 << 5;
-    private static final int FLAG_ROLLBACK_REQ    = 1 << 6;
-    private static final int FLAG_COMMIT_REQ      = 1 << 7;
+    private static final int FLAG_ROLLBACK_REQ    = 1 << 5;
+    private static final int FLAG_COMMIT_REQ      = 1 << 6;
 
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_CANCEL_REQ | FLAG_ROLLBACK_REQ | FLAG_COMMIT_REQ;
 
     // non-persistent status flags
-    private static final int FLAG_EXECUTE_DONE   = 1 << 8;
-    private static final int FLAG_ROLLBACK_DONE  = 1 << 9;
-    private static final int FLAG_INSTALL_FAILED = 1 << 10;
+    private static final int FLAG_EXECUTE_DONE   = 1 << 7;
+    private static final int FLAG_ROLLBACK_DONE  = 1 << 8;
+    private static final int FLAG_INSTALL_FAILED = 1 << 9;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 11; // to children
-    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 12; // to children
-    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 13; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 14; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 15; // to dependents
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 16; // to dependents
-    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 17; // to dependencies
-    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 18; // to transaction
-    private static final int FLAG_SEND_CANCELLED            = 1 << 19; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 20; // to transaction
+    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 10; // to children
+    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 11; // to children
+    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 12; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 13; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 14; // to dependents
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 15; // to dependents
+    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 16; // to dependencies
+    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 17; // to transaction
+    private static final int FLAG_SEND_CANCELLED            = 1 << 18; // to transaction
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 19; // to transaction
 
-    private static final int SEND_FLAGS = Bits.intBitMask(11, 20);
+    private static final int SEND_FLAGS = Bits.intBitMask(10, 19);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 21;
-    private static final int FLAG_DO_ROLLBACK = 1 << 22;
+    private static final int FLAG_DO_EXECUTE  = 1 << 20;
+    private static final int FLAG_DO_ROLLBACK = 1 << 21;
 
-    private static final int DO_FLAGS = Bits.intBitMask(21, 22);
+    private static final int DO_FLAGS = Bits.intBitMask(20, 21);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -312,9 +311,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE: {
-                if (Bits.allAreSet(state, FLAG_SELF_CANCEL_REQ)) {
-                    return T_EXECUTE_to_TERMINATE_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
+                if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
                     return T_EXECUTE_to_EXECUTE_CHILDREN_WAIT;
                 } else {
                     return T_NONE;
@@ -670,22 +667,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    private void execCancelled() {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (stateOf(state) != STATE_EXECUTE) {
-                throw MSCLogger.TASK.taskCannotCancel();
-            }
-            if (Bits.allAreClear(state, FLAG_CANCEL_REQ)) state |= FLAG_SEND_CANCEL_REQUESTED; 
-            state |= FLAG_USER_THREAD | FLAG_CANCEL_REQ | FLAG_SELF_CANCEL_REQ;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
     private void rollbackComplete() {
         assert ! holdsLock(this);
         int state;
@@ -779,18 +760,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 @Override
                 public void complete() {
                     complete(null);
-                }
-
-                @Override
-                public boolean isCancelRequested() {
-                    synchronized (TaskControllerImpl.this) {
-                        return Bits.allAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ);
-                    }
-                }
-
-                @Override
-                public void cancelled() {
-                    execCancelled();
                 }
 
                 @Override
