@@ -103,11 +103,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
             return new TaskBuilderImpl<>(wrappingTxn, topParent, task);
         }
-
-        @SuppressWarnings("unchecked")
-        public TaskBuilder<Void> newTask() throws IllegalStateException {
-            return new TaskBuilderImpl<>(wrappingTxn, topParent);
-        }
     };
     private long endTime;
     private int state;
@@ -116,12 +111,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private int unterminatedChildren;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
-    private Listener<? super AbortResult<? extends Transaction>> abortListener;
-    private Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
     private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
     private List<TerminateCompletionListener> terminateCompletionListeners = new ArrayList<>(0);
-    private volatile boolean isRollbackRequested;
-    private volatile boolean isPrepareRequested;
     private volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
@@ -318,10 +309,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 callTerminateCompletionListeners();
                 callCommitListener();
             }
-            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK_LISTENER)) {
-                callTerminateCompletionListeners();
-                callTerminateListeners();
-            }
         }
     }
 
@@ -354,9 +341,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (isRollbackRequested) {
-                throw MSCLogger.TXN.cannotPrepareRolledbackTxn();
-            }
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotPrepareNonActiveTxn();
             }
@@ -364,7 +348,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotPreparePreparedTxn();
             }
             state |= FLAG_PREPARE_REQ;
-            isPrepareRequested = true;
             prepareListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -377,9 +360,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (isRollbackRequested) {
-                throw MSCLogger.TXN.cannotCommitRolledbackTxn();
-            }
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotCommitUnpreparedTxn();
             }
@@ -388,46 +368,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             }
             state |= FLAG_COMMIT_REQ;
             commitListener = completionListener;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    final void abort(final Listener<? super AbortResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_USER_THREAD;
-            if (!isPrepareRequested || stateOf(state) != STATE_PREPARED) {
-                throw MSCLogger.TXN.cannotAbortUnpreparedTxn();
-            }
-            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                throw MSCLogger.TXN.cannotAbortAbortedTxn();
-            }
-            state |= FLAG_ROLLBACK_REQ;
-            isRollbackRequested = true;
-            abortListener = completionListener;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    final void rollback(final Listener<? super RollbackResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_USER_THREAD;
-            if (isPrepareRequested) {
-                throw MSCLogger.TXN.cannotRollbackPreparedTxn();
-            }
-            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                throw MSCLogger.TXN.cannotRollbackRolledbackTxn();
-            }
-            state |= FLAG_ROLLBACK_REQ | FLAG_SEND_ROLLBACK_REQ;
-            isRollbackRequested = true;
-            rollbackListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -450,25 +390,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     protected void finalize() {
         try {
-            destroy();
+            commit(null);
         } finally {
             try {
                 super.finalize();
             } catch (Throwable ignored) {
             }
-        }
-    }
-
-    final void destroy() {
-        try {
-            if (!isTerminated()) {
-                if (isPrepareRequested) {
-                    abort(null);
-                } else {
-                    rollback(null);
-                }
-            }
-        } catch (Throwable ignored) {
         }
     }
 
@@ -617,7 +544,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             prepareListener = this.prepareListener;
             this.prepareListener = null;
         }
-        callListeners(prepareListener, null, null, null);
+        callListeners(prepareListener, null);
     }
 
     private void callCommitListener() {
@@ -627,27 +554,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             commitListener = this.commitListener;
             this.commitListener = null;
         }
-        callListeners(null, commitListener, null, null);
-    }
-
-    private void callTerminateListeners() {
-        final Listener<? super AbortResult<? extends Transaction>> abortListener;
-        final Listener<? super RollbackResult<? extends Transaction>> rollbackListener;
-        synchronized (this) {
-            endTime = System.nanoTime();
-            abortListener = this.abortListener;
-            this.abortListener = null;
-            rollbackListener = this.rollbackListener;
-            this.rollbackListener = null;
-        }
-        callListeners(null, null, abortListener, rollbackListener);
+        callListeners(null, commitListener);
     }
 
     private void callListeners(
             final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
-            final Listener<? super CommitResult<? extends Transaction>> commitListener,
-            final Listener<? super AbortResult<? extends Transaction>> abortListener,
-            final Listener<? super RollbackResult<? extends Transaction>> rollbackListener) {
+            final Listener<? super CommitResult<? extends Transaction>> commitListener) {
         if (prepareListener != null) {
             try {
                 prepareListener.handleEvent(new PrepareResult<Transaction>() {
@@ -670,30 +582,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 });
             } catch (final Throwable ignored) {
                 MSCLogger.ROOT.listenerFailed(ignored, commitListener);
-            }
-        }
-        if (abortListener != null) {
-            try {
-                abortListener.handleEvent(new AbortResult<Transaction>() {
-                    @Override
-                    public Transaction getTransaction() {
-                        return wrappingTxn;
-                    }
-                });
-            } catch (final Throwable ignored) {
-                MSCLogger.ROOT.listenerFailed(ignored, abortListener);
-            }
-        }
-        if (rollbackListener != null) {
-            try {
-                rollbackListener.handleEvent(new RollbackResult<Transaction>() {
-                    @Override
-                    public Transaction getTransaction() {
-                        return wrappingTxn;
-                    }
-                });
-            } catch (final Throwable ignored) {
-                MSCLogger.ROOT.listenerFailed(ignored, rollbackListener);
             }
         }
     }

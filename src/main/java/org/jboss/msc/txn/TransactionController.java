@@ -444,36 +444,6 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Abort {@code transaction}, undoing all work executed up until this time.
-     * Abort can be called only after transaction's prepare request.
-     *
-     * @param transaction        the transaction to be aborted
-     * @param completionListener the listener to call when the abort is complete
-     * @throws InvalidTransactionStateException if the transaction has already been aborted or if commit has already been initiated
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    @SuppressWarnings("unchecked")
-    public <T extends Transaction> void abort(final T transaction, final Listener<? super AbortResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
-        validateTransaction(transaction);
-        getAbstractTransaction(transaction).abort((Listener<? super AbortResult<? extends Transaction>>)completionListener);
-    }
-
-    /**
-     * Rollback {@code transaction}, undoing all work executed up until this time.
-     * Rollback can be called only before transaction's prepare request.
-     *
-     * @param transaction        the transaction to be rolled back
-     * @param completionListener the listener to call when the roll back is complete
-     * @throws InvalidTransactionStateException if prepare has already been initiated
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    @SuppressWarnings("unchecked")
-    public <T extends Transaction> void rollback(final T transaction, final Listener<? super RollbackResult<T>> completionListener) throws InvalidTransactionStateException, SecurityException {
-        validateTransaction(transaction);
-        getAbstractTransaction(transaction).rollback((Listener<? super RollbackResult<? extends Transaction>>)completionListener);
-    }
-
-    /**
      * Determine whether a prepared transaction can be committed.  If it cannot, it must be aborted.
      *
      * @param transaction the transaction
