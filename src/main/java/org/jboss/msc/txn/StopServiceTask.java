@@ -78,7 +78,8 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
             Collection<TaskController<?>> dependentStopTasks, Transaction transaction, TaskFactory taskFactory) {
 
         // revert stopping services, i.e., service that have not been stopped because stop has been cancelled
-        final TaskController<Void> revertStoppingTask = taskFactory.<Void>newTask()
+        final TaskBuilderImpl tb = (TaskBuilderImpl) taskFactory.<Void>newTask(null);
+        final TaskController<Void> revertStoppingTask = tb
                 .setRevertible(new RevertStoppingServiceTask(serviceController, transaction)).release();
 
         // stop service

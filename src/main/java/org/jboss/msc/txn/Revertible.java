@@ -23,7 +23,7 @@ package org.jboss.msc.txn;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface Revertible {
+interface Revertible {
 
     /**
      * Undo the work done in the execute phase.

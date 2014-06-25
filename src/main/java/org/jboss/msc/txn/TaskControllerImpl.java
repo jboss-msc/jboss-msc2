@@ -796,11 +796,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
                     return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
                 }
-
-                @Override
-                public <N> TaskBuilder<N> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
-                }
             });
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);

@@ -37,8 +37,9 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
     static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
         // post stop task
         final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service, transaction);
-        final TaskController<Void> revertStopFailed = taskFactory.<Void>newTask().setRevertible(stopFailedService).release();
-        return taskFactory.<Void>newTask().setExecutable(stopFailedService).addDependency(revertStopFailed).release();
+        final TaskBuilderImpl tb = (TaskBuilderImpl) taskFactory.<Void>newTask(null);
+        final TaskController<Void> revertStopFailed = tb.setRevertible(stopFailedService).release();
+        return taskFactory.newTask(stopFailedService).addDependency(revertStopFailed).release();
     }
 
     private final Transaction transaction;

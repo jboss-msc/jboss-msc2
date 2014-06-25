@@ -24,6 +24,6 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface RollbackContext extends ReportableContext, SimpleWorkContext, TaskFactory {
+interface RollbackContext extends ReportableContext, SimpleWorkContext, TaskFactory {
 
 }

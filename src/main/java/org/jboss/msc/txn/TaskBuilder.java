@@ -45,14 +45,6 @@ public interface TaskBuilder<T> {
     TaskBuilder<T> setExecutable(final Executable<T> executable);
 
     /**
-     * Set the revertible part of this task, or {@code null} if the task should not support rollback.
-     *
-     * @param revertible the revertible part
-     * @return this task builder
-     */
-    TaskBuilder<T> setRevertible(final Revertible revertible);
-
-    /**
      * Set the class loader to use for this task.
      *
      * @param classLoader the class loader

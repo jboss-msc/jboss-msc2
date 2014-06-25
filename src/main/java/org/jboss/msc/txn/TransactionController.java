@@ -399,8 +399,7 @@ public final class TransactionController extends SimpleAttachable {
     }
     
     /**
-     * Adds a task with an executable component to {@code transaction}.  If the task implements
-     * {@link Revertible} interface, the corresponding builder property will be pre-initialized.
+     * Adds a task with an executable component to {@code transaction}.
      *
      * @param transaction the transaction
      * @param task        the task
@@ -411,19 +410,6 @@ public final class TransactionController extends SimpleAttachable {
     public <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
         return getAbstractTransaction(transaction).getTaskFactory().newTask(task);
-    }
-
-    /**
-     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
-     *
-     * @param transaction the transaction
-     * @return the subtask builder
-     * @throws IllegalStateException if the transaction is not open
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public TaskBuilder<Void> newTask(final Transaction transaction) throws IllegalStateException, SecurityException {
-        validateTransaction(transaction);
-        return getAbstractTransaction(transaction).getTaskFactory().newTask();
     }
 
     /**

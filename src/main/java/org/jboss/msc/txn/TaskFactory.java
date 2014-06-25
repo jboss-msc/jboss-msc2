@@ -25,9 +25,8 @@ package org.jboss.msc.txn;
 interface TaskFactory {
 
     /**
-     * Adds a task with an executable component to {@code transaction}. If the task implements
-     * {@link Revertible} interface, the corresponding builder property will be pre-initialized.
-     * 
+     * Adds a task with an executable component to {@code transaction}.
+     *
      * @param task the task
      * @param <T> the result value type (may be {@link Void})
      * @return the builder for the task
@@ -35,11 +34,4 @@ interface TaskFactory {
      */
     <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException;
 
-    /**
-     * Adds a task without an executable component to {@code transaction}.  All task components will be uninitialized.
-     * 
-     * @return the builder for the task
-     * @throws IllegalStateException if this context is not accepting new tasks
-     */
-    <T> TaskBuilder<T> newTask() throws IllegalStateException;
 }

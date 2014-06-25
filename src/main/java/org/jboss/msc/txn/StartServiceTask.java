@@ -61,7 +61,8 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             Collection<TaskController<?>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
         // revert starting services, i.e., service that have not been started because start task has been cancelled
-        final TaskController<Void> revertStartTask = taskFactory.<Void>newTask().
+        final TaskBuilderImpl tb = (TaskBuilderImpl) taskFactory.<Void>newTask(null);
+        final TaskController<Void> revertStartTask = tb.
                 setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
 
         // start service task builder

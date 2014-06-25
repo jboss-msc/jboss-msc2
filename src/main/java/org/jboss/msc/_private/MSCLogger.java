@@ -26,9 +26,7 @@ import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.txn.Executable;
 import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Revertible;
 
 import static org.jboss.logging.Logger.Level.ERROR;
 import static org.jboss.logging.Logger.Level.FATAL;
@@ -88,11 +86,11 @@ public interface MSCLogger {
 
     @LogMessage(level = ERROR)
     @Message(id = 11, value = "Execution of task \"%s\" caused an exception")
-    void taskExecutionFailed(@Cause Throwable cause, Executable<?> task);
+    void taskExecutionFailed(@Cause Throwable cause, Object task);
 
     @LogMessage(level = ERROR)
     @Message(id = 12, value = "Rollback of task \"%s\" caused an exception")
-    void taskRollbackFailed(@Cause Throwable cause, Revertible task);
+    void taskRollbackFailed(@Cause Throwable cause, Object task);
 
     @LogMessage(level = FATAL)
     @Message(id = 13, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")

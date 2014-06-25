@@ -66,7 +66,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         return this;
     }
 
-    @Override
     public TaskBuilderImpl<T> setRevertible(final Revertible revertible) {
         if (!getAbstractTransaction(transaction).isActive()) {
             throw TXN.cannotAddRevertibleToInactiveTransaction();
