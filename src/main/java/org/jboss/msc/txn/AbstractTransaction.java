@@ -43,41 +43,31 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         MSCLogger.ROOT.greeting(Version.getVersionString());
     }
 
-    private static final int FLAG_ROLLBACK_REQ         = 1 << 3; // set if rollback of the current txn was requested
-    private static final int FLAG_PREPARE_REQ          = 1 << 4; // set if prepare of the current txn was requested
-    private static final int FLAG_COMMIT_REQ           = 1 << 5; // set if commit of the current txn was requested
-    private static final int FLAG_DO_PREPARE_LISTENER  = 1 << 6;
-    private static final int FLAG_DO_COMMIT_LISTENER   = 1 << 7;
-    private static final int FLAG_DO_ROLLBACK_LISTENER = 1 << 8;
-    private static final int FLAG_SEND_CANCEL_REQ      = 1 << 9;
-    private static final int FLAG_SEND_COMMIT_REQ      = 1 << 10;
-    private static final int FLAG_SEND_ROLLBACK_REQ    = 1 << 11;
-    private static final int FLAG_CLEAN_UP             = 1 << 12;
-    private static final int FLAG_USER_THREAD          = 1 << 31;
+    private static final int FLAG_PREPARE_REQ         = 1 << 2;
+    private static final int FLAG_COMMIT_REQ          = 1 << 3;
+    private static final int FLAG_DO_PREPARE_LISTENER = 1 << 4;
+    private static final int FLAG_DO_COMMIT_LISTENER  = 1 << 5;
+    private static final int FLAG_SEND_COMMIT_REQ     = 1 << 6;
+    private static final int FLAG_CLEAN_UP            = 1 << 7;
+    private static final int FLAG_USER_THREAD         = 1 << 31;
 
-    private static final int STATE_ACTIVE      = 0x0; // adding tasks and subtransactions; counts = # added
-    private static final int STATE_PREPARED    = 0x1; // prepare finished, wait for commit/abort decision from user or parent
-    private static final int STATE_ROLLBACK    = 0x2; // rolling back all our tasks; count = # remaining
-    private static final int STATE_COMMITTING  = 0x3; // performing commit actions
-    private static final int STATE_ROLLED_BACK = 0x4; // "dead" state
-    private static final int STATE_COMMITTED   = 0x5; // "success" state
-    private static final int STATE_MASK        = 0x07;
-    private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER | FLAG_DO_ROLLBACK_LISTENER;
-    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_ROLLBACK_REQ | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
+    private static final int STATE_ACTIVE     = 0x0;
+    private static final int STATE_PREPARED   = 0x1;
+    private static final int STATE_COMMITTING = 0x2;
+    private static final int STATE_COMMITTED  = 0x3;
+    private static final int STATE_MASK       = 0x03;
+    private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER;
+    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
 
     private static final int T_NONE                    = 0;
     private static final int T_ACTIVE_to_PREPARED      = 1;
-    private static final int T_ACTIVE_to_ROLLBACK      = 2;
-    private static final int T_PREPARED_to_COMMITTING  = 3;
-    private static final int T_PREPARED_to_ROLLBACK    = 4;
-    private static final int T_ROLLBACK_to_ROLLED_BACK = 5;
-    private static final int T_COMMITTING_to_COMMITTED = 6;
+    private static final int T_PREPARED_to_COMMITTING  = 2;
+    private static final int T_COMMITTING_to_COMMITTED = 3;
     final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
     private final Queue<TaskControllerImpl<?>> topLevelTasks = new ConcurrentLinkedQueue<>();
-    private static final ThreadLocal<TaskControllerImpl<?>> cachedChild = new ThreadLocal<>();
     private final ProblemReport report = new ProblemReport();
     final TaskParent topParent = new TaskParent() {
 
@@ -153,22 +143,17 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         return sid & STATE_MASK | oldState & ~STATE_MASK;
     }
 
-    private static boolean stateIsIn(int state, int sid1, int sid2) {
-        final int sid = stateOf(state);
-        return sid == sid1 || sid == sid2;
-    }
-
     public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
-            return stateIsIn(state, STATE_COMMITTED, STATE_ROLLED_BACK);
+            return stateOf(state) == STATE_COMMITTED;
         }
     }
 
     public final long getDuration(TimeUnit unit) {
         assert ! holdsLock(this);
         synchronized (this) {
-            if (stateIsIn(state, STATE_COMMITTED, STATE_ROLLED_BACK)) {
+            if (stateOf(state) == STATE_COMMITTED) {
                 return unit.convert(endTime - startTime, TimeUnit.NANOSECONDS);
             } else {
                 return unit.convert(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
@@ -195,26 +180,15 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
-                    return T_ACTIVE_to_ROLLBACK;
-                } else if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
                     return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_PREPARED: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                    return T_PREPARED_to_ROLLBACK;
-                } else if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
+                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_PREPARED_to_COMMITTING;
-                } else {
-                     return T_NONE;
-                }
-            }
-            case STATE_ROLLBACK: {
-                if (unterminatedChildren == 0) {
-                    return T_ROLLBACK_to_ROLLED_BACK;
                 } else {
                     return T_NONE;
                 }
@@ -225,9 +199,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 } else {
                     return T_NONE;
                 }
-            }
-            case STATE_ROLLED_BACK: {
-                return T_NONE;
             }
             case STATE_COMMITTED: {
                 return T_NONE;
@@ -252,24 +223,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
                     continue;
                 }
-                case T_ACTIVE_to_ROLLBACK: {
-                    state = newState(STATE_ROLLBACK, state);
-                    continue;
-                }
                 case T_PREPARED_to_COMMITTING: {
                     state = newState(STATE_COMMITTING, state | FLAG_SEND_COMMIT_REQ);
                     continue;
                 }
-                case T_PREPARED_to_ROLLBACK: {
-                    state = newState(STATE_ROLLBACK, state | FLAG_SEND_ROLLBACK_REQ);
-                    continue;
-                }
                 case T_COMMITTING_to_COMMITTED: {
                     state = newState(STATE_COMMITTED, state | FLAG_DO_COMMIT_LISTENER | FLAG_CLEAN_UP);
-                    continue;
-                }
-                case T_ROLLBACK_to_ROLLED_BACK: {
-                    state = newState(STATE_ROLLED_BACK, state | FLAG_DO_ROLLBACK_LISTENER | FLAG_CLEAN_UP);
                     continue;
                 }
                 default: throw new IllegalStateException();
@@ -279,15 +238,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
-        if (Bits.allAreSet(state, FLAG_SEND_CANCEL_REQ)) {
-            cachedChild.get().forceCancel();
-            cachedChild.remove();
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
-            for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childRollback(userThread);
-            }
-        }
         if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childCommit(userThread);
@@ -434,10 +384,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
             if (userThread) state |= FLAG_USER_THREAD;
-            if (Bits.allAreSet(state, FLAG_ROLLBACK_REQ)) {
-                cachedChild.set(child);
-                state |= FLAG_SEND_CANCEL_REQ;
-            }
             topLevelTasks.add(child);
             unexecutedChildren++;
             unterminatedChildren++;
@@ -482,21 +428,14 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     void adoptGrandchildren(final Queue<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
         assert ! holdsLock(this);
         int state;
-        final boolean sendRollbackRequest;
         synchronized (this) {
             topLevelTasks.addAll(grandchildren);
             unexecutedChildren += unexecutedGreatGrandchildren;
             unterminatedChildren += unterminatedGreatGrandchildren;
             state = this.state;
-            sendRollbackRequest = Bits.allAreSet(state, FLAG_ROLLBACK_REQ);
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
-        }
-        if (sendRollbackRequest) {
-            for (final TaskControllerImpl<?> grandchild : grandchildren) {
-                grandchild.childRollback(userThread);
-            }
         }
         executeTasks(state);
     }
