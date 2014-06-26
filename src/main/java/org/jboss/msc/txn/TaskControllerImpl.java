@@ -40,7 +40,7 @@ import static java.lang.Thread.holdsLock;
  *          |
  *          v
  *  +---------------+
- *  |               |       ROLLBACK_REQ or CANCEL_REQ
+ *  |               |                CANCEL_REQ
  *  |  EXECUTE_WAIT +------------------------------------------+
  *  |               |                                          |
  *  +-------+-------+                                          |
@@ -70,7 +70,7 @@ import static java.lang.Thread.holdsLock;
  *  +-------+-------+           |          |                   |
  *          |                   |          |                   |
  *          |                                                  |
- *          |            ROLLBACK_REQ or CANCEL_REQ            |
+ *          |                    CANCEL_REQ                    |
  *          |                                                  |
  *          |                   |          |                   |
  *          |                   v          v                   |
@@ -177,34 +177,32 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
      * A cancel request, due to rollback or dependency failure.
      */
     private static final int FLAG_CANCEL_REQ      = 1 << 4;
-    private static final int FLAG_ROLLBACK_REQ    = 1 << 5;
-    private static final int FLAG_COMMIT_REQ      = 1 << 6;
+    private static final int FLAG_COMMIT_REQ      = 1 << 5;
 
-    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_CANCEL_REQ | FLAG_ROLLBACK_REQ | FLAG_COMMIT_REQ;
+    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_CANCEL_REQ | FLAG_COMMIT_REQ;
 
     // non-persistent status flags
-    private static final int FLAG_EXECUTE_DONE   = 1 << 7;
-    private static final int FLAG_ROLLBACK_DONE  = 1 << 8;
-    private static final int FLAG_INSTALL_FAILED = 1 << 9;
+    private static final int FLAG_EXECUTE_DONE   = 1 << 6;
+    private static final int FLAG_ROLLBACK_DONE  = 1 << 7;
+    private static final int FLAG_INSTALL_FAILED = 1 << 8;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 10; // to children
-    private static final int FLAG_SEND_ROLLBACK_REQ         = 1 << 11; // to children
-    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 12; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 13; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 14; // to dependents
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 15; // to dependents
-    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 16; // to dependencies
-    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 17; // to transaction
-    private static final int FLAG_SEND_CANCELLED            = 1 << 18; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 19; // to transaction
+    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 9; // to children
+    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 10; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 11; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 12; // to dependents
+    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 13; // to dependents
+    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 14; // to dependencies
+    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 15; // to transaction
+    private static final int FLAG_SEND_CANCELLED            = 1 << 16; // to transaction
+    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 17; // to transaction
 
-    private static final int SEND_FLAGS = Bits.intBitMask(10, 19);
+    private static final int SEND_FLAGS = Bits.intBitMask(9, 17);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 20;
-    private static final int FLAG_DO_ROLLBACK = 1 << 21;
+    private static final int FLAG_DO_EXECUTE  = 1 << 18;
+    private static final int FLAG_DO_ROLLBACK = 1 << 19;
 
-    private static final int DO_FLAGS = Bits.intBitMask(20, 21);
+    private static final int DO_FLAGS = Bits.intBitMask(18, 19);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
@@ -302,7 +300,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE_WAIT: {
-                if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
+                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_WAIT_to_TERMINATE_WAIT;
                 } else if (unexecutedDependencies == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
@@ -318,7 +316,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE_CHILDREN_WAIT: {
-                if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
+                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT;
                 } else if (unexecutedChildren == 0) {
                     return T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE;
@@ -327,7 +325,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE_DONE: {
-                if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) {
+                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                     return T_EXECUTE_DONE_to_ROLLBACK_WAIT;
                 } else if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_EXECUTE_DONE_to_TERMINATE_WAIT;
@@ -449,9 +447,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                             state = newState(STATE_ROLLBACK_WAIT, state);
                         }
                     }
-                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
-                    }
                     sendChildExecuted = true;
                     continue;
                 }
@@ -463,9 +458,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                         } else {
                             state = newState(STATE_ROLLBACK_WAIT, state);
                         }
-                    }
-                    if (Bits.anyAreSet(state, FLAG_ROLLBACK_REQ)) {
-                        state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_ROLLBACK_REQ);
                     }
                     continue;
                 }
@@ -515,11 +507,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
             parent.childExecuted(userThread);
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_ROLLBACK_REQ)) {
-            for (final TaskChild child : children) {
-                child.childRollback(userThread);
-            }
         }
         final TaskChild cachedChild = this.cachedChild.get();
         this.cachedChild.remove();
@@ -606,7 +593,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            if (Bits.anyAreSet(this.state, FLAG_ROLLBACK_REQ | FLAG_CANCEL_REQ)) return; // idempotent
+            if (Bits.anyAreSet(this.state, FLAG_CANCEL_REQ)) return; // idempotent
             state = this.state | FLAG_CANCEL_REQ | FLAG_SEND_CANCEL_REQUESTED;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -733,10 +720,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
                     return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
-                }
-
-                public <N> TaskBuilder<N> newTask() throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this);
                 }
             });
         } catch (Throwable t) {
@@ -909,19 +892,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void childRollback(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state |= FLAG_ROLLBACK_REQ;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
     public void childCommit(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
@@ -959,7 +929,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             switch (stateOf(state)) {
                 case STATE_TERMINATED:
                 case STATE_TERMINATE_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ | FLAG_ROLLBACK_REQ)) {
+                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
                         dependencyCancelled = true;
                         break;
                     }

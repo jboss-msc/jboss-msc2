@@ -35,16 +35,7 @@ interface TaskChild {
     void dependencyExecuted(boolean userThread);
 
     /**
-     * Request this child to initiate rollback when possible.
-     * Method {@link #childCommit(boolean)} may not be called after this method is called.
-     *
-     * @param userThread {@code true} if executed from a user thread
-     */
-    void childRollback(boolean userThread);
-
-    /**
      * Request this child to initiate commit when possible.
-     * Will never be called after {@link #childRollback(boolean)}.
      *
      * @param userThread {@code true} if executed from a user thread
      */
