@@ -120,7 +120,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         }
         setModified(transaction);
         final RemoveTask removeTask = new RemoveTask(transaction);
-        final TaskBuilderImpl tb = (TaskBuilderImpl) getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask);
+        final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask);
         tb.setRevertible(removeTask).release();
     }
 

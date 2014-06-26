@@ -78,7 +78,7 @@ abstract class ServiceManager {
             // create a disable task
             if (enableTask == null && !tasks[DISABLE].containsKey(this)){
                 final DisableServiceTask task = new DisableServiceTask(transaction);
-                final TaskBuilderImpl tb = (TaskBuilderImpl) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
+                final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
                 final TaskController<Void> taskController = tb.setRevertible(task).release();
                 if (tasks[DISABLE] == Collections.EMPTY_MAP) {
                     tasks[DISABLE] = new ConcurrentHashMap<>();
@@ -106,7 +106,7 @@ abstract class ServiceManager {
             // create a enable task
             if (disableTask == null && !tasks[ENABLE].containsKey(this)) {
                 final EnableServiceTask task = new EnableServiceTask(transaction);
-                final TaskBuilderImpl tb = (TaskBuilderImpl) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
+                final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
                 final TaskController<Void> taskController = tb.setRevertible(task).release();
                 if (tasks[ENABLE] == Collections.EMPTY_MAP) {
                     tasks[ENABLE] = new ConcurrentHashMap<>();

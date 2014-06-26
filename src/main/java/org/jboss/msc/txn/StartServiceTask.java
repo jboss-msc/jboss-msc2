@@ -42,7 +42,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>> create() {
-            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<?>>();
+            return new ConcurrentHashMap<>();
         }
 
     });
@@ -61,12 +61,12 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             Collection<TaskController<?>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
 
         // revert starting services, i.e., service that have not been started because start task has been cancelled
-        final TaskBuilderImpl tb = (TaskBuilderImpl) taskFactory.<Void>newTask(null);
+        final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
         final TaskController<Void> revertStartTask = tb.
                 setRevertible(new RevertStartingServiceTask(transaction, serviceController)).release();
 
         // start service task builder
-        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<T>(serviceController, transaction));
+        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
         }
@@ -86,23 +86,23 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
     /**
      * Creates a start service task.
      * 
-     * @param serviceController  starting service
-     * @param taskDependency     the tasks that must be first concluded before service can start
-     * @param transaction        the active transaction
-     * @param taskFactory        the task factory
-     * @return                   the start task (can be used for creating tasks that depend on the conclusion of
-     *                           starting transition)
+     * @param serviceController    starting service
+     * @param dependencyStartTasks the tasks that must be first concluded before service can start
+     * @param transaction          the active transaction
+     * @param taskFactory          the task factory
+     * @return                     the start task (can be used for creating tasks that depend on the conclusion of
+     *                             starting transition)
      */
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
             Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
 
-        return create(serviceController, dependencyStartTasks, (TaskController<Void>) null, transaction, taskFactory);
+        return create(serviceController, dependencyStartTasks, null, transaction, taskFactory);
     }
 
     /**
      * Attempt to revert start task for {@code service}, thus causing the service to stop if it has been started.
      * 
-     * @param service     the service whose start task will be reverted
+     * @param serviceController the service whose start task will be reverted
      * @param transaction the active transaction
      * @return {@code true} if a start task has been reverted; {@code false} if no such start task exists, indicating
      *                      a stop task has to be created to stop the service 
@@ -127,7 +127,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
     /**
      * Perform the task.
      *
-     * @param context
+     * @param context context
      */
     @Override
     public void execute(final ExecuteContext<T> context) {
