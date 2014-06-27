@@ -16,32 +16,29 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
+import org.jboss.msc.service.ServiceContainer;
 
 /**
- * A task that enables the registry.
+ * A task that shuts down the container.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class EnableRegistryTask implements Executable<Void> {
+public final class ShutdownContainerTask implements Executable<Void> {
 
-    private final ServiceRegistry registry;
-    private final UpdateTransaction txn;
+    private final ServiceContainer container;
+    private final UpdateTransaction transaction;
 
-    EnableRegistryTask(final ServiceRegistry registry, final UpdateTransaction txn) {
-        this.registry = registry;
-        this.txn = txn;
+    public ShutdownContainerTask(final ServiceContainer container, final UpdateTransaction transaction) {
+        this.container = container;
+        this.transaction = transaction;
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            registry.enable(txn);
+            container.shutdown(transaction);
         } finally {
             context.complete();
         }

@@ -16,35 +16,29 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
 
 /**
- * A task that enables the service.
+ * A task that removes the registry.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class EnableServiceTask implements Executable<Void> {
+public final class RemoveRegistryTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
-    private final ServiceName serviceName;
     private final UpdateTransaction txn;
 
-    EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final UpdateTransaction txn) {
+    public RemoveRegistryTask(final ServiceRegistry registry, final UpdateTransaction txn) {
         this.registry = registry;
-        this.serviceName = serviceName;
         this.txn = txn;
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            registry.getRequiredService(serviceName).enable(txn);
+            registry.remove(txn);
         } finally {
             context.complete();
         }

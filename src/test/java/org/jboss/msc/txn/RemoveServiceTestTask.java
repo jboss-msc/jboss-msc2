@@ -16,32 +16,36 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
+import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
 
 /**
- * A task that disables the registry.
+ * A task that removes the service.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class DisableRegistryTask implements Executable<Void> {
+public final class RemoveServiceTestTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
-    private final UpdateTransaction txn;
+    private final ServiceName serviceName;
+    private final UpdateTransaction transaction;
+    private final TestService service;
 
-    DisableRegistryTask(final ServiceRegistry registry, final UpdateTransaction txn) {
+    public RemoveServiceTestTask(final ServiceRegistry registry, final ServiceName serviceName, final TestService service,
+                                 final UpdateTransaction transaction) {
         this.registry = registry;
-        this.txn = txn;
+        this.serviceName = serviceName;
+        this.service = service;
+        this.transaction = transaction;
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            registry.disable(txn);
+            // TODO this part of the API is under review
+            service.getServiceContext().removeService(registry, serviceName, transaction);
         } finally {
             context.complete();
         }

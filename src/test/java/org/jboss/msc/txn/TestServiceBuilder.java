@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
@@ -23,8 +23,6 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A TestServiceBuilder allows building a TestService for more complex test scenarios, where the transaction is provided by the
@@ -38,14 +36,14 @@ import org.jboss.msc.txn.UpdateTransaction;
  */
 public class TestServiceBuilder {
 
-    private static TransactionController txnController;
+    private static TestTransactionController txnController;
     private static ServiceRegistry registry;
 
     public static void setDefaultServiceRegistry(ServiceRegistry registry) {
         TestServiceBuilder.registry = registry;
     }
 
-    public static void setDefaultTransactionController(TransactionController txnController) {
+    public static void setDefaultTransactionController(TestTransactionController txnController) {
         TestServiceBuilder.txnController = txnController;
     }
 

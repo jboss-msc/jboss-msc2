@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;

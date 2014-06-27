@@ -20,7 +20,7 @@ package org.jboss.msc.test.services;
 import org.jboss.msc.service.CircularDependencyException;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.test.utils.AbstractServiceTest;
+import org.jboss.msc.txn.AbstractServiceTest;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 

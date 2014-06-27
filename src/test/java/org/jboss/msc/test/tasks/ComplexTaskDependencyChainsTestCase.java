@@ -18,10 +18,10 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.TestExecutable;
+import org.jboss.msc.txn.TestExecuteContext;
+import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -36,8 +36,8 @@ import static org.junit.Assert.assertNotNull;
  */
 public final class ComplexTaskDependencyChainsTestCase extends AbstractTransactionTest {
 
-    private static TaskController<Void> task5Controller;
-    private static TaskController<Void> task7Controller;
+    private static TestTaskController<Void> task5Controller;
+    private static TestTaskController<Void> task7Controller;
 
     /**
      * Scenario:
@@ -53,25 +53,25 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>("0");
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task2
         final TestExecutable<Void> e2 = new TestExecutable<>("2");
-        final TaskController<Void> task2Controller = newTask(transaction, e2);
+        final TestTaskController<Void> task2Controller = newTask(transaction, e2);
         assertNotNull(task2Controller);
         // installing task3
         final CountDownLatch task5Created = new CountDownLatch(1);
         final CountDownLatch task7Created = new CountDownLatch(1);
         final TestExecutable<Void> parent3e = new TestExecutable<Void>("3") {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 try {
                     task5Created.await();
                 } catch (Exception ignore) {
                 }
                 // installing task6
                 final TestExecutable<Void> e6 = new TestExecutable<>("6");
-                final TaskController<Void> task6Controller = newTask(ctx, e6, task5Controller);
+                final TestTaskController<Void> task6Controller = newTask(ctx, e6, task5Controller);
                 assertNotNull(task6Controller);
                 // installing task7
                 final TestExecutable<Void> e7 = new TestExecutable<>("7");
@@ -80,11 +80,11 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
                 task7Created.countDown();
             }
         };
-        final TaskController<Void> task3Controller = newTask(transaction, parent3e, task2Controller);
+        final TestTaskController<Void> task3Controller = newTask(transaction, parent3e, task2Controller);
         assertNotNull(task3Controller);
         // installing task4
         final TestExecutable<Void> e4 = new TestExecutable<>("4");
-        final TaskController<Void> task4Controller = newTask(transaction, e4, task2Controller, task3Controller);
+        final TestTaskController<Void> task4Controller = newTask(transaction, e4, task2Controller, task3Controller);
         assertNotNull(task4Controller);
         // installing task5
         final TestExecutable<Void> e5 = new TestExecutable<>("5");
@@ -97,7 +97,7 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
         } catch (Exception ignore) {
         }
         final TestExecutable<Void> e8 = new TestExecutable<>("8");
-        final TaskController<Void> task8Controller = newTask(transaction, e8, task7Controller);
+        final TestTaskController<Void> task8Controller = newTask(transaction, e8, task7Controller);
         assertNotNull(task8Controller);
         prepare(transaction);
         commit(transaction);

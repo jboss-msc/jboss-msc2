@@ -16,14 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
-
-import org.jboss.msc.txn.CommitResult;
-import org.jboss.msc.txn.CompletionListener;
-import org.jboss.msc.txn.Listener;
-import org.jboss.msc.txn.PrepareResult;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
+package org.jboss.msc.txn;
 
 /**
  * Listener that commits the transaction. It provides utility method {@link #awaitCommit()} to wait until transaction have been
@@ -33,10 +26,10 @@ import org.jboss.msc.txn.TransactionController;
  */
 public final class CommittingListener implements Listener<PrepareResult<? extends Transaction>> {
 
-    private final TransactionController transactionController;
+    private final TestTransactionController transactionController;
     private final CompletionListener<CommitResult<? extends Transaction>> listener = new CompletionListener<>();
 
-    public CommittingListener(TransactionController transactionController) {
+    public CommittingListener(TestTransactionController transactionController) {
         this.transactionController = transactionController;
     }
 

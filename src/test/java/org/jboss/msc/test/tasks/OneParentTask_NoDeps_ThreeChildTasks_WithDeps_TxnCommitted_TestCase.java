@@ -18,10 +18,10 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.TestExecutable;
+import org.jboss.msc.txn.TestExecuteContext;
+import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -55,19 +55,19 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e);
+                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e);
+                final TestTaskController<Void> child1Controller = newTask(ctx, child1e);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
+                final TestTaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TaskController<Void> parentController = newTask(transaction, parent0e);
+        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
@@ -109,19 +109,19 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e);
+                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e);
+                final TestTaskController<Void> child1Controller = newTask(ctx, child1e);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
+                final TestTaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TaskController<Void> parentController = newTask(transaction, parent0e);
+        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
@@ -165,19 +165,19 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e);
+                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
+                final TestTaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
+                final TestTaskController<Void> child2Controller = newTask(ctx, child2e, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TaskController<Void> parentController = newTask(transaction, parent0e);
+        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);
@@ -218,19 +218,19 @@ public final class OneParentTask_NoDeps_ThreeChildTasks_WithDeps_TxnCommitted_Te
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e);
+                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
+                final TestTaskController<Void> child1Controller = newTask(ctx, child1e, child0Controller);
                 assertNotNull(child1Controller);
                 // installing child2 task
-                final TaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
+                final TestTaskController<Void> child2Controller = newTask(ctx, child2e, child0Controller, child1Controller);
                 assertNotNull(child2Controller);
             }
         };
-        final TaskController<Void> parentController = newTask(transaction, parent0e);
+        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);

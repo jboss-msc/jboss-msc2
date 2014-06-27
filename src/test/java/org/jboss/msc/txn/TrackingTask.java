@@ -16,35 +16,30 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * A task that removes the registry.
+ * A simple transaction task that tracks task calls. It provides utility methods:
+ * 
+ * <UL>
+ * <LI>{@link #isExecuted()} - returns <code>true</code> if transaction have been executed, <code>false</code> otherwise</LI>
+ * </UL>
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class RemoveRegistryTask implements Executable<Void> {
+public class TrackingTask extends TestExecutable<Object> {
 
-    private final ServiceRegistry registry;
-    private final UpdateTransaction txn;
-
-    RemoveRegistryTask(final ServiceRegistry registry, final UpdateTransaction txn) {
-        this.registry = registry;
-        this.txn = txn;
-    }
+    private final AtomicBoolean executed = new AtomicBoolean();
 
     @Override
-    public void execute(final ExecuteContext<Void> context) {
-        try {
-            registry.remove(txn);
-        } finally {
-            context.complete();
-        }
+    protected void executeInternal(TestExecuteContext<Object> ctx) {
+        executed.set(true);
+    }
+
+    public final boolean isExecuted() {
+        return executed.get();
     }
 
 }

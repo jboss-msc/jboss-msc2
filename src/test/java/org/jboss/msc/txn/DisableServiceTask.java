@@ -16,26 +16,23 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A task that disables the service.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class DisableServiceTask implements Executable<Void> {
+public final class DisableServiceTask implements Executable<Void> {
 
     private final ServiceRegistry registry;
     private final ServiceName serviceName;
     private final UpdateTransaction txn;
 
-    DisableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final UpdateTransaction txn) {
+    public DisableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final UpdateTransaction txn) {
         this.registry = registry;
         this.serviceName = serviceName;
         this.txn = txn;

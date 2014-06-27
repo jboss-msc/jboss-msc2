@@ -18,9 +18,9 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.TestExecutable;
+import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -47,11 +47,11 @@ public final class TwoParentTasks_NoDeps_NoChildTasks_NoDeps_TxnCommitted_TestCa
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>();
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<>();
-        final TaskController<Void> task1Controller = newTask(transaction, e1);
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1);
         assertNotNull(task1Controller);
         // preparing transaction
         prepare(transaction);

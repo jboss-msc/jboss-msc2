@@ -16,34 +16,32 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import org.jboss.msc.service.ServiceRegistry;
 
 /**
- * A simple transaction task that tracks task calls. It provides utility methods:
- * 
- * <UL>
- * <LI>{@link #isExecuted()} - returns <code>true</code> if transaction have been executed, <code>false</code> otherwise</LI>
- * </UL>
+ * A task that enables the registry.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class TrackingTask implements Executable<Object> {
+public final class EnableRegistryTask implements Executable<Void> {
 
-    private final AtomicBoolean executed = new AtomicBoolean();
+    private final ServiceRegistry registry;
+    private final UpdateTransaction txn;
 
-    @Override
-    public void execute(final ExecuteContext<Object> context) {
-        executed.set(true);
-        context.complete();
+    public EnableRegistryTask(final ServiceRegistry registry, final UpdateTransaction txn) {
+        this.registry = registry;
+        this.txn = txn;
     }
 
-    public final boolean isExecuted() {
-        return executed.get();
+    @Override
+    public void execute(final ExecuteContext<Void> context) {
+        try {
+            registry.enable(txn);
+        } finally {
+            context.complete();
+        }
     }
 
 }

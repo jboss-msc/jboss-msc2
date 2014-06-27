@@ -18,10 +18,10 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.TestExecutable;
+import org.jboss.msc.txn.TestExecuteContext;
+import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -53,16 +53,16 @@ public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCa
         // installing parent task
         final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
             @Override
-            public void executeInternal(final ExecuteContext<Void> ctx) {
+            public void executeInternal(final TestExecuteContext<Void> ctx) {
                 // installing child0 task
-                final TaskController<Void> child0Controller = newTask(ctx, child0e);
+                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
                 assertNotNull(child0Controller);
                 // installing child1 task
-                final TaskController<Void> child1Controller = newTask(ctx, child1e);
+                final TestTaskController<Void> child1Controller = newTask(ctx, child1e);
                 assertNotNull(child1Controller);
             }
         };
-        final TaskController<Void> parentController = newTask(transaction, parent0e);
+        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
         assertNotNull(parentController);
         // preparing transaction
         prepare(transaction);

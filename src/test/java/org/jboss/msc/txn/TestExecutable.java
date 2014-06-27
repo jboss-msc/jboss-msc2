@@ -16,10 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
-
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
+package org.jboss.msc.txn;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -56,13 +53,13 @@ public class TestExecutable<T> extends TestTask implements Executable<T> {
     }
 
     @Override
-    public void execute(final ExecuteContext<T> ctx) {
+    public final void execute(final ExecuteContext<T> ctx) {
         super.call();
-        executeInternal(ctx);
+        executeInternal(new TestExecuteContext(ctx));
         ctx.complete(result);
     }
 
-    protected void executeInternal(final ExecuteContext<T> ctx) {
+    protected void executeInternal(final TestExecuteContext<T> ctx) {
         // initial implementation does nothing
     }
 

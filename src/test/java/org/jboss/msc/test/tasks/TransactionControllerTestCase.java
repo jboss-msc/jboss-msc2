@@ -17,27 +17,24 @@
  */
 package org.jboss.msc.test.tasks;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestService;
+import org.jboss.msc.txn.AbstractTransactionTest;
 import org.jboss.msc.txn.CompletionListener;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.ReadTransaction;
+import org.jboss.msc.txn.TestService;
 import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
@@ -168,17 +165,6 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         expected = null;
         try {
             prepare(outsiderTransaction);
-        } catch (SecurityException e) {
-            expected = e;
-        }
-        assertNotNull(expected);
-
-        expected = null;
-        try {
-            txnController.newTask(outsiderTransaction, new Executable<Void>() {
-                public void execute(ExecuteContext<Void> context) {
-                }
-            });
         } catch (SecurityException e) {
             expected = e;
         }

@@ -16,32 +16,32 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.UpdateTransaction;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
 
 /**
- * A task that shuts down the container.
+ * A task that enables the service.
  * 
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class ShutdownContainerTask implements Executable<Void> {
+public final class EnableServiceTask implements Executable<Void> {
 
-    private final ServiceContainer container;
-    private final UpdateTransaction transaction;
+    private final ServiceRegistry registry;
+    private final ServiceName serviceName;
+    private final UpdateTransaction txn;
 
-    ShutdownContainerTask(final ServiceContainer container, final UpdateTransaction transaction) {
-        this.container = container;
-        this.transaction = transaction;
+    public EnableServiceTask(final ServiceRegistry registry, final ServiceName serviceName, final UpdateTransaction txn) {
+        this.registry = registry;
+        this.serviceName = serviceName;
+        this.txn = txn;
     }
 
     @Override
     public void execute(final ExecuteContext<Void> context) {
         try {
-            container.shutdown(transaction);
+            registry.getRequiredService(serviceName).enable(txn);
         } finally {
             context.complete();
         }

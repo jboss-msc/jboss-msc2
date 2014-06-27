@@ -27,7 +27,7 @@ import java.util.Collection;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface TaskBuilder<T> {
+interface TaskBuilder<T> {
 
     /**
      * Get the transaction associated with this builder.

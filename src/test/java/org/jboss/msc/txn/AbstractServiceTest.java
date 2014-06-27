@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceContainer;
@@ -25,13 +25,9 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.txn.CompletionListener;
-import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.After;
 import org.junit.Before;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -241,7 +237,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new RemoveServiceTask(serviceRegistry, serviceName, service, txn)).release();
+        txnController.newTask(txn, new RemoveServiceTestTask(serviceRegistry, serviceName, service, txn)).release();
         if (attemptToCommit(txn)) {
             assertNull(serviceRegistry.getService(serviceName));
             return true;

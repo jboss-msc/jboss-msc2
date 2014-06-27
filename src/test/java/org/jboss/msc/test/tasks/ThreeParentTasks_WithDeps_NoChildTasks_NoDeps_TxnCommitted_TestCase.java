@@ -18,9 +18,9 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TestExecutable;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.TestExecutable;
+import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -47,15 +47,15 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>();
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<>();
-        final TaskController<Void> task1Controller = newTask(transaction, e1);
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1);
         assertNotNull(task1Controller);
         // installing task2
         final TestExecutable<Void> e2 = new TestExecutable<>();
-        final TaskController<Void> task2Controller = newTask(transaction, e2, task1Controller);
+        final TestTaskController<Void> task2Controller = newTask(transaction, e2, task1Controller);
         assertNotNull(task2Controller);
         // preparing transaction
         prepare(transaction);
@@ -83,15 +83,15 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>();
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<>();
-        final TaskController<Void> task1Controller = newTask(transaction, e1);
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1);
         assertNotNull(task1Controller);
         // installing task2
         final TestExecutable<Void> e2 = new TestExecutable<>();
-        final TaskController<Void> task2Controller = newTask(transaction, e2, task0Controller, task1Controller);
+        final TestTaskController<Void> task2Controller = newTask(transaction, e2, task0Controller, task1Controller);
         assertNotNull(task2Controller);
         // preparing transaction
         prepare(transaction);
@@ -120,15 +120,15 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>();
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<>();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, task0Controller);
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1, task0Controller);
         assertNotNull(task1Controller);
         // installing task2
         final TestExecutable<Void> e2 = new TestExecutable<>();
-        final TaskController<Void> task2Controller = newTask(transaction, e2, task1Controller);
+        final TestTaskController<Void> task2Controller = newTask(transaction, e2, task1Controller);
         assertNotNull(task2Controller);
         // preparing transaction
         prepare(transaction);
@@ -156,15 +156,15 @@ public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_Te
         final UpdateTransaction transaction = newUpdateTransaction();
         // installing task0
         final TestExecutable<Void> e0 = new TestExecutable<>();
-        final TaskController<Void> task0Controller = newTask(transaction, e0);
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
         assertNotNull(task0Controller);
         // installing task1
         final TestExecutable<Void> e1 = new TestExecutable<>();
-        final TaskController<Void> task1Controller = newTask(transaction, e1, task0Controller);
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1, task0Controller);
         assertNotNull(task1Controller);
         // installing task2
         final TestExecutable<Void> e2 = new TestExecutable<>();
-        final TaskController<Void> task2Controller = newTask(transaction, e2, task0Controller, task1Controller);
+        final TestTaskController<Void> task2Controller = newTask(transaction, e2, task0Controller, task1Controller);
         assertNotNull(task2Controller);
         // preparing transaction
         prepare(transaction);

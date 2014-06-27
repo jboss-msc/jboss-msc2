@@ -18,12 +18,12 @@
 
 package org.jboss.msc.test.tasks;
 
-import org.jboss.msc.test.utils.AbstractTransactionTest;
-import org.jboss.msc.test.utils.TrackingTask;
-import org.jboss.msc.txn.ExecuteContext;
+import org.jboss.msc.txn.AbstractTransactionTest;
 import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.TaskBuilder;
-import org.jboss.msc.txn.TaskController;
+import org.jboss.msc.txn.TestExecuteContext;
+import org.jboss.msc.txn.TestTaskBuilder;
+import org.jboss.msc.txn.TestTaskController;
+import org.jboss.msc.txn.TrackingTask;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
 
@@ -52,8 +52,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
+        final TestTaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
+        final TestTaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
         // asserts
@@ -67,8 +67,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         final TrackingTask task = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
+        final TestTaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
+        final TestTaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
         // commit transaction
@@ -92,19 +92,19 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             }
 
             @Override
-            public void execute(final ExecuteContext<Object> context) {
+            public void executeInternal(final TestExecuteContext<Object> context) {
                 if (d > 0)
                     for (int i = 0; i < n; i++) {
                         Task task = new Task(n, d - 1);
                         context.newTask(task).release();
                     }
-                super.execute(context);
+                super.executeInternal(context);
             }
         }
         // install task
         Task task = new Task(3, 4);
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
-        final TaskController<Object> controller = taskBuilder.release();
+        final TestTaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task);
+        final TestTaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
         // asserts
@@ -118,8 +118,8 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final UpdateTransaction transaction = newUpdateTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
-        final TaskController<Object> controller = taskBuilder.release();
+        final TestTaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
+        final TestTaskController<Object> controller = taskBuilder.release();
         // prepare transaction
         prepare(transaction);
         // install task 2 - should fail because transaction have been prepared
@@ -139,15 +139,15 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
     }
 
     @Test
-    public void installNewTaskToCommitedTransaction() {
+    public void installNewTaskToCommittedTransaction() {
         final UpdateTransaction transaction = newUpdateTransaction();
         // install task 1
         final TrackingTask task1 = new TrackingTask();
-        final TaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
-        final TaskController<Object> controller = taskBuilder.release();
+        final TestTaskBuilder<Object> taskBuilder = txnController.newTask(transaction, task1);
+        final TestTaskController<Object> controller = taskBuilder.release();
         // prepare and commit transaction from listener
         prepareAndCommitFromListener(transaction);
-        // install task 2 - should fail because transaction have been commited
+        // install task 2 - should fail because transaction have been committed
         final TrackingTask task2 = new TrackingTask();
         try {
             txnController.newTask(transaction, task2).release();
@@ -166,13 +166,13 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
         final UpdateTransaction transaction = newUpdateTransaction();
         // install task
         TrackingTask[][] tasks = new TrackingTask[8][8];
-        TaskController<?>[][] controllers = new TaskController<?>[8][8];
+        TestTaskController<?>[][] controllers = new TestTaskController<?>[8][8];
         Random r = new Random(492939L);
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 final TrackingTask task = new TrackingTask();
                 tasks[i][j] = task;
-                final TaskBuilder<Object> builder = txnController.newTask(transaction, task);
+                final TestTaskBuilder<Object> builder = txnController.newTask(transaction, task);
                 if (i > 0) {
                     int x = r.nextInt();
                     for (int b = 0; b < 8; b++) {
@@ -191,7 +191,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
             for (int j = 0; j < 8; j++) {
                 final TrackingTask task = tasks[i][j];
                 assertTrue(task.isExecuted());
-                final TaskController<?> controller = controllers[i][j];
+                final TestTaskController<?> controller = controllers[i][j];
                 assertEquals(controller.getTransaction(), transaction);
                 controller.getResult();
             }

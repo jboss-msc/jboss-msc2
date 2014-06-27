@@ -407,7 +407,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalStateException if the transaction is not open
      * @throws SecurityException if transaction was not created by this controller
      */
-    public <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
+    <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
         validateTransaction(transaction);
         return getAbstractTransaction(transaction).getTaskFactory().newTask(task);
     }

@@ -16,19 +16,8 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.utils;
+package org.jboss.msc.txn;
 
-import org.jboss.msc.txn.CommitResult;
-import org.jboss.msc.txn.CompletionListener;
-import org.jboss.msc.txn.Executable;
-import org.jboss.msc.txn.ExecuteContext;
-import org.jboss.msc.txn.InvalidTransactionStateException;
-import org.jboss.msc.txn.Listener;
-import org.jboss.msc.txn.PrepareResult;
-import org.jboss.msc.txn.TaskController;
-import org.jboss.msc.txn.Transaction;
-import org.jboss.msc.txn.TransactionController;
-import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.After;
 import org.junit.Before;
 
@@ -50,7 +39,7 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractTransactionTest {
 
-    protected static final TransactionController txnController = TransactionController.createInstance();
+    protected static final TestTransactionController txnController = TestTransactionController.createInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
     private List<Transaction> createdTransactions = new ArrayList<>();
@@ -90,13 +79,13 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static <T> TaskController<T> newTask(final Transaction transaction, final Executable<T> e,
-            final TaskController<?>... dependencies) {
+    protected static <T> TestTaskController<T> newTask(final Transaction transaction, final TestExecutable<T> e,
+            final TestTaskController<?>... dependencies) {
         return txnController.newTask(transaction, e).addDependencies(dependencies).release();
     }
 
-    protected static <T> TaskController<T> newTask(final ExecuteContext<?> ctx, final Executable<T> e,
-            final TaskController<?>... dependencies) {
+    protected static <T> TestTaskController<T> newTask(final TestExecuteContext<?> ctx, final TestExecutable<T> e,
+            final TestTaskController<?>... dependencies) {
         return ctx.newTask(e).addDependencies(dependencies).release();
     }
 

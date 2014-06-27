@@ -21,7 +21,7 @@ package org.jboss.msc.txn;
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface TaskController<T> {
+interface TaskController<T> {
 
     /**
      * Get the transaction associated with this controller.
