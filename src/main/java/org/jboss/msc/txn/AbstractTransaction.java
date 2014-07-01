@@ -48,7 +48,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int FLAG_DO_PREPARE_LISTENER = 1 << 4;
     private static final int FLAG_DO_COMMIT_LISTENER  = 1 << 5;
     private static final int FLAG_SEND_COMMIT_REQ     = 1 << 6;
-    private static final int FLAG_CLEAN_UP            = 1 << 7;
+    private static final int FLAG_RESTARTED           = 1 << 7;
+    private static final int FLAG_CLEAN_UP            = 1 << 8;
     private static final int FLAG_USER_THREAD         = 1 << 31;
 
     private static final int STATE_ACTIVE     = 0x0;
@@ -57,7 +58,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int STATE_COMMITTED  = 0x3;
     private static final int STATE_MASK       = 0x03;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER;
-    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ;
+    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ | FLAG_RESTARTED;
 
     private static final int T_NONE                    = 0;
     private static final int T_ACTIVE_to_PREPARED      = 1;
@@ -324,6 +325,21 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
+    final void restart() throws InvalidTransactionStateException {
+        assert ! holdsLock(this);
+        synchronized (this) {
+            if (Bits.allAreSet(state, FLAG_RESTARTED)) {
+                throw MSCLogger.TXN.cannotRestartRestartedTxn();
+            }
+            if (stateOf(state) != STATE_PREPARED) {
+                throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
+            }
+            unterminatedChildren = 0;
+            this.state = FLAG_RESTARTED;
+            topLevelTasks.clear();
+        }
+    }
+
     final boolean canCommit() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         synchronized (this) {
@@ -457,7 +473,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         final List<PrepareCompletionListener> prepareCompletionListeners;
         synchronized (this) {
             prepareCompletionListeners = this.prepareCompletionListeners;
-            this.prepareCompletionListeners = null;
+            this.prepareCompletionListeners = new ArrayList<>(0);
         }
         for (final PrepareCompletionListener listener : prepareCompletionListeners) {
             safeCallListener(listener);
@@ -469,7 +485,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         final List<TerminateCompletionListener> terminateCompletionListeners;
         synchronized (this) {
             terminateCompletionListeners = this.terminateCompletionListeners;
-            this.terminateCompletionListeners = null;
+            this.terminateCompletionListeners = new ArrayList<>(0);
         }
         for (final TerminateCompletionListener listener : terminateCompletionListeners) {
             safeCallListener(listener);

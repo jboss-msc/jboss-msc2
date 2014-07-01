@@ -69,6 +69,10 @@ public final class TestTransactionController {
         return delegate.upgradeTransaction(readTxn, listener);
     }
 
+    public void restart(final UpdateTransaction updateTxn) {
+        delegate.restart(updateTxn);
+    }
+
     public ServiceContext getServiceContext() {
         return delegate.getServiceContext();
     }

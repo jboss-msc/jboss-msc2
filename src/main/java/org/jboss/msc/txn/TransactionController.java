@@ -138,6 +138,18 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
+     * Restarts prepared update transaction.
+     * @param txn to be restarted.
+     * @throws IllegalArgumentException if any parameter is null
+     * @throws SecurityException if there's a <B>TransactionController</B> mismatch
+     * @throws InvalidTransactionStateException if transaction is not in prepared state or on attempt to restart it more than once
+     */
+    public void restart(final UpdateTransaction txn) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
+        final BasicUpdateTransaction basicUpdateTxn = validateTransaction(txn);
+        basicUpdateTxn.getDelegate().restart();
+    }
+
+    /**
      * Downgrades updating <B>updateTxn</B> transaction to read-only transaction.
      * This operation succeeds iff <B>updateTxn</B> didn't modify anything in MSC runtime.
      * If downgrade is not successful, the completion listener will never be called.
@@ -414,7 +426,7 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
-     * Once this method returns, either {@link #commit(Transaction, Listener)} or {@link #abort(Transaction, Listener)} must be called.
+     * Once this method returns, either {@link #commit(Transaction, Listener)} or {@link #restart(UpdateTransaction)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
      *
      *
@@ -495,7 +507,7 @@ public final class TransactionController extends SimpleAttachable {
         return basicReadTxn;
     }
 
-    private BasicUpdateTransaction validateTransaction(final UpdateTransaction updateTxn) throws SecurityException {
+    private BasicUpdateTransaction validateTransaction(final UpdateTransaction updateTxn) throws IllegalArgumentException, SecurityException {
         if (updateTxn == null) {
             throw TXN.methodParameterIsNull("updateTxn");
         }

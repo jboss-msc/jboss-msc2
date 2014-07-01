@@ -133,6 +133,32 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     }
 
     @Test
+    public void restartTransaction() throws Exception {
+        final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
+        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        final UpdateTransaction updateTxn = createListener.awaitCompletion();
+        assertNotNull(updateTxn);
+        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceRegistry registry = container.newRegistry();
+        final ServiceName serviceName = ServiceName.of("test");
+        final ServiceBuilder sb = txnController.getServiceContext().addService(registry, serviceName, updateTxn);
+        final TestService service = new TestService(serviceName, sb, false);
+        sb.setService(service).setMode(ServiceMode.ACTIVE).install();
+        prepare(updateTxn);
+        service.waitStart();
+        assertTrue(service.isUp());
+        txnController.restart(updateTxn);
+        txnController.getServiceContext().removeService(registry, serviceName, updateTxn);
+        prepare(updateTxn);
+        try {
+            txnController.restart(updateTxn);
+            fail();
+        } catch (InvalidTransactionStateException expected) {}
+        service.waitStop();
+        commit(updateTxn);
+    }
+
+    @Test
     public void outsiderTransaction() {
         final TransactionController outsiderController = TransactionController.createInstance();
         final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();

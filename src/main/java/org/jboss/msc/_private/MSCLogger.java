@@ -191,6 +191,12 @@ public interface MSCLogger {
     @Message(id = 126, value = "Illegal transaction argument")
     IllegalArgumentException illegalTransaction();
 
+    @Message(id = 127, value = "Transaction can be restarted only once")
+    InvalidTransactionStateException cannotRestartRestartedTxn();
+
+    @Message(id = 128, value = "Cannot restart unprepared transaction")
+    InvalidTransactionStateException cannotRestartUnpreparedTxn();
+
     /*
      * Location nesting types.
      */
