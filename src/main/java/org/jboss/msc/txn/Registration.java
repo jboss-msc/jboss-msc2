@@ -136,7 +136,7 @@ final class Registration {
 
     void removeIncomingDependency(final DependencyImpl<?> dependency) {
         synchronized (this) {
-            assert incomingDependencies.remove(dependency);
+            incomingDependencies.remove(dependency);
         }
     }
 
