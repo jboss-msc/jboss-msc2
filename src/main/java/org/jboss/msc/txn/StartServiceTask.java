@@ -57,8 +57,8 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
      * @return                     the start task (can be used for creating tasks that depend on the conclusion of
      *                              starting transition)
      */
-    static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
-            Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<T> create(final ServiceControllerImpl<T> serviceController,
+            final Collection<TaskController<?>> dependencyStartTasks, final Transaction transaction, final TaskFactory taskFactory) {
 
         // revert starting services, i.e., service that have not been started because start task has been cancelled
         final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
@@ -75,7 +75,15 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         transaction.getAttachment(START_TASKS).put(serviceController, revertStartTask);
 
         // notify service is starting
-        serviceController.notifyServiceStarting(transaction, taskFactory, start);
+        taskFactory.newTask(new Executable<Void>() {
+            public void execute(ExecuteContext<Void> executeContext) {
+                try {
+                    serviceController.notifyServiceStarting(transaction, executeContext, start);
+                } finally {
+                    executeContext.complete();
+                }
+            }
+        }).release();
 
         return start;
     }
