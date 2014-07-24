@@ -51,14 +51,14 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
      * Creates a start service task.
      * 
      * @param serviceController  starting service
-     * @param taskDependency     the task that must be first concluded before service can start
-     * @param transaction        the active transaction
-     * @param taskFactory        the task factory
-     * @return                   the start task (can be used for creating tasks that depend on the conclusion of
-     *                           starting transition)
+     * @param dependencyStartTasks the tasks that start service dependencies (these must be first concluded before service can start)
+     * @param transaction          the active transaction
+     * @param taskFactory          the task factory
+     * @return                     the start task (can be used for creating tasks that depend on the conclusion of
+     *                              starting transition)
      */
     static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
-            Collection<TaskController<?>> dependencyStartTasks, TaskController<?> taskDependency, Transaction transaction, TaskFactory taskFactory) {
+            Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
 
         // revert starting services, i.e., service that have not been started because start task has been cancelled
         final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
@@ -67,9 +67,6 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
         // start service task builder
         final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
-        if (taskDependency != null) {
-            startTaskBuilder.addDependency(taskDependency);
-        }
         startTaskBuilder.addDependencies(dependencyStartTasks);
         startTaskBuilder.addDependency(revertStartTask);
 
@@ -81,22 +78,6 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         serviceController.notifyServiceStarting(transaction, taskFactory, start);
 
         return start;
-    }
-
-    /**
-     * Creates a start service task.
-     * 
-     * @param serviceController    starting service
-     * @param dependencyStartTasks the tasks that must be first concluded before service can start
-     * @param transaction          the active transaction
-     * @param taskFactory          the task factory
-     * @return                     the start task (can be used for creating tasks that depend on the conclusion of
-     *                             starting transition)
-     */
-    static <T> TaskController<T> create(ServiceControllerImpl<T> serviceController,
-            Collection<TaskController<?>> dependencyStartTasks, Transaction transaction, TaskFactory taskFactory) {
-
-        return create(serviceController, dependencyStartTasks, null, transaction, taskFactory);
     }
 
     /**
@@ -362,5 +343,4 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             }
         }
     }
-
 }
