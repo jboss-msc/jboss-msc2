@@ -485,32 +485,66 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
     }
 
-    private void executeTasks(final int state) {
-        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
-        if (Bits.allAreSet(state,  FLAG_SEND_CANCEL_REQUESTED)) {
-            getInternalTransaction().childCancelRequested(userThread);
+    private final Runnable executeTask = new Runnable() {
+        public void run() {
+            execute();
         }
-        if (Bits.allAreSet(state, FLAG_SEND_RENOUNCE_CHILDREN)) {
-            renounceChildren(userThread);
+    };
+
+    private final Runnable rollbackTask = new Runnable() {
+        public void run() {
+            rollback();
         }
-        final TaskControllerImpl<?>[] dependents = cachedDependents.get();
-        cachedDependents.remove();
-        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_CANCEL_DEPENDENTS)) {
-            for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.forceCancel(userThread);
+    };
+
+    private class DependentTerminatedTask implements Runnable {
+        private final boolean userThread;
+
+        private DependentTerminatedTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            for (TaskControllerImpl<?> dependency : dependencies) {
+                dependency.dependentTerminated(userThread);
             }
         }
-        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_EXECUTED)) {
-            for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.dependencyExecuted(userThread);
-            }
+    }
+
+    private class ChildCancelledTask implements Runnable {
+        private final boolean userThread;
+
+        private ChildCancelledTask(final boolean userThread) {
+            this.userThread = userThread;
         }
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
-            parent.childExecuted(userThread);
+
+        public void run() {
+            getInternalTransaction().childCancelled(userThread);
         }
-        final TaskChild cachedChild = this.cachedChild.get();
-        this.cachedChild.remove();
-        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
+    }
+
+    private class ChildTerminatedTask implements Runnable {
+        private final boolean userThread;
+
+        private ChildTerminatedTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            parent.childTerminated(userThread);
+        }
+    }
+
+    private class SendCommitRequestTask implements Runnable {
+        private final boolean userThread;
+
+        private SendCommitRequestTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            final TaskChild cachedChild = TaskControllerImpl.cachedChild.get();
+            TaskControllerImpl.cachedChild.remove();
             if (cachedChild != null) {
                 cachedChild.childCommit(userThread);
             } else {
@@ -519,37 +553,115 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
         }
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
-            parent.childTerminated(userThread);
+    }
+
+    private class ChildExecutedTask implements Runnable {
+        private final boolean userThread;
+
+        private ChildExecutedTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            parent.childExecuted(userThread);
+        }
+    }
+
+    private class DependencyExecutedTask implements Runnable {
+        private final boolean userThread;
+        private final TaskControllerImpl<?>[] dependents;
+
+        private DependencyExecutedTask(final TaskControllerImpl<?>[] dependents, final boolean userThread) {
+            this.dependents = dependents;
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            for (TaskControllerImpl<?> dependent : dependents) {
+                dependent.dependencyExecuted(userThread);
+            }
+        }
+    }
+
+    private class DependentCancelTask implements Runnable {
+        private final boolean userThread;
+        private final TaskControllerImpl<?>[] dependents;
+
+        private DependentCancelTask(final TaskControllerImpl<?>[] dependents, final boolean userThread) {
+            this.dependents = dependents;
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            for (TaskControllerImpl<?> dependent : dependents) {
+                dependent.forceCancel(userThread);
+            }
+        }
+    }
+
+    private class RenounceChildrenTask implements Runnable {
+        private final boolean userThread;
+
+        private RenounceChildrenTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
+            renounceChildren(userThread);
+        }
+    }
+
+    private void executeTasks(final int state) {
+        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
+        if (!Bits.allAreClear(state, DO_FLAGS)) {
+            assert Bits.oneIsSet(state, DO_FLAGS);
+            if (userThread) {
+                if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
+                    safeExecute(new AsyncTask(FLAG_DO_EXECUTE));
+                }
+                if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
+                    safeExecute(new AsyncTask(FLAG_DO_ROLLBACK));
+                }
+            } else {
+                if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
+                    ThreadLocalExecutor.addTask(executeTask);
+                }
+                if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
+                    ThreadLocalExecutor.addTask(rollbackTask);
+                }
+            }
+        }
+
+        if (Bits.allAreSet(state, FLAG_SEND_DEPENDENT_TERMINATED)) {
+            ThreadLocalExecutor.addTask(new DependentTerminatedTask(userThread));
         }
         if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
-            getInternalTransaction().childCancelled(userThread);
+            ThreadLocalExecutor.addTask(new ChildCancelledTask(userThread));
         }
-        if (Bits.allAreSet(state, FLAG_SEND_DEPENDENT_TERMINATED)) {
-            for (TaskControllerImpl<?> dependency : dependencies) {
-                dependency.dependentTerminated(userThread);
-            }
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
+            ThreadLocalExecutor.addTask(new ChildTerminatedTask(userThread));
         }
-
-        if (Bits.allAreClear(state, DO_FLAGS)) return;
-
-        assert Bits.oneIsSet(state, DO_FLAGS);
-
-        if (userThread) {
-            if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-                safeExecute(new AsyncTask(FLAG_DO_EXECUTE));
-            }
-            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
-                safeExecute(new AsyncTask(FLAG_DO_ROLLBACK));
-            }
-        } else {
-            if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-                execute();
-            }
-            if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
-                rollback();
-            }
+        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
+            ThreadLocalExecutor.addTask(new SendCommitRequestTask(userThread));
         }
+        if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
+            ThreadLocalExecutor.addTask(new ChildExecutedTask(userThread));
+        }
+        final TaskControllerImpl<?>[] dependents = cachedDependents.get();
+        cachedDependents.remove();
+        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_EXECUTED)) {
+            ThreadLocalExecutor.addTask(new DependencyExecutedTask(dependents, userThread));
+        }
+        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_CANCEL_DEPENDENTS)) {
+            ThreadLocalExecutor.addTask(new DependentCancelTask(dependents, userThread));
+        }
+        if (Bits.allAreSet(state, FLAG_SEND_RENOUNCE_CHILDREN)) {
+            ThreadLocalExecutor.addTask(new RenounceChildrenTask(userThread));
+        }
+        if (Bits.allAreSet(state,  FLAG_SEND_CANCEL_REQUESTED)) {
+            getInternalTransaction().childCancelRequested(userThread);
+        }
+        ThreadLocalExecutor.executeTasks();
     }
 
     private void renounceChildren(final boolean userThread) {

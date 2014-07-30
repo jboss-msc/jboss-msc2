@@ -237,30 +237,61 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private void executeTasks(final int state) {
-        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
-        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
+    private final Runnable commitTask = new Runnable() {
+        public void run() {
+            callTerminateCompletionListeners();
+            callCommitListener();
+        }
+    };
+
+    private final Runnable prepareTask = new Runnable() {
+        public void run() {
+            callPrepareCompletionListeners();
+            callPrepareListener();
+        }
+    };
+
+    private final Runnable cleanUpTask = new Runnable() {
+        public void run() {
+            txnController.unregister();
+        }
+    };
+
+    private class SendCommitRequestTask implements Runnable {
+        private final boolean userThread;
+
+        SendCommitRequestTask(final boolean userThread) {
+            this.userThread = userThread;
+        }
+
+        public void run() {
             for (TaskControllerImpl<?> task : topLevelTasks) {
                 task.childCommit(userThread);
             }
         }
-        if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
-            txnController.unregister();
-        }
+    }
+
+    private void executeTasks(final int state) {
+        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
         if (userThread) {
             if (Bits.anyAreSet(state, LISTENERS_MASK)) {
                 safeExecute(new AsyncTask(state & (PERSISTENT_STATE | LISTENERS_MASK)));
             }
         } else {
-            if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
-                callPrepareCompletionListeners();
-                callPrepareListener();
-            }
             if (Bits.allAreSet(state, FLAG_DO_COMMIT_LISTENER)) {
-                callTerminateCompletionListeners();
-                callCommitListener();
+                ThreadLocalExecutor.addTask(commitTask);
+            }
+            if (Bits.allAreSet(state, FLAG_DO_PREPARE_LISTENER)) {
+                ThreadLocalExecutor.addTask(prepareTask);
             }
         }
+        if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
+            ThreadLocalExecutor.addTask(cleanUpTask);
+        }
+        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
+            ThreadLocalExecutor.addTask(new SendCommitRequestTask(userThread));
+        }
+        ThreadLocalExecutor.executeTasks();
     }
 
     private void safeExecute(final Runnable command) {
