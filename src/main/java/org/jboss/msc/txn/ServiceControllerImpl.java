@@ -676,7 +676,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             final TaskController<?> stopTask = transition(transaction, taskFactory);
-            assert transactionalState == STATE_STOPPING || transactionalState == STATE_DOWN || transactionalState == STATE_NEW; // prevent hard to find bugs
             return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
