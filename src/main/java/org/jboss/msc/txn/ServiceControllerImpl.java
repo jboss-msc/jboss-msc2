@@ -613,9 +613,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart()) {
                         if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
-                            if (transactionalState == STATE_STOPPING) {
-                                transactionalState = STATE_UP;
-                            }
                             break;
                         }
                         if (taskFactory == null) {
@@ -636,9 +633,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
-                            if (transactionalState == STATE_STARTING) {
-                                transactionalState = STATE_DOWN;
-                            }
                             break;
                         }
                         if (taskFactory == null) {
