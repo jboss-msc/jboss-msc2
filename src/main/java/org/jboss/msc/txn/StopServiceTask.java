@@ -121,10 +121,21 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         this.transaction = transaction;
     }
 
+    private boolean taskValid;
+
     public void execute(final ExecuteContext<Void> context) {
+        final boolean locked = serviceController.lock();
+        if (!locked) return;
+        int currentState = serviceController.getState();
+        taskValid = currentState == ServiceControllerImpl.STATE_STOPPING || currentState == ServiceControllerImpl.STATE_STARTING || currentState == ServiceControllerImpl.STATE_RESTARTING;
+        if (!taskValid) {
+            context.complete();
+            return;
+        }
         final Service<T> service = serviceController.getService();
         if (service == null) {
             serviceController.setServiceDown(transaction, context);
+            serviceController.unlock();
             context.complete();
             return;
         }
@@ -132,12 +143,14 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
             @Override
             public void complete(Void result) {
                 serviceController.setServiceDown(transaction, context);
+                serviceController.unlock();
                 context.complete();
             }
 
             @Override
             public void complete() {
                 serviceController.setServiceDown(transaction, context);
+                serviceController.unlock();
                 context.complete();
             }
 
@@ -205,6 +218,10 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
 
     @Override
     public void rollback(final RollbackContext context) {
+        if (!taskValid) {
+            context.complete();
+            return;
+        }
         final Service<T> service = serviceController.getService();
         if (service == null) {
             serviceController.setServiceUp(null, transaction, context);

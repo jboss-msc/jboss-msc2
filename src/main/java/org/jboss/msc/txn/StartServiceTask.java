@@ -113,6 +113,8 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         this.transaction = transaction;
     }
 
+    private boolean taskValid;
+
     /**
      * Perform the task.
      *
@@ -120,9 +122,18 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
      */
     @Override
     public void execute(final ExecuteContext<T> context) {
+        final boolean locked = serviceController.lock();
+        if (!locked) return;
+        int currentState = serviceController.getState();
+        taskValid = currentState == ServiceControllerImpl.STATE_STARTING || currentState == ServiceControllerImpl.STATE_STOPPING || currentState == ServiceControllerImpl.STATE_RESTARTING;
+        if (!taskValid) {
+            context.complete();
+            return;
+        }
         final Service<T> service = serviceController.getService();
         if (service == null ){
             serviceController.setServiceUp(null, transaction, context);
+            serviceController.unlock();
             context.complete(null);
             return;
         }
@@ -130,12 +141,14 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             @Override
             public void complete(T result) {
                 serviceController.setServiceUp(result, transaction, context);
+                serviceController.unlock();
                 context.complete(result);
             }
 
             @Override
             public void complete() {
                 serviceController.setServiceUp(null, transaction, context);
+                serviceController.unlock();
                 context.complete();
             }
 
@@ -143,6 +156,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             public void fail() {
                 serviceController.setServiceFailed(transaction, context);
                 serviceController.notifyServiceFailed(transaction, context);
+                serviceController.unlock();
                 context.complete();
             }
 
@@ -242,6 +256,10 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
     @Override
     public void rollback(final RollbackContext context) {
+        if (!taskValid) {
+            context.complete();
+            return;
+        }
         final Service<T> service = serviceController.getService();
         if (service == null ){
             serviceController.setServiceDown(transaction, context);
