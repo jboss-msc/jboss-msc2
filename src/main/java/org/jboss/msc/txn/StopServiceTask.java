@@ -38,13 +38,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class StopServiceTask<T> implements Executable<Void>, Revertible {
 
-    private static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
-
+    private static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> REVERT_STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
         @Override
         public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
-            return new ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>();
+            return new ConcurrentHashMap<>();
         }
 
+    });
+    static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
+        @Override
+        public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
+            return new ConcurrentHashMap<>();
+        }
     });
 
     /**
@@ -82,6 +87,8 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         final TaskController<Void> revertStoppingTask = tb
                 .setRevertible(new RevertStoppingServiceTask(serviceController, transaction)).release();
 
+        // revertStoppingTask is the one that needs to be cancelled if service has to revert stop
+        transaction.getAttachment(REVERT_STOP_TASKS).put(serviceController, revertStoppingTask);
         // stop service
         final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<T>(serviceController, transaction))
                 .addDependency(revertStoppingTask).addDependencies(dependentStopTasks);
@@ -89,9 +96,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
             stopTaskBuilder.addDependency(taskDependency);
         }
         final TaskController<Void> stop = stopTaskBuilder.release();
-
-        // revertStoppingTask is the one that needs to be cancelled if service has to revert stop
-        transaction.getAttachment(STOP_TASKS).put(serviceController, revertStoppingTask);
+        transaction.getAttachment(STOP_TASKS).put(serviceController, stop);
 
         return stop;
     }
@@ -105,7 +110,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
      *                      a start task has to be created to start the service 
      */
     static boolean revert(ServiceControllerImpl<?> service, Transaction transaction) {
-        final TaskController<Void> stopTask = transaction.getAttachment(STOP_TASKS).remove(service);
+        final TaskController<Void> stopTask = transaction.getAttachment(REVERT_STOP_TASKS).remove(service);
         if (stopTask != null) {
             ((TaskControllerImpl<Void>) stopTask).forceCancel();
             return true;

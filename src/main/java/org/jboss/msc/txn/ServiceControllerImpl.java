@@ -634,6 +634,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                         transactionalState = STATE_STARTING;
                         startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
                         completeTransitionTask = startTask;
+                    } else {
+                        completeTransitionTask = transaction.getAttachment(StopServiceTask.STOP_TASKS).get(ServiceControllerImpl.this);;
                     }
                     break;
                 case STATE_FAILED:
