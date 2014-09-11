@@ -122,14 +122,12 @@ final class Registration {
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
         installDependenciesValidateTask(transaction, getAbstractTransaction(transaction).getTaskFactory());
-        final TaskController<?> startTask;
         final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
             up = Bits.anyAreSet(state,  UP);
-            startTask = up? holderRef.get().getStartTask(transaction): null;
             if (up) {
-                dependency.dependencyUp(transaction, getAbstractTransaction(transaction).getTaskFactory(), startTask);
+                dependency.dependencyUp(transaction);
             }
         }
     }
@@ -140,7 +138,7 @@ final class Registration {
         }
     }
 
-    void serviceStarting(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> startTask) {
+    void serviceUp(final Transaction transaction) {
         synchronized (this) {
             // handle out of order notifications
             if (Bits.anyAreSet(state, FAILED)) {
@@ -148,7 +146,7 @@ final class Registration {
             }
             state = state | UP;
             for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
-                incomingDependency.dependencyUp(transaction, taskFactory, startTask);
+                incomingDependency.dependencyUp(transaction);
             }
         }
     }
@@ -169,7 +167,7 @@ final class Registration {
         }
     }
 
-    void serviceStopping(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+    void serviceDown(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
         synchronized (this) {
             state = state & ~(UP | FAILED);
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {

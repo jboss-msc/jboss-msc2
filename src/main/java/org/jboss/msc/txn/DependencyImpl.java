@@ -176,10 +176,9 @@ class DependencyImpl<T> implements Dependency<T> {
      * Notifies that dependency is now {@code UP} or is scheduled to start.
      * 
      * @param transaction   the active transaction
-     * @param startTask     the dependency start task
      */
-    void dependencyUp(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
-        dependent.dependencySatisfied(transaction, taskFactory, startTask);
+    void dependencyUp(final Transaction transaction) {
+        dependent.dependencySatisfied(transaction);
     }
 
     /**

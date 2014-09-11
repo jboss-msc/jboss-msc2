@@ -74,17 +74,6 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         final TaskController<T> start = startTaskBuilder.release();
         transaction.getAttachment(START_TASKS).put(serviceController, revertStartTask);
 
-        // notify service is starting
-        taskFactory.newTask(new Executable<Void>() {
-            public void execute(ExecuteContext<Void> executeContext) {
-                try {
-                    serviceController.notifyServiceStarting(transaction, executeContext, start);
-                } finally {
-                    executeContext.complete();
-                }
-            }
-        }).release();
-
         return start;
     }
 
@@ -141,6 +130,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             @Override
             public void complete(T result) {
                 serviceController.setServiceUp(result, transaction, context);
+                serviceController.notifyServiceUp(transaction);
                 serviceController.unlock();
                 context.complete(result);
             }
@@ -148,6 +138,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
             @Override
             public void complete() {
                 serviceController.setServiceUp(null, transaction, context);
+                serviceController.notifyServiceUp(transaction);
                 serviceController.unlock();
                 context.complete();
             }

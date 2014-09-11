@@ -470,12 +470,12 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return primaryRegistration.getServiceName();
     }
 
-    void dependencySatisfied(final Transaction transaction, final TaskFactory taskFactory, final TaskController<?> dependencyStartTask) {
+    void dependencySatisfied(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (ServiceControllerImpl.this) {
             -- unsatisfiedDependencies;
         }
-        transactionalInfo.dependencySatisfied(transaction, taskFactory, dependencyStartTask);
+        transactionalInfo.dependencySatisfied(transaction);
     }
 
     public TaskController<?> dependencyUnsatisfied(final Transaction transaction, final TaskFactory taskFactory) {
@@ -510,15 +510,11 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.setTransition(STATE_REMOVED, transaction, taskFactory);
     }
 
-    void notifyServiceStarting(Transaction transaction, TaskFactory taskFactory, TaskController<?> startTask) {
-        primaryRegistration.serviceStarting(transaction, taskFactory, startTask);
+    void notifyServiceUp(final Transaction transaction) {
+        primaryRegistration.serviceUp(transaction);
         for (Registration registration: aliasRegistrations) {
-            registration.serviceStarting(transaction, taskFactory, startTask);
+            registration.serviceUp(transaction);
         }
-    }
-
-    void notifyServiceUp(Transaction transaction) {
-        notifyServiceStarting(transaction, null, null);
     }
 
     Collection<TaskController<?>> notifyServiceFailed(Transaction transaction, TaskFactory taskFactory) {
@@ -536,9 +532,9 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     Collection<TaskController<?>> notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
         final List<TaskController<?>> tasks = new ArrayList<>();
-        primaryRegistration.serviceStopping(transaction, taskFactory, tasks);
+        primaryRegistration.serviceDown(transaction, taskFactory, tasks);
         for (Registration registration: aliasRegistrations) {
-            registration.serviceStopping(transaction, taskFactory, tasks);
+            registration.serviceDown(transaction, taskFactory, tasks);
         }
         return tasks;
     }
@@ -586,11 +582,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         // contains a list of all dependencyStartTasks
         private ArrayList<TaskController<?>> dependencyStartTasks = new ArrayList<>();
 
-        public synchronized void dependencySatisfied(Transaction transaction, TaskFactory taskFactory, TaskController<?> dependencyStartTask) {
-            if (dependencyStartTask != null) {
-                dependencyStartTasks.add(dependencyStartTask);
-            }
-            transition(transaction, taskFactory);
+        public synchronized void dependencySatisfied(final Transaction transaction) {
+            transition(transaction, getAbstractTransaction(transaction).getTaskFactory());
         }
 
         byte getTransition() {
