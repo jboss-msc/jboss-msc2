@@ -21,9 +21,9 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -49,7 +49,7 @@ public final class TransactionController extends SimpleAttachable {
     // count of running TXNs in this round
     private static int runningTxns;
     // TXNs that are pending execution, each item is either single updating TXN or set of reading TXNs
-    private static final Deque<PendingTxnEntry> pendingTxns = new LinkedList<>();
+    private static final Deque<PendingTxnEntry> pendingTxns = new ArrayDeque<>();
 
     private TransactionController() {}
 
@@ -199,7 +199,7 @@ public final class TransactionController extends SimpleAttachable {
             basicReadTxn = basicUpdateTxn.getDelegate();
             basicUpdateTxn.invalidate();
         }
-        List<PendingTxnEntry> notifications = null;
+        Deque<PendingTxnEntry> notifications = null;
         synchronized (txnLock) {
             assert runningTxns == 1;
             updatingTxnRunning = false;
@@ -321,7 +321,7 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     void unregister() {
-        List<PendingTxnEntry> notifications = null;
+        Deque<PendingTxnEntry> notifications = null;
         synchronized (txnLock) {
             assert runningTxns > 0;
             runningTxns--;
@@ -336,9 +336,9 @@ public final class TransactionController extends SimpleAttachable {
         }
     }
 
-    private List<PendingTxnEntry> getNotifications() {
+    private Deque<PendingTxnEntry> getNotifications() {
         assert Thread.holdsLock(txnLock);
-        final List<PendingTxnEntry> notifications = new LinkedList<>();
+        final Deque<PendingTxnEntry> notifications = new ArrayDeque<>();
         PendingTxnEntry entry = pendingTxns.removeFirst();
         notifications.add(entry);
         runningTxns++;

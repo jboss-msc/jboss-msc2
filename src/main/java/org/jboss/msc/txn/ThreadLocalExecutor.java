@@ -20,8 +20,8 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.LinkedList;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -30,7 +30,7 @@ final class ThreadLocalExecutor {
 
     private static final ThreadLocal<Deque<Runnable>> tasks = new ThreadLocal<Deque<Runnable>>() {
         @Override public Deque<Runnable> initialValue() {
-            return new LinkedList<>();
+            return new ArrayDeque<>();
         }
     };
 

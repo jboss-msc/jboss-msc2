@@ -22,7 +22,6 @@ import org.jboss.msc.service.ServiceName;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.Set;
 
 import static org.jboss.msc._private.MSCLogger.SERVICE;
@@ -116,8 +115,8 @@ final class CycleDetector {
      * @param branches cycle inspection data
      * @return cycle report
      */
-    private static LinkedList<ServiceName> getCycle(final Deque<Branch> branches) {
-        final LinkedList<ServiceName> cycle = new LinkedList<>();
+    private static ArrayDeque<ServiceName> getCycle(final Deque<Branch> branches) {
+        final ArrayDeque<ServiceName> cycle = new ArrayDeque<>();
         Branch currentBranch = branches.pollLast();
         while (currentBranch != null) {
             cycle.addAll(currentBranch.path);
