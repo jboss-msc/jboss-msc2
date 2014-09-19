@@ -187,8 +187,8 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction    the active transaction
      * @param taskFactory    the task factory
      */
-    TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
-        return dependent.dependencyUnsatisfied(transaction, taskFactory);
+    void dependencyDown(Transaction transaction, TaskFactory taskFactory) {
+        dependent.dependencyUnsatisfied(transaction, taskFactory);
     }
 
     /**

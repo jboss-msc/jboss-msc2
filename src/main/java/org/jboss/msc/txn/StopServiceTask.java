@@ -56,16 +56,14 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
      * Creates a stop service task.
      * 
      * @param serviceController  stopping service
-     * @param dependentStopTasks the tasks that must be first concluded before service can stop
      * @param transaction        the active transaction
      * @param taskFactory        the task factory
      * @return                   the stop task (can be used for creating tasks that depend on the conclusion of stopping
      *                           transition)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, Collection<TaskController<?>> dependentStopTasks,
-            Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, Transaction transaction, TaskFactory taskFactory) {
 
-        return create(serviceController, null, dependentStopTasks, transaction, taskFactory);
+        return create(serviceController, null, transaction, taskFactory);
     }
 
     /**
@@ -73,14 +71,13 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
      * 
      * @param serviceController  stopping service
      * @param taskDependency     a task that must be first concluded before service can stop
-     * @param dependentStopTasks the tasks that must be first concluded before service can stop
      * @param transaction        the active transaction
      * @param taskFactory        the task factory
      * @return                   the stop task (can be used for creating tasks that depend on the conclusion of stopping
      *                           transition)
      */
     static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency,
-            Collection<TaskController<?>> dependentStopTasks, Transaction transaction, TaskFactory taskFactory) {
+            Transaction transaction, TaskFactory taskFactory) {
 
         // revert stopping services, i.e., service that have not been stopped because stop has been cancelled
         final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
@@ -91,7 +88,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         transaction.getAttachment(REVERT_STOP_TASKS).put(serviceController, revertStoppingTask);
         // stop service
         final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<T>(serviceController, transaction))
-                .addDependency(revertStoppingTask).addDependencies(dependentStopTasks);
+                .addDependency(revertStoppingTask);
         if (taskDependency != null) {
             stopTaskBuilder.addDependency(taskDependency);
         }
@@ -140,6 +137,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         final Service<T> service = serviceController.getService();
         if (service == null) {
             serviceController.setServiceDown(transaction, context);
+            serviceController.notifyServiceDown(transaction, context);
             serviceController.unlock();
             context.complete();
             return;
@@ -148,6 +146,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
             @Override
             public void complete(Void result) {
                 serviceController.setServiceDown(transaction, context);
+                serviceController.notifyServiceDown(transaction, context);
                 serviceController.unlock();
                 context.complete();
             }
@@ -155,6 +154,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
             @Override
             public void complete() {
                 serviceController.setServiceDown(transaction, context);
+                serviceController.notifyServiceDown(transaction, context);
                 serviceController.unlock();
                 context.complete();
             }

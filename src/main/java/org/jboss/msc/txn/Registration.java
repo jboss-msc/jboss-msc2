@@ -151,30 +151,24 @@ final class Registration {
         }
     }
 
-    void serviceFailed(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+    void serviceFailed(final Transaction transaction, final TaskFactory taskFactory) {
         synchronized (this) {
             state = state | FAILED;
             // handle out of order notifications
             if (Bits.anyAreSet(state, UP)) {
                 state = state & ~UP;
                 for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
-                    final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
-                    if (task != null) {
-                        tasks.add(task);
-                    }
+                    incomingDependency.dependencyDown(transaction, taskFactory);
                 }
             }
         }
     }
 
-    void serviceDown(final Transaction transaction, final TaskFactory taskFactory, final List<TaskController<?>> tasks) {
+    void serviceDown(final Transaction transaction, final TaskFactory taskFactory) {
         synchronized (this) {
             state = state & ~(UP | FAILED);
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-                final TaskController<?> task = incomingDependency.dependencyDown(transaction, taskFactory);
-                if (task != null) {
-                    tasks.add(task);
-                }
+                incomingDependency.dependencyDown(transaction, taskFactory);
             }
         }
     }

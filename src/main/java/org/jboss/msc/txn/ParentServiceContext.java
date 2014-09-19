@@ -82,7 +82,7 @@ class ParentServiceContext<T> extends ServiceContextImpl {
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {
-            parentDependency = new ParentDependency<T>(parentRegistration, transaction);
+            parentDependency = new ParentDependency<T>(parentRegistration);
             parentDependencies.put(parentName, parentDependency);
         }
         return parentDependency;
@@ -94,13 +94,13 @@ class ParentServiceContext<T> extends ServiceContextImpl {
      */
     private static final class ParentDependency<T> extends DependencyImpl<T> {
 
-        ParentDependency(final Registration dependencyRegistration, final Transaction transaction) {
+        ParentDependency(final Registration dependencyRegistration) {
             super(dependencyRegistration, DependencyFlag.UNREQUIRED);
         }
 
         @Override
-        public TaskController<?> dependencyDown(Transaction transaction, TaskFactory taskFactory) {
-            return dependent.remove(transaction, taskFactory);
+        public void dependencyDown(Transaction transaction, TaskFactory taskFactory) {
+            dependent.remove(transaction, taskFactory);
         }
     }
 }
