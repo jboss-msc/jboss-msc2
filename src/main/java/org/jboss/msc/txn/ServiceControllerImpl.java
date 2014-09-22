@@ -27,9 +27,6 @@ import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.SERVICE;

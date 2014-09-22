@@ -27,7 +27,6 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**

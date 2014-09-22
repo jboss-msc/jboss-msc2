@@ -24,7 +24,6 @@ import org.jboss.msc.service.ServiceContext;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.Executor;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
