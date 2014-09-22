@@ -61,9 +61,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     static final byte STATE_FAILED     = (byte)0b00010000;
     static final byte STATE_STOPPING   = (byte)0b00010100;
     static final byte STATE_RESTARTING = (byte)0b00011000;
-    static final byte STATE_REMOVING   = (byte)0b00011100;
-    static final byte STATE_REMOVED    = (byte)0b00100000;
-    static final byte STATE_MASK       = (byte)0b00111100;
+    static final byte STATE_REMOVED    = (byte)0b00011100;
+    static final byte STATE_MASK       = (byte)0b00011100;
     // controller disposal flags
     static final byte SERVICE_ENABLED  = (byte)0b01000000;
     static final byte REGISTRY_ENABLED = (byte)0b10000000;
