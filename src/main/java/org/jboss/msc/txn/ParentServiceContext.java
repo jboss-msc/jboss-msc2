@@ -46,7 +46,7 @@ class ParentServiceContext extends ServiceContextImpl {
         validateParentUp(transaction);
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(valueType, registry, name, transaction);
         final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
+        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration, transaction));
         return serviceBuilder;
     }
 
@@ -55,7 +55,7 @@ class ParentServiceContext extends ServiceContextImpl {
         validateParentUp(transaction);
         final ServiceBuilderImpl<Void> serviceBuilder = (ServiceBuilderImpl<Void>) super.addService(registry, name, transaction);
         final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(parentName, getParentDependency(parentName, parentRegistration, transaction));
+        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration, transaction));
         return serviceBuilder;
     }
 

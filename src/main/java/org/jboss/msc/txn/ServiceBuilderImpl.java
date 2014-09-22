@@ -31,9 +31,7 @@ import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
@@ -63,7 +61,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service itself
     private Service<T> service;
     // dependencies
-    private final Map<ServiceName, DependencyImpl<?>> dependencies= new HashMap<>(); // TODO: why not set but map?
+    private final Set<DependencyImpl<?>> dependencies = new HashSet<>();
     // active transaction
     private final Transaction transaction;
     // service mode
@@ -89,8 +87,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         return name;
     }
 
-    void addDependency(ServiceName serviceName, DependencyImpl<?> dependency) {
-        dependencies.put(serviceName, dependency);
+    void addDependency(DependencyImpl<?> dependency) {
+        dependencies.add(dependency);
     }
 
     /**
@@ -179,7 +177,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         }
         final Registration dependencyRegistration = registry.getOrCreateRegistration(transaction, name);
         final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
-        dependencies.put(name, dependency);
+        dependencies.add(dependency);
         return dependency;
     }
 
@@ -233,7 +231,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         // create dependencies
         final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
         if (dependenciesArray.length > 0) {
-            dependencies.values().toArray(dependenciesArray);
+            dependencies.toArray(dependenciesArray);
         }
 
         // create and install service controller
