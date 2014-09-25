@@ -40,69 +40,50 @@ import static java.lang.Thread.holdsLock;
  *          |
  *          v
  *  +---------------+
- *  |               |                CANCEL_REQ
- *  |  EXECUTE_WAIT +------------------------------------------+
- *  |               |                                          |
- *  +-------+-------+                                          |
- *          |                                                  |
- *          |                                                  |
- *          v                                                  |
- *  +---------------+                                          |
- *  |               |                                          |
- *  |    EXECUTE    +                                          |
- *  |               |                                          |
- *  +-------+-------+                                          |
- *          |                                                  |
- *          |                                                  |
- *          v                                                  |
- *  +-----------------------+                                  |
- *  |                       |                                  |
- *  | EXECUTE_CHILDREN_WAIT +--------------+                   |
- *  |                       |              |                   |
- *  +-------+---------------+              |                   |
- *          |                              |                   |
- *          |                              |                   |
- *          v                              |                   |
- *  +---------------+                      |                   |
- *  |               |                      |                   |
- *  |  EXECUTE_DONE +-----------+          |                   |
- *  |               |           |          |                   |
- *  +-------+-------+           |          |                   |
- *          |                   |          |                   |
- *          |                                                  |
- *          |                    CANCEL_REQ                    |
- *          |                                                  |
- *          |                   |          |                   |
- *          |                   v          v                   |
- *          |             +----------------------+             |
- *          |             |                      |             |
- *          |             |    ROLLBACK_WAIT     |             |
- *          |             |                      |             |
- *          |             +-----------+----------+             |
- *                                    |                        |
- *     COMMIT_REQ                     |                        |
- *                                    v                        |
- *          |             +----------------------+             |
- *          |             |                      |             |
- *          |             |       ROLLBACK       |             |
- *          |             |                      |             |
- *          |             +-----------+----------+             |
- *          |                         |                        |
- *          |                         |                        |
- *          v                         v                        v
- *  +------------------------------------------------------------+
- *  |                                                            |
- *  |                       TERMINATE_WAIT                       |
- *  |                                                            |
- *  +-----------------------------+------------------------------+
- *                                |
- *                                |
- *                                v
- *  +------------------------------------------------------------+
- *  |                                                            |
- *  |                         TERMINATED                         |
- *  |                                                            |
- *  +------------------------------------------------------------+
+ *  |               |
+ *  |  EXECUTE_WAIT |
+ *  |               |
+ *  +-------+-------+
+ *          |
+ *          |
+ *          v
+ *  +---------------+
+ *  |               |
+ *  |    EXECUTE    |
+ *  |               |
+ *  +-------+-------+
+ *          |
+ *          |
+ *          v
+ *  +-----------------------+
+ *  |                       |
+ *  | EXECUTE_CHILDREN_WAIT |
+ *  |                       |
+ *  +-------+---------------+
+ *          |
+ *          |
+ *          v
+ *  +---------------+
+ *  |               |
+ *  |  EXECUTE_DONE |
+ *  |               |
+ *  +-------+-------+
+ *          |
+ *          | COMMIT_REQ
+ *          v
+ *  +----------------+
+ *  |                |
+ *  | TERMINATE_WAIT |
+ *  |                |
+ *  +----------------+
+ *          |
+ *          |
+ *          v
+ *  +----------------+
+ *  |                |
+ *  |   TERMINATED   |
+ *  |                |
+ *  +----------------+
  * </pre>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -114,11 +95,9 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
     private static final ThreadLocal<ClassLoader> CL_HOLDER = new ThreadLocal<>();
 
-    private final DelegatingTaskParent parent;
-    private TaskParent adopter;
+    private final TaskParent parent;
     private final TaskControllerImpl<?>[] dependencies;
     private final Executable<T> executable;
-    private final Revertible revertible;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
     private final Queue<TaskControllerImpl<?>> children = new ConcurrentLinkedQueue<>();
@@ -127,15 +106,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private int unexecutedDependencies;
     private int unexecutedChildren;
     private int unterminatedChildren;
-    private int unterminatedDependents;
-
-    private boolean sendChildExecuted;
 
     @SuppressWarnings("unchecked")
     private volatile T result = (T) NO_RESULT;
 
     private static final ThreadLocal<TaskControllerImpl<?>[]> cachedDependents = new ThreadLocal<>();
-    private static final ThreadLocal<TaskChild> cachedChild = new ThreadLocal<>();
 
     private static final int STATE_MASK        = 0xF;
 
@@ -144,114 +119,49 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int STATE_EXECUTE                = 2;
     private static final int STATE_EXECUTE_CHILDREN_WAIT  = 3;
     private static final int STATE_EXECUTE_DONE           = 4;
-    private static final int STATE_ROLLBACK_WAIT          = 5;
-    private static final int STATE_ROLLBACK               = 6;
-    private static final int STATE_TERMINATE_WAIT         = 7;
-    private static final int STATE_TERMINATED             = 8;
+    private static final int STATE_TERMINATE_WAIT         = 5;
+    private static final int STATE_TERMINATED             = 6;
     private static final int STATE_LAST = STATE_TERMINATED;
 
     private static final int T_NONE = 0;
 
     private static final int T_NEW_to_EXECUTE_WAIT = 1;
     private static final int T_NEW_to_TERMINATED = 2;
+    private static final int T_EXECUTE_WAIT_to_EXECUTE = 3;
+    private static final int T_EXECUTE_to_EXECUTE_CHILDREN_WAIT = 4;
+    private static final int T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE = 5;
+    private static final int T_EXECUTE_DONE_to_TERMINATE_WAIT = 6;
+    private static final int T_TERMINATE_WAIT_to_TERMINATED = 7;
 
-    private static final int T_EXECUTE_WAIT_to_TERMINATE_WAIT = 3;
-    private static final int T_EXECUTE_WAIT_to_EXECUTE = 4;
+    private static final int FLAG_COMMIT_REQ      = 1 << 4;
 
-    private static final int T_EXECUTE_to_TERMINATE_WAIT = 5;
-    private static final int T_EXECUTE_to_EXECUTE_CHILDREN_WAIT = 6;
-
-    private static final int T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT = 7;
-    private static final int T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE = 8;
-
-    private static final int T_EXECUTE_DONE_to_ROLLBACK_WAIT = 9;
-    private static final int T_EXECUTE_DONE_to_TERMINATE_WAIT = 10;
-
-    private static final int T_ROLLBACK_WAIT_to_ROLLBACK = 11;
-
-    private static final int T_ROLLBACK_to_TERMINATE_WAIT = 12;
-
-    private static final int T_TERMINATE_WAIT_to_TERMINATED = 13;
-
-    /**
-     * A cancel request, due to rollback or dependency failure.
-     */
-    private static final int FLAG_CANCEL_REQ      = 1 << 4;
-    private static final int FLAG_COMMIT_REQ      = 1 << 5;
-
-    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_CANCEL_REQ | FLAG_COMMIT_REQ;
+    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_COMMIT_REQ;
 
     // non-persistent status flags
-    private static final int FLAG_EXECUTE_DONE   = 1 << 6;
-    private static final int FLAG_ROLLBACK_DONE  = 1 << 7;
-    private static final int FLAG_INSTALL_FAILED = 1 << 8;
+    private static final int FLAG_EXECUTE_DONE   = 1 << 5;
+    private static final int FLAG_INSTALL_FAILED = 1 << 6;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 9; // to children
-    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 10; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 11; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 12; // to dependents
-    private static final int FLAG_SEND_CANCEL_DEPENDENTS    = 1 << 13; // to dependents
-    private static final int FLAG_SEND_DEPENDENT_TERMINATED = 1 << 14; // to dependencies
-    private static final int FLAG_SEND_CANCEL_REQUESTED     = 1 << 15; // to transaction
-    private static final int FLAG_SEND_CANCELLED            = 1 << 16; // to transaction
-    private static final int FLAG_SEND_RENOUNCE_CHILDREN    = 1 << 17; // to transaction
+    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 7; // to children
+    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 8; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 9; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 10; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(9, 17);
+    private static final int SEND_FLAGS = Bits.intBitMask(7, 10);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 18;
-    private static final int FLAG_DO_ROLLBACK = 1 << 19;
+    private static final int FLAG_DO_EXECUTE  = 1 << 11;
 
-    private static final int DO_FLAGS = Bits.intBitMask(18, 19);
+    private static final int DO_FLAGS = Bits.intBitMask(11, 11);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
 
     private static final int FLAG_USER_THREAD = 1 << 31; // called from user thread; do not block
 
-    private static class DelegatingTaskParent implements TaskParent {
-
-        private TaskParent delegate;
-
-        private DelegatingTaskParent(final TaskParent delegate) {
-            this.delegate = delegate;
-        }
-
-        private synchronized void setDelegate(final TaskParent delegate) {
-            this.delegate = delegate;
-        }
-
-        private synchronized TaskParent getDelegate() {
-            return delegate;
-        }
-
-        @Override
-        public void childExecuted(final boolean userThread) {
-            getDelegate().childExecuted(userThread);
-        }
-
-        @Override
-        public void childTerminated(final boolean userThread) {
-            getDelegate().childTerminated(userThread);
-        }
-
-        @Override
-        public void childAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
-            getDelegate().childAdded(child, userThread);
-        }
-
-        @Override
-        public Transaction getTransaction() {
-            return getDelegate().getTransaction();
-        }
-
-    }
-
-    TaskControllerImpl(final TaskParent parent, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final Revertible revertible, final ClassLoader classLoader) {
-        this.parent = new DelegatingTaskParent(parent);
+    TaskControllerImpl(final TaskParent parent, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final ClassLoader classLoader) {
+        this.parent = parent;
         this.dependencies = dependencies;
         this.executable = executable;
-        this.revertible = revertible;
         this.classLoader = classLoader;
         state = STATE_NEW;
     }
@@ -300,9 +210,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE_WAIT: {
-                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                    return T_EXECUTE_WAIT_to_TERMINATE_WAIT;
-                } else if (unexecutedDependencies == 0) {
+                if (unexecutedDependencies == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
                 } else {
                     return T_NONE;
@@ -316,33 +224,15 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 }
             }
             case STATE_EXECUTE_CHILDREN_WAIT: {
-                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                    return T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT;
-                } else if (unexecutedChildren == 0) {
+                if (unexecutedChildren == 0) {
                     return T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_EXECUTE_DONE: {
-                if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                    return T_EXECUTE_DONE_to_ROLLBACK_WAIT;
-                } else if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
+                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_EXECUTE_DONE_to_TERMINATE_WAIT;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_ROLLBACK_WAIT: {
-                if (unterminatedDependents == 0 && (Bits.allAreSet(state, FLAG_CANCEL_REQ) || unterminatedChildren == 0)) {
-                    return T_ROLLBACK_WAIT_to_ROLLBACK;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_ROLLBACK: {
-                if (Bits.allAreSet(state, FLAG_ROLLBACK_DONE)) {
-                    return T_ROLLBACK_to_TERMINATE_WAIT;
                 } else {
                     return T_NONE;
                 }
@@ -403,11 +293,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     continue;
                 }
                 case T_TERMINATE_WAIT_to_TERMINATED: {
-                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ)) {
-                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_DEPENDENT_TERMINATED | FLAG_SEND_CANCELLED);
-                    } else {
-                        state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED | FLAG_SEND_DEPENDENT_TERMINATED);
-                    }
+                    state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED);
                     continue;
                 }
 
@@ -416,69 +302,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 case T_NEW_to_TERMINATED: {
                     // not possible to go any farther
                     return newState(STATE_TERMINATED, state);
-                }
-                case T_EXECUTE_WAIT_to_TERMINATE_WAIT: {
-                    if (! dependents.isEmpty()) {
-                        cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_EXECUTED);
-                    } else {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED);
-                    }
-                    continue;
-                }
-                case T_EXECUTE_to_TERMINATE_WAIT: {
-                    if (! dependents.isEmpty()) {
-                        cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS | FLAG_SEND_CHILD_EXECUTED);
-                    } else {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED);
-                    }
-                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ) && children.size() > 0) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_RENOUNCE_CHILDREN);
-                    }
-                    continue;
-                }
-                case T_EXECUTE_CHILDREN_WAIT_to_ROLLBACK_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                        if (! dependents.isEmpty()) {
-                            cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
-                        } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state);
-                        }
-                    }
-                    sendChildExecuted = true;
-                    continue;
-                }
-                case T_EXECUTE_DONE_to_ROLLBACK_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                        if (! dependents.isEmpty()) {
-                            cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                            state = newState(STATE_ROLLBACK_WAIT, state | FLAG_SEND_CANCEL_DEPENDENTS);
-                        } else {
-                            state = newState(STATE_ROLLBACK_WAIT, state);
-                        }
-                    }
-                    continue;
-                }
-                case T_ROLLBACK_WAIT_to_ROLLBACK: {
-                    if (revertible == null) {
-                        state = newState(STATE_ROLLBACK, state | FLAG_ROLLBACK_DONE);
-                        continue;
-                    }
-                    // not possible to go any farther
-                    return newState(STATE_ROLLBACK, state | FLAG_DO_ROLLBACK);
-                }
-                case T_ROLLBACK_to_TERMINATE_WAIT: {
-                    if (Bits.allAreSet(state, FLAG_CANCEL_REQ) && children.size() > 0) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_RENOUNCE_CHILDREN);
-                    } else {
-                        state = newState(STATE_TERMINATE_WAIT, state);
-                    }
-                    if (sendChildExecuted) {
-                        state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_CHILD_EXECUTED);
-                    }
-                    continue;
                 }
                 default: throw new IllegalStateException();
             }
@@ -490,38 +313,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             execute();
         }
     };
-
-    private final Runnable rollbackTask = new Runnable() {
-        public void run() {
-            rollback();
-        }
-    };
-
-    private class DependentTerminatedTask implements Runnable {
-        private final boolean userThread;
-
-        private DependentTerminatedTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            for (TaskControllerImpl<?> dependency : dependencies) {
-                dependency.dependentTerminated(userThread);
-            }
-        }
-    }
-
-    private class ChildCancelledTask implements Runnable {
-        private final boolean userThread;
-
-        private ChildCancelledTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            getInternalTransaction().childCancelled(userThread);
-        }
-    }
 
     private class ChildTerminatedTask implements Runnable {
         private final boolean userThread;
@@ -543,14 +334,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
 
         public void run() {
-            final TaskChild cachedChild = TaskControllerImpl.cachedChild.get();
-            TaskControllerImpl.cachedChild.remove();
-            if (cachedChild != null) {
-                cachedChild.childCommit(userThread);
-            } else {
-                for (final TaskChild child : children) {
-                    child.childCommit(userThread);
-                }
+            for (final TaskChild child : children) {
+                child.childCommit(userThread);
             }
         }
     }
@@ -583,34 +368,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
     }
 
-    private class DependentCancelTask implements Runnable {
-        private final boolean userThread;
-        private final TaskControllerImpl<?>[] dependents;
-
-        private DependentCancelTask(final TaskControllerImpl<?>[] dependents, final boolean userThread) {
-            this.dependents = dependents;
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            for (TaskControllerImpl<?> dependent : dependents) {
-                dependent.forceCancel(userThread);
-            }
-        }
-    }
-
-    private class RenounceChildrenTask implements Runnable {
-        private final boolean userThread;
-
-        private RenounceChildrenTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            renounceChildren(userThread);
-        }
-    }
-
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
         if (!Bits.allAreClear(state, DO_FLAGS)) {
@@ -619,25 +376,13 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
                     safeExecute(new AsyncTask(FLAG_DO_EXECUTE));
                 }
-                if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
-                    safeExecute(new AsyncTask(FLAG_DO_ROLLBACK));
-                }
             } else {
                 if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
                     ThreadLocalExecutor.addTask(executeTask);
                 }
-                if (Bits.allAreSet(state, FLAG_DO_ROLLBACK)) {
-                    ThreadLocalExecutor.addTask(rollbackTask);
-                }
             }
         }
 
-        if (Bits.allAreSet(state, FLAG_SEND_DEPENDENT_TERMINATED)) {
-            ThreadLocalExecutor.addTask(new DependentTerminatedTask(userThread));
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_CANCELLED)) {
-            ThreadLocalExecutor.addTask(new ChildCancelledTask(userThread));
-        }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             ThreadLocalExecutor.addTask(new ChildTerminatedTask(userThread));
         }
@@ -652,41 +397,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (dependents != null && Bits.allAreSet(state, FLAG_SEND_DEPENDENCY_EXECUTED)) {
             ThreadLocalExecutor.addTask(new DependencyExecutedTask(dependents, userThread));
         }
-        if (dependents != null && Bits.allAreSet(state, FLAG_SEND_CANCEL_DEPENDENTS)) {
-            ThreadLocalExecutor.addTask(new DependentCancelTask(dependents, userThread));
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_RENOUNCE_CHILDREN)) {
-            ThreadLocalExecutor.addTask(new RenounceChildrenTask(userThread));
-        }
-        if (Bits.allAreSet(state,  FLAG_SEND_CANCEL_REQUESTED)) {
-            getInternalTransaction().childCancelRequested(userThread);
-        }
         ThreadLocalExecutor.executeTasks();
-    }
-
-    private void renounceChildren(final boolean userThread) {
-        assert !holdsLock(this);
-        int state;
-        final int unexecutedChildren;
-        final int unterminatedChildren;
-        final Queue<TaskControllerImpl<?>> children;
-        synchronized (this) {
-            unexecutedChildren = this.unexecutedChildren;
-            unterminatedChildren = this.unterminatedChildren;
-            children = this.children;
-            adopter = getInternalTransaction().topParent;
-            for (final TaskControllerImpl<?> child : this.children) {
-                child.parent.setDelegate(adopter);
-            }
-            this.unexecutedChildren = 0;
-            this.unterminatedChildren = 0;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        getInternalTransaction().adoptGrandchildren(children, userThread, unexecutedChildren, unterminatedChildren);
-        executeTasks(state);
     }
 
     private void safeExecute(final Runnable command) {
@@ -695,36 +406,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         } catch (Throwable t) {
             MSCLogger.ROOT.runnableExecuteFailed(t, command);
         }
-    }
-
-    void forceCancel() {
-        forceCancel(false);
-    }
-
-    private void forceCancel(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            if (Bits.anyAreSet(this.state, FLAG_CANCEL_REQ)) return; // idempotent
-            state = this.state | FLAG_CANCEL_REQ | FLAG_SEND_CANCEL_REQUESTED;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    private void dependentTerminated(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            unterminatedDependents--;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
     }
 
     private static int newState(int sid, int state) {
@@ -741,16 +422,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         return sid == sid1;
     }
 
-    private static boolean stateIsIn(int state, int sid1, int sid2) {
-        final int sid = stateOf(state);
-        return sid == sid1 || sid == sid2;
-    }
-
-    private static boolean stateIsIn(int state, int sid1, int sid2, int sid3, int sid4, int sid5, int sid6) {
-        final int sid = stateOf(state);
-        return sid == sid1 || sid == sid2 || sid == sid3 || sid == sid4 || sid == sid5 || sid == sid6;
-    }
-
     private void execComplete(final T result) {
         assert ! holdsLock(this);
         int state;
@@ -760,20 +431,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                 throw MSCLogger.TASK.taskCannotComplete();
             }
             this.result = result;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    private void rollbackComplete() {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_USER_THREAD | FLAG_ROLLBACK_DONE;
-            if (stateOf(state) != STATE_ROLLBACK) {
-                throw MSCLogger.TASK.taskCannotRollback();
-            }
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -794,50 +451,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             final ClassLoader classLoader = CL_HOLDER.get();
             thread.setContextClassLoader(classLoader);
             CL_HOLDER.remove();
-        }
-    }
-
-    void rollback() {
-        final ProblemReport problemReport = getTransaction().getReport();
-        final Revertible rev = revertible;
-        if (rev != null) try {
-            setClassLoader();
-            rev.rollback(new RollbackContext() {
-                public void complete() {
-                    rollbackComplete();
-                }
-                public void addProblem(final Problem reason) {
-                    problemReport.addProblem(reason);
-                }
-
-                public void addProblem(final Problem.Severity severity, final String message) {
-                    addProblem(new Problem(severity, message));
-                }
-
-                public void addProblem(final Problem.Severity severity, final String message, final Throwable cause) {
-                    addProblem(new Problem(severity, message, cause));
-                }
-
-                public void addProblem(final String message, final Throwable cause) {
-                    addProblem(new Problem(message, cause));
-                }
-
-                public void addProblem(final String message) {
-                    addProblem(new Problem(message));
-                }
-
-                public void addProblem(final Throwable cause) {
-                    addProblem(new Problem(cause));
-                }
-
-                public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
-                }
-            });
-        } catch (Throwable t) {
-            MSCLogger.TASK.taskRollbackFailed(t, rev);
-        } finally {
-            unsetClassLoader();
         }
     }
 
@@ -903,92 +516,54 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     @Override
     public void childExecuted(final boolean userThread) {
         assert ! holdsLock(this);
-        int state = 0;
-        TaskParent adopter = null;
+        int state;
         synchronized (this) {
-            if (this.adopter != null) {
-                adopter = this.adopter;
-            } else {
-                unexecutedChildren--;
-                state = this.state;
-                if (userThread) state |= FLAG_USER_THREAD;
-                state = transition(state);
-                this.state = state & PERSISTENT_STATE;
-            }
+            unexecutedChildren--;
+            state = this.state;
+            if (userThread) state |= FLAG_USER_THREAD;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
         }
-        if (adopter == null) {
-            executeTasks(state);
-        } else {
-            adopter.childExecuted(userThread);
-        }
+        executeTasks(state);
     }
 
     @Override
     public void childTerminated(final boolean userThread) {
         assert ! holdsLock(this);
-        int state = 0;
-        TaskParent adopter = null;
+        int state;
         synchronized (this) {
-            if (this.adopter != null) {
-                adopter = this.adopter;
-            } else {
-                unterminatedChildren--;
-                state = this.state;
-                if (userThread) state |= FLAG_USER_THREAD;
-                state = transition(state);
-                this.state = state & PERSISTENT_STATE;
-            }
+            unterminatedChildren--;
+            state = this.state;
+            if (userThread) state |= FLAG_USER_THREAD;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
         }
-        if (adopter == null) {
-            executeTasks(state);
-        } else {
-            adopter.childTerminated(userThread);
-        }
+        executeTasks(state);
     }
 
     @Override
     public void childAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
-        int state = 0;
-        TaskParent adopter = null;
+        int state;
         synchronized (this) {
-            if (this.adopter != null) {
-                adopter = this.adopter;
+            state = this.state;
+            if (stateIsIn(state, STATE_EXECUTE)) {
+                unexecutedChildren++;
+                unterminatedChildren++;
+                children.add((TaskControllerImpl<?>) child);
+                if (userThread) state |= FLAG_USER_THREAD;
+                state = transition(state);
+                this.state = state & PERSISTENT_STATE;
             } else {
-                state = this.state;
-                if (stateIsIn(state, STATE_EXECUTE, STATE_ROLLBACK)) {
-                    unexecutedChildren++;
-                    unterminatedChildren++;
-                    children.add((TaskControllerImpl<?>) child);
-                    if (userThread) state |= FLAG_USER_THREAD;
-                    if (stateIsIn(state, STATE_ROLLBACK)) {
-                        cachedChild.set(child);
-                        // TODO: The following line is ugly hack to support child tasks creation during rollback phase.
-                        // TODO: We're setting SEND_COMMIT_REQ flag instead of expected
-                        // TODO: SEND_ROLLBACK_REQ one because if we'd setup SEND_ROLLBACK_REQ
-                        // TODO: on newly installed child task, it would be terminated before execution because
-                        // TODO: tasks in EXECUTE_WAIT state move to TERMINATE_WAIT state if ROLLBACK_REQ flag is set.
-                        // TODO: Anyway it doesn't matter if such child task created during parent revert phase is
-                        // TODO: committed or rolled back because it cannot have Revertible component.
-                        state |= FLAG_SEND_COMMIT_REQ;
-                    }
-                    state = transition(state);
-                    this.state = state & PERSISTENT_STATE;
+                if (userThread) {
+                    throw MSCLogger.TASK.cannotAddDepToTask();
                 } else {
-                    if (userThread) {
-                        throw MSCLogger.TASK.cannotAddDepToTask();
-                    } else {
-                        // todo log and ignore...
-                        return;
-                    }
+                    // todo log and ignore...
+                    return;
                 }
             }
         }
-        if (adopter == null) {
-            executeTasks(state);
-        } else {
-            adopter.childAdded(child, userThread);
-        }
+        executeTasks(state);
     }
 
     public void dependencyExecuted(final boolean userThread) {
@@ -1020,32 +595,11 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         assert ! holdsLock(this);
         int state;
         boolean dependencyDone = false;
-        boolean dependencyCancelled = false;
 
         synchronized (this) {
             state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            if (stateIsIn(state, STATE_EXECUTE_WAIT, STATE_EXECUTE, STATE_EXECUTE_CHILDREN_WAIT, STATE_EXECUTE_DONE, STATE_TERMINATE_WAIT, STATE_TERMINATED)) {
-                dependents.add(dependent);
-                unterminatedDependents++;
-                state = transition(state);
-                this.state = state & PERSISTENT_STATE;
-            } else {
-                if (userThread) {
-                    throw MSCLogger.TASK.cannotAddDepToTask();
-                } else {
-                    // todo log and ignore...
-                    return;
-                }
-            }
+            dependents.add(dependent);
             switch (stateOf(state)) {
-                case STATE_TERMINATED:
-                case STATE_TERMINATE_WAIT: {
-                    if (Bits.anyAreSet(state, FLAG_CANCEL_REQ)) {
-                        dependencyCancelled = true;
-                        break;
-                    }
-                }
                 case STATE_EXECUTE_DONE:
                 case STATE_EXECUTE_CHILDREN_WAIT:
                     dependencyDone = true;
@@ -1053,10 +607,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
         if (dependencyDone) {
             dependent.dependencyExecuted(userThread);
-        } else if (dependencyCancelled) {
-            dependent.forceCancel(userThread);
         }
-        executeTasks(state);
     }
 
     void install() {
@@ -1076,16 +627,10 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             executeTasks(state);
             throw e;
         }
-        TaskControllerImpl<?> dependency;
-        for (int i = 0; i < dependencies.length; i++) {
-            dependency = dependencies[i];
+        for (final TaskControllerImpl<?> dependency : dependencies) {
             try {
                 dependency.dependentAdded(this, true);
             } catch (IllegalStateException e) {
-                for (; i >= 0; i --) {
-                    dependency = dependencies[i];
-                    dependency.dependentTerminated(true);
-                }
                 parent.childTerminated(true);
                 synchronized (this) {
                     state = this.state | FLAG_USER_THREAD | FLAG_INSTALL_FAILED;

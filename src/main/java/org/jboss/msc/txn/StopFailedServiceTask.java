@@ -23,7 +23,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class StopFailedServiceTask implements Executable<Void>, Revertible {
+final class StopFailedServiceTask implements Executable<Void> {
 
     /**
      * Creates stop failed service task.
@@ -36,9 +36,7 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
     static <T> TaskController<Void> create(ServiceControllerImpl<T> service, TaskFactory taskFactory) {
         // post stop task
         final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service);
-        final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
-        final TaskController<Void> revertStopFailed = tb.setRevertible(stopFailedService).release();
-        return taskFactory.newTask(stopFailedService).addDependency(revertStopFailed).release();
+        return taskFactory.newTask(stopFailedService).release();
     }
 
     private final ServiceControllerImpl<?> serviceController;
@@ -51,15 +49,6 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
     public void execute(ExecuteContext<Void> context) {
         try {
             serviceController.setServiceDown();
-        } finally {
-            context.complete();
-        }
-    }
-
-    @Override
-    public void rollback(RollbackContext context) {
-        try {
-            serviceController.setServiceFailed();
         } finally {
             context.complete();
         }

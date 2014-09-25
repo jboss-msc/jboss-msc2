@@ -88,27 +88,23 @@ public interface MSCLogger {
     @Message(id = 11, value = "Execution of task \"%s\" caused an exception")
     void taskExecutionFailed(@Cause Throwable cause, Object task);
 
-    @LogMessage(level = ERROR)
-    @Message(id = 12, value = "Rollback of task \"%s\" caused an exception")
-    void taskRollbackFailed(@Cause Throwable cause, Object task);
-
     @LogMessage(level = FATAL)
-    @Message(id = 13, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
+    @Message(id = 12, value = "Internal task \"%s\" execution failed (transaction is likely permanently jammed)")
     void runnableExecuteFailed(@Cause Throwable cause, Runnable command);
 
-    @Message(id = 14, value ="Service %s has a required dependency on service %s that is missing")
+    @Message(id = 13, value ="Service %s has a required dependency on service %s that is missing")
     String requiredDependency(ServiceName dependentName, ServiceName dependencyName);
 
     @LogMessage(level = FATAL)
-    @Message(id = 15, value = "Transaction prepare completion listener failed")
+    @Message(id = 14, value = "Transaction prepare completion listener failed")
     void prepareCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 16, value = "Transaction terminate completion listener failed")
+    @Message(id = 15, value = "Transaction terminate completion listener failed")
     void terminateCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 17, value = "Transaction create completion listener failed")
+    @Message(id = 16, value = "Transaction create completion listener failed")
     void transactionCreationCompletionListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
@@ -146,55 +142,46 @@ public interface MSCLogger {
     @Message(id = 111, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotAddChildToInactiveTxn(final int state);
 
-    @Message(id = 112, value = "Cannot cancel child task at this stage: transaction is no longer active (current state: %s)")
-    InvalidTransactionStateException cannotCancelChildOnInactiveTxn(final int state);
-
-    @Message(id = 113, value = "No result is available")
+    @Message(id = 112, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message(id = 114, value = "Task may not be completed now")
+    @Message(id = 113, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message(id = 115, value = "Task may not be reverted now")
-    IllegalStateException taskCannotRollback();
-
-    @Message(id = 116, value = "Dependent may not be added at this point")
+    @Message(id = 114, value = "Dependent may not be added at this point")
     IllegalStateException cannotAddDepToTask();
 
-    @Message(id = 117, value = "A service named %s is already installed")
+    @Message(id = 115, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message(id = 118, value = "Cannot add new tasks to inactive transaction")
+    @Message(id = 116, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message(id = 119, value = "Cannot add new tasks with revertible component to inactive transaction")
-    InvalidTransactionStateException cannotAddRevertibleToInactiveTransaction();
-
-    @Message(id = 120, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    @Message(id = 117, value = "It is forbidden to create dependency on registry created by other transaction controller")
     IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
 
-    @Message(id = 121, value = "Transaction controller mismatch.")
+    @Message(id = 118, value = "Transaction controller mismatch.")
     IllegalArgumentException transactionControllerMismatch();
 
-    @Message(id = 122, value = "ServiceBuilder.install() have been already called")
+    @Message(id = 119, value = "ServiceBuilder.install() have been already called")
     IllegalStateException cannotCallInstallTwice();
 
-    @Message(id = 123, value = "%s service installation failed because it introduced the following cycle: %s")
+    @Message(id = 120, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
-    @Message(id = 124, value = "%s service is not started yet")
+    @Message(id = 121, value = "%s service is not started yet")
     IllegalStateException serviceNotStarted(final ServiceName name);
 
-    @Message(id = 125, value = "Transaction was downgraded to read-only transaction")
+    @Message(id = 122, value = "Transaction was downgraded to read-only transaction")
     InvalidTransactionStateException invalidatedUpdateTransaction();
 
-    @Message(id = 126, value = "Illegal transaction argument")
+    @Message(id = 123, value = "Illegal transaction argument")
     IllegalArgumentException illegalTransaction();
 
-    @Message(id = 127, value = "Transaction can be restarted only once")
+    @Message(id = 124, value = "Transaction can be restarted only once")
     InvalidTransactionStateException cannotRestartRestartedTxn();
 
-    @Message(id = 128, value = "Cannot restart unprepared transaction")
+    @Message(id = 125, value = "Cannot restart unprepared transaction")
     InvalidTransactionStateException cannotRestartUnpreparedTxn();
 
     /*

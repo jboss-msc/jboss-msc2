@@ -24,7 +24,6 @@ import java.util.IdentityHashMap;
 import java.util.Set;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
-import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
  * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.
@@ -42,13 +41,11 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
     private Executable<T> executable;
-    private Revertible revertible;
 
     TaskBuilderImpl(final Transaction transaction, final TaskParent parent, final Executable<T> executable) {
         this.transaction = transaction;
         this.parent = parent;
         this.executable = executable;
-        if (executable instanceof Revertible) revertible = (Revertible) executable;
     }
 
     @Override
@@ -59,14 +56,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     @Override
     public TaskBuilderImpl<T> setExecutable(final Executable<T> executable) {
         this.executable = executable;
-        return this;
-    }
-
-    public TaskBuilderImpl<T> setRevertible(final Revertible revertible) {
-        if (!getAbstractTransaction(transaction).isActive()) {
-            throw TXN.cannotAddRevertibleToInactiveTransaction();
-        }
-        this.revertible = revertible;
         return this;
     }
 
@@ -111,7 +100,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, revertible, classLoader);
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, classLoader);
         controller.install();
         return controller;
     }

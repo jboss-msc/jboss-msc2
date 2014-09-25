@@ -19,15 +19,8 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceContext;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
-
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Task that stops service.
@@ -35,21 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-final class StopServiceTask<T> implements Executable<Void>, Revertible {
-
-    private static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> REVERT_STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
-        @Override
-        public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
-            return new ConcurrentHashMap<>();
-        }
-
-    });
-    static final AttachmentKey<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> STOP_TASKS = AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>>> () {
-        @Override
-        public ConcurrentHashMap<ServiceControllerImpl<?>, TaskController<Void>> create() {
-            return new ConcurrentHashMap<>();
-        }
-    });
+final class StopServiceTask<T> implements Executable<Void> {
 
     /**
      * Creates a stop service task.
@@ -78,40 +57,12 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
     static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency,
             Transaction transaction, TaskFactory taskFactory) {
 
-        // revert stopping services, i.e., service that have not been stopped because stop has been cancelled
-        final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
-        final TaskController<Void> revertStoppingTask = tb
-                .setRevertible(new RevertStoppingServiceTask(serviceController, transaction)).release();
-
-        // revertStoppingTask is the one that needs to be cancelled if service has to revert stop
-        transaction.getAttachment(REVERT_STOP_TASKS).put(serviceController, revertStoppingTask);
         // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<>(serviceController, transaction))
-                .addDependency(revertStoppingTask);
+        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
             stopTaskBuilder.addDependency(taskDependency);
         }
-        final TaskController<Void> stop = stopTaskBuilder.release();
-        transaction.getAttachment(STOP_TASKS).put(serviceController, stop);
-
-        return stop;
-    }
-
-    /**
-     * Attempt to revert stop task for {@code service}, thus causing a service to restart if it has been stopped.
-     * 
-     * @param service     the service whose stop tasks will be reverted
-     * @param transaction the active transaction
-     * @return {@code true} if a stop task has been reverted; {@code false} if no such stop task exists, indicating
-     *                      a start task has to be created to start the service 
-     */
-    static boolean revert(ServiceControllerImpl<?> service, Transaction transaction) {
-        final TaskController<Void> stopTask = transaction.getAttachment(REVERT_STOP_TASKS).remove(service);
-        if (stopTask != null) {
-            ((TaskControllerImpl<Void>) stopTask).forceCancel();
-            return true;
-        }
-        return false;
+        return stopTaskBuilder.release();
     }
 
     private final ServiceControllerImpl<T> serviceController;
@@ -218,163 +169,6 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
                 context.addProblem(cause);
             }
         });
-    }
-
-    @Override
-    public void rollback(final RollbackContext context) {
-        if (!taskValid) {
-            context.complete();
-            return;
-        }
-        final Service<T> service = serviceController.getService();
-        if (service == null) {
-            serviceController.setServiceUp(null);
-            serviceController.notifyServiceUp(transaction);
-            context.complete();
-            return;
-        }
-        service.start(new StartContext<T>() {
-
-            @Override
-            public void complete(T result) {
-                serviceController.setServiceUp(result);
-                serviceController.notifyServiceUp(transaction);
-                context.complete();
-            }
-
-            @Override
-            public void complete() {
-                serviceController.setServiceUp(null);
-                serviceController.notifyServiceUp(transaction);
-                context.complete();
-            }
-
-            @Override
-            public void fail() {
-                serviceController.setServiceFailed();
-                serviceController.notifyServiceFailed(transaction, null);
-                context.complete();
-            }
-
-            @Override
-            public void addProblem(Problem reason) {
-                if (reason == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("reason");
-                }
-                context.addProblem(reason);
-            }
-
-            @Override
-            public void addProblem(Severity severity, String message) {
-                if (severity == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
-                }
-                if (message == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
-                }
-                context.addProblem(severity, message);
-            }
-
-            @Override
-            public void addProblem(Severity severity, String message, Throwable cause) {
-                if (severity == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("severity");
-                }
-                if (message == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
-                }
-                if (cause == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
-                }
-                context.addProblem(severity, message, cause);
-            }
-
-            @Override
-            public void addProblem(String message, Throwable cause) {
-                if (message == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
-                }
-                if (cause == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
-                }
-                context.addProblem(message, cause);
-            }
-
-            @Override
-            public void addProblem(String message) {
-                if (message == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("message");
-                }
-                context.addProblem(message);
-            }
-
-            @Override
-            public void addProblem(Throwable cause) {
-                if (cause == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("cause");
-                }
-                context.addProblem(cause);
-            }
-
-            @Override
-            public <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name,
-                    ServiceContext parentContext) {
-                if (valueType == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("valueType");
-                }
-                if (registry == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
-                }
-                if (name == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
-                }
-                if (parentContext == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
-                }
-                return parentContext.addService(valueType,  registry,  name, (BasicUpdateTransaction) transaction);
-            }
-
-            @Override
-            public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext) {
-                if (registry == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
-                }
-                if (name == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
-                }
-                if (parentContext == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
-                }
-                return parentContext.addService(registry,  name, (BasicUpdateTransaction) transaction);
-            }
-        });
-    }
-
-    /**
-     * Revertible task, whose goal is to revert stopping services back to UP state on rollback.
-     *
-     */
-    static class RevertStoppingServiceTask implements Revertible {
-
-        private final ServiceControllerImpl<?> serviceController;
-        private final Transaction transaction;
-
-        public RevertStoppingServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
-            this.serviceController = serviceController;
-            this.transaction = transaction;
-        }
-
-        @Override
-        public void rollback(RollbackContext context) {
-            try {
-                // revert only stopping services
-                if (serviceController.revertStopping()) {
-                    serviceController.notifyServiceUp(transaction);
-                }
-            } finally {
-                context.complete();
-            }
-        }
     }
 
 }

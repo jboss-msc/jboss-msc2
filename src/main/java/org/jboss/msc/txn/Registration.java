@@ -214,12 +214,6 @@ final class Registration {
         }
     }
 
-    void reinstall() {
-        synchronized (this) {
-            state = state & ~REMOVED;
-        }
-    }
-
     void disableRegistry(Transaction transaction, TaskFactory taskFactory) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {

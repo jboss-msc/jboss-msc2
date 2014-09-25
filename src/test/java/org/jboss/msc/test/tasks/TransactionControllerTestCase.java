@@ -29,7 +29,6 @@ import org.jboss.msc.txn.ReadTransaction;
 import org.jboss.msc.txn.TestService;
 import org.jboss.msc.txn.TransactionController;
 import org.jboss.msc.txn.UpdateTransaction;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -133,7 +132,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         service.waitStop();
     }
 
-    @Test @Ignore
+    @Test
     public void restartTransaction() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
         txnController.createUpdateTransaction(defaultExecutor, createListener);

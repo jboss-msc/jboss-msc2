@@ -97,7 +97,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     };
     private long endTime;
     private int state;
-    private int uncancelledChildren;
     private int unexecutedChildren;
     private int unterminatedChildren;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
@@ -181,7 +180,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0 && uncancelledChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0) {
                     return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
@@ -434,53 +433,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             topLevelTasks.add(child);
             unexecutedChildren++;
             unterminatedChildren++;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    void childCancelRequested(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (stateOf(state) != STATE_ACTIVE) {
-                throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
-            }
-            uncancelledChildren++;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    void childCancelled(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (stateOf(state) != STATE_ACTIVE) {
-                throw MSCLogger.TXN.cannotCancelChildOnInactiveTxn(stateOf(state));
-            }
-            uncancelledChildren--;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    void adoptGrandchildren(final Queue<TaskControllerImpl<?>> grandchildren, final boolean userThread, final int unexecutedGreatGrandchildren, final int unterminatedGreatGrandchildren) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            topLevelTasks.addAll(grandchildren);
-            unexecutedChildren += unexecutedGreatGrandchildren;
-            unterminatedChildren += unterminatedGreatGrandchildren;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }

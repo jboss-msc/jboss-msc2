@@ -51,18 +51,16 @@ abstract class ServiceManager {
      * 
      * @param transaction the active transaction
      * @param taskFactory the task factory
-     * @return {@code true} if the services were actually enabled, {@code false} if they were already enabled
      */
-    abstract boolean doEnable(final Transaction transaction, final TaskFactory taskFactory);
+    abstract void doEnable(final Transaction transaction, final TaskFactory taskFactory);
 
     /**
      * Disables the services managed by this object.
      * 
      * @param transaction the active transaction
      * @param taskFactory the task factory
-     * @return {@code true} if the services were actually disabled, {@code false} if they were already disabled
      */
-    abstract boolean doDisable(final Transaction transaction, final TaskFactory taskFactory);
+    abstract void doDisable(final Transaction transaction, final TaskFactory taskFactory);
 
     /**
      * Management operation for disabling one or more services. As a result, the affected services will stop if they are
@@ -74,20 +72,19 @@ abstract class ServiceManager {
         final TaskControllerImpl<Void> enableTask;
         synchronized (this) {
             enableTask = (TaskControllerImpl<Void>) tasks[ENABLE].remove(this);
-            // if there is no enable task to cancel, and if there is not a disable task previously created for this txn
             // create a disable task
-            if (enableTask == null && !tasks[DISABLE].containsKey(this)){
+            if (!tasks[DISABLE].containsKey(this)){
                 final DisableServiceTask task = new DisableServiceTask(transaction);
                 final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
-                final TaskController<Void> taskController = tb.setRevertible(task).release();
+                if (enableTask != null) {
+                    tb.addDependency(enableTask);
+                }
+                final TaskController<Void> taskController = tb.release();
                 if (tasks[DISABLE] == Collections.EMPTY_MAP) {
                     tasks[DISABLE] = new ConcurrentHashMap<>();
                 }
                 tasks[DISABLE].put(this, taskController);
             }
-        }
-        if (enableTask != null) {
-            enableTask.forceCancel();
         }
     }
 
@@ -102,27 +99,25 @@ abstract class ServiceManager {
         final TaskControllerImpl<Void> disableTask;
         synchronized (this) {
             disableTask = (TaskControllerImpl<Void>) tasks[DISABLE].remove(this);
-            // if there is no disable task to cancel, and if there is not a enable task previously created for this txn
             // create a enable task
-            if (disableTask == null && !tasks[ENABLE].containsKey(this)) {
+            if (!tasks[ENABLE].containsKey(this)) {
                 final EnableServiceTask task = new EnableServiceTask(transaction);
                 final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(task);
-                final TaskController<Void> taskController = tb.setRevertible(task).release();
+                if (disableTask != null) {
+                    tb.addDependency(disableTask);
+                }
+                final TaskController<Void> taskController = tb.release();
                 if (tasks[ENABLE] == Collections.EMPTY_MAP) {
                     tasks[ENABLE] = new ConcurrentHashMap<>();
                 }
                 tasks[ENABLE].put(this, taskController);
             }
         }
-        if (disableTask != null) {
-            disableTask.forceCancel();
-        }
     }
 
-    private class EnableServiceTask implements Executable<Void>, Revertible {
+    private class EnableServiceTask implements Executable<Void> {
 
         private final Transaction transaction;
-        private boolean enabled;
 
         public EnableServiceTask(final Transaction transaction) {
             this.transaction = transaction;
@@ -131,28 +126,16 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                enabled = doEnable(transaction, context);
-            } finally {
-                context.complete();
-            }
-        }
-
-        @Override
-        public synchronized void rollback(RollbackContext context) {
-            try {
-                if (enabled) {
-                    doDisable(transaction, null);
-                }
+                doEnable(transaction, context);
             } finally {
                 context.complete();
             }
         }
     }
 
-    private class DisableServiceTask implements Executable<Void>, Revertible {
+    private class DisableServiceTask implements Executable<Void> {
 
         private final Transaction transaction;
-        private boolean disabled;
 
         public DisableServiceTask(final Transaction transaction) {
             this.transaction = transaction;
@@ -161,18 +144,7 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                disabled = doDisable(transaction, context);
-            } finally {
-                context.complete();
-            }
-        }
-
-        @Override
-        public synchronized void rollback(RollbackContext context) {
-            try {
-                if (disabled) {
-                    doEnable(transaction, null);
-                }
+                doDisable(transaction, context);
             } finally {
                 context.complete();
             }

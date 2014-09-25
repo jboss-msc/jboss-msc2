@@ -24,7 +24,7 @@ package org.jboss.msc.txn;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  *
  */
-final class RemoveServiceTask implements Executable<Void>, Revertible {
+final class RemoveServiceTask implements Executable<Void> {
 
     /**
      * Creates a remove service task.
@@ -62,12 +62,4 @@ final class RemoveServiceTask implements Executable<Void>, Revertible {
         }
     }
 
-    @Override
-    public void rollback(RollbackContext context) {
-        try {
-            serviceController.reinstall(transaction);
-        } finally {
-            context.complete();
-        }
-    }
 }

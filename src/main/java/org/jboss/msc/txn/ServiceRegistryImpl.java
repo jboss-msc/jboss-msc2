@@ -120,8 +120,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         }
         setModified(transaction);
         final RemoveTask removeTask = new RemoveTask(transaction);
-        final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask);
-        tb.setRevertible(removeTask).release();
+        getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
     }
 
     @Override
@@ -132,18 +131,17 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         super.disable(transaction);
     }
 
-    boolean doDisable(Transaction transaction, TaskFactory taskFactory) {
+    void doDisable(Transaction transaction, TaskFactory taskFactory) {
         synchronized (this) {
             // idempotent
             if (!Bits.anyAreSet(state, ENABLED)) {
-                return false;
+                return;
             }
             state = (byte) (state & ~ENABLED);
         }
         for (Registration registration: registry.values()) {
             registration.disableRegistry(transaction, taskFactory);
         }
-        return true;
     }
 
     @Override
@@ -154,18 +152,17 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         super.enable(transaction);
     }
 
-    boolean doEnable(Transaction transaction, TaskFactory taskFactory) {
+    void doEnable(Transaction transaction, TaskFactory taskFactory) {
         synchronized (this) {
             // idempotent
             if (Bits.anyAreSet(state, ENABLED)) {
-                return false;
+                return;
             }
             state = (byte) (state | ENABLED);
         }
         for (Registration registration: registry.values()) {
             registration.enableRegistry(transaction, taskFactory);
         }
-        return true;
     }
 
     private synchronized void checkRemoved() throws IllegalStateException {
@@ -174,10 +171,9 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         }
     }
 
-    private final class RemoveTask implements Executable<Void>, Revertible {
+    private final class RemoveTask implements Executable<Void> {
 
         private final Transaction transaction;
-        private boolean removed;
 
         public RemoveTask(final Transaction transaction) {
             this.transaction = transaction;
@@ -194,24 +190,6 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
                 }
                 for (Registration registration : registry.values()) {
                     registration.remove(transaction, context);
-                }
-                removed = true;
-            } finally {
-                context.complete();
-            }
-        }
-
-        @Override
-        public synchronized void rollback(RollbackContext context) {
-            try {
-                if (!removed ) {
-                    return;
-                }
-                synchronized (ServiceRegistryImpl.this) {
-                    state = (byte) (state & ~REMOVED);
-                }
-                for (Registration registration : registry.values()) {
-                    registration.reinstall();
                 }
             } finally {
                 context.complete();

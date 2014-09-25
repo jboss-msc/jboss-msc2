@@ -40,6 +40,7 @@ import static org.junit.Assert.assertTrue;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * 
  */
+@org.junit.Ignore
 public class RegistryTestCase extends AbstractServiceTest {
     private static final ServiceName serviceAName = ServiceName.of("a", "different", "service", "name");
     private static final ServiceName serviceBName = ServiceName.of("u", "n", "e", "x", "p", "e", "c", "ted");

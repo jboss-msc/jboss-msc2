@@ -26,8 +26,6 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 
-import java.util.ArrayList;
-
 import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
@@ -205,22 +203,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.transition(transaction, taskFactory);
     }
 
-    void reinstall(final Transaction transaction) {
-        for (DependencyImpl<?> dependency: dependencies) {
-            dependency.setDependent(this, transaction);
-        }
-        beginInstallation();
-        boolean demandDependencies;
-        synchronized (this) {
-            state |= SERVICE_ENABLED;
-            transactionalInfo.transactionalState = STATE_DOWN;
-            demandDependencies = isMode(MODE_ACTIVE);
-        }
-        if (demandDependencies) {
-            demandDependencies(transaction, null);
-        }
-    }
-
     void clear(Transaction transaction, TaskFactory taskFactory) {
         primaryRegistration.clearController(transaction, taskFactory);
         for (Registration registration: aliasRegistrations) {
@@ -288,15 +270,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public boolean doDisable(final Transaction transaction, final TaskFactory taskFactory) {
+    public void doDisable(final Transaction transaction, final TaskFactory taskFactory) {
         initTransactionalInfo(transaction);
         synchronized(this) {
-            if (!isServiceEnabled()) return false;
+            if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return true;
+            if (!isRegistryEnabled()) return;
         }
         transactionalInfo.transition(transaction, taskFactory);
-        return true;
     }
 
     @Override
@@ -307,15 +288,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public boolean doEnable(final Transaction transaction, final TaskFactory taskFactory) {
+    public void doEnable(final Transaction transaction, final TaskFactory taskFactory) {
         initTransactionalInfo(transaction);
         synchronized(this) {
-            if (isServiceEnabled()) return false;
+            if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return true;
+            if (!isRegistryEnabled()) return;
         }
         transactionalInfo.transition(transaction, taskFactory);
-        return true;
     }
 
     private boolean isServiceEnabled() {
@@ -516,31 +496,11 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         }
     }
 
-    void notifyServiceDown(Transaction transaction) {
-        notifyServiceDown(transaction, null);
-    }
-
     void notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
         primaryRegistration.serviceDown(transaction, taskFactory);
         for (Registration registration: aliasRegistrations) {
             registration.serviceDown(transaction, taskFactory);
         }
-    }
-
-    boolean revertStopping() {
-        if (transactionalInfo.getTransition() == STATE_STOPPING) {
-            transactionalInfo.setTransition(STATE_UP);
-            return true;
-        }
-        return false;
-    }
-
-    boolean revertStarting() {
-        if (transactionalInfo.getTransition() == STATE_STARTING) {
-            setServiceDown();
-            return true;
-        }
-        return false;
     }
 
     private synchronized void initTransactionalInfo(final Transaction transaction) {
@@ -567,15 +527,10 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         private volatile byte transactionalState = ServiceControllerImpl.this.currentState();
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<T> startTask = null;
-        // contains a list of all dependencyStartTasks
-        private ArrayList<TaskController<?>> dependencyStartTasks = new ArrayList<>();
+        private TaskController<Void> stopTask = null;
 
         public synchronized void dependencySatisfied(final Transaction transaction) {
             transition(transaction, getAbstractTransaction(transaction).getTaskFactory());
-        }
-
-        byte getTransition() {
-            return transactionalState;
         }
 
         void setTransition(byte transactionalState) {
@@ -586,7 +541,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             if (transactionalState != STATE_FAILED) {
                 return;
             }
-            startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, getAbstractTransaction(transaction).getTaskFactory());
+            startTask = StartServiceTask.create(ServiceControllerImpl.this, null, transaction, getAbstractTransaction(transaction).getTaskFactory());
         }
 
         private synchronized void transition(Transaction transaction, TaskFactory taskFactory) {
@@ -595,14 +550,11 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_STOPPING:
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart()) {
-                        if (StopServiceTask.revert(ServiceControllerImpl.this, transaction)) {
-                            break;
-                        }
                         if (taskFactory == null) {
                             taskFactory = getAbstractTransaction(transaction).getTaskFactory();
                         }
                         transactionalState = STATE_STARTING;
-                        startTask = StartServiceTask.create(ServiceControllerImpl.this, dependencyStartTasks, transaction, taskFactory);
+                        startTask = StartServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
                     }
                     break;
                 case STATE_FAILED:
@@ -614,14 +566,11 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_STARTING:
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
-                        if (StartServiceTask.revert(ServiceControllerImpl.this, transaction)) {
-                            break;
-                        }
                         if (taskFactory == null) {
                             return;
                         }
                         transactionalState = STATE_STOPPING;
-                        StopServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
+                        stopTask = StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction, taskFactory);
                     }
                     break;
                 default:
@@ -649,7 +598,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             transition(transaction, taskFactory);
-            final TaskController<?> stopTask = transaction.getAttachment(StopServiceTask.STOP_TASKS).get(ServiceControllerImpl.this);
             return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
         }
 
