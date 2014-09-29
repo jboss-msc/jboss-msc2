@@ -35,7 +35,6 @@ import static org.jboss.msc._private.MSCLogger.TXN;
 final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
     @SuppressWarnings("rawtypes")
-    private static final TaskControllerImpl[] NO_TASKS = new TaskControllerImpl[0];
     private final AbstractTransaction txn;
     private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
@@ -97,9 +96,8 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     @Override
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
-        final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(txn, dependenciesArray, executable, classLoader);
-        controller.install();
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(txn, executable, classLoader);
+        controller.install(dependencies);
         return controller;
     }
 }

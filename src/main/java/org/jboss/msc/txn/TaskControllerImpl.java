@@ -21,22 +21,15 @@ package org.jboss.msc.txn;
 import org.jboss.msc._private.MSCLogger;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import static java.lang.Thread.holdsLock;
 
 /**
- * A controller for an installed subtask.
+ * A controller for an installed task.
  *
  * The following defines the state machine for this class.
  * <pre>
- *  +---------------+
- *  |               |
- *  |      NEW      |
- *  |               |
- *  +-------+-------+
- *          |
- *          |
- *          v
  *  +---------------+
  *  |               |
  *  |  EXECUTE_WAIT |
@@ -58,14 +51,6 @@ import static java.lang.Thread.holdsLock;
  *  |  EXECUTE_DONE |
  *  |               |
  *  +-------+-------+
- *          |
- *          | COMMIT_REQ
- *          v
- *  +----------------+
- *  |                |
- *  |   TERMINATED   |
- *  |                |
- *  +----------------+
  * </pre>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -78,7 +63,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private static final ThreadLocal<ClassLoader> CL_HOLDER = new ThreadLocal<>();
 
     private final AbstractTransaction txn;
-    private final TaskControllerImpl<?>[] dependencies;
     private final Executable<T> executable;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
@@ -91,49 +75,35 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     private static final ThreadLocal<TaskControllerImpl<?>[]> cachedDependents = new ThreadLocal<>();
 
-    private static final int STATE_MASK        = 0xF;
-
-    private static final int STATE_NEW                    = 0;
-    private static final int STATE_EXECUTE_WAIT           = 1;
-    private static final int STATE_EXECUTE                = 2;
-    private static final int STATE_EXECUTE_DONE           = 3;
-    private static final int STATE_TERMINATED             = 4;
+    private static final int STATE_MASK         = 0x3;
+    private static final int STATE_EXECUTE_WAIT = 0;
+    private static final int STATE_EXECUTE      = 1;
+    private static final int STATE_EXECUTE_DONE = 2;
 
     private static final int T_NONE = 0;
-
-    private static final int T_NEW_to_EXECUTE_WAIT = 1;
-    private static final int T_NEW_to_TERMINATED = 2;
-    private static final int T_EXECUTE_WAIT_to_EXECUTE = 3;
-    private static final int T_EXECUTE_to_EXECUTE_DONE = 4;
-    private static final int T_EXECUTE_DONE_to_TERMINATED = 5;
-
-    private static final int FLAG_COMMIT_REQ      = 1 << 4;
-
-    private static final int PERSISTENT_STATE = STATE_MASK | FLAG_COMMIT_REQ;
+    private static final int T_EXECUTE_WAIT_to_EXECUTE = 1;
+    private static final int T_EXECUTE_to_EXECUTE_DONE = 2;
 
     // non-persistent status flags
-    private static final int FLAG_EXECUTE_DONE   = 1 << 5;
-    private static final int FLAG_INSTALL_FAILED = 1 << 6;
+    private static final int FLAG_EXECUTE_DONE = 1 << 3;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 7; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 8; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 9; // to dependents
+    private static final int FLAG_SEND_TASK_EXECUTED       = 1 << 4; // to transaction
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED = 1 << 5; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(7, 9);
+    private static final int SEND_FLAGS = Bits.intBitMask(4, 5);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 10;
+    private static final int FLAG_DO_EXECUTE = 1 << 6;
 
-    private static final int DO_FLAGS = Bits.intBitMask(10, 10);
+    private static final int DO_FLAGS = Bits.intBitMask(6, 6);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
 
     private static final int FLAG_USER_THREAD = 1 << 31; // called from user thread; do not block
 
-    TaskControllerImpl(final AbstractTransaction txn, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final ClassLoader classLoader) {
+    TaskControllerImpl(final AbstractTransaction txn, final Executable<T> executable, final ClassLoader classLoader) {
         this.txn = txn;
-        this.dependencies = dependencies;
         this.executable = executable;
         this.classLoader = classLoader;
     }
@@ -165,13 +135,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         assert holdsLock(this);
         int sid = stateOf(state);
         switch (sid) {
-            case STATE_NEW: {
-                if (Bits.allAreSet(state, FLAG_INSTALL_FAILED)) {
-                    return T_NEW_to_TERMINATED;
-                } else {
-                    return T_NEW_to_EXECUTE_WAIT;
-                }
-            }
             case STATE_EXECUTE_WAIT: {
                 if (unexecutedDependencies == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
@@ -187,13 +150,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
                 }
             }
             case STATE_EXECUTE_DONE: {
-                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    return T_EXECUTE_DONE_to_TERMINATED;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_TERMINATED: {
                 return T_NONE;
             }
             default: throw new IllegalStateException();
@@ -212,37 +168,21 @@ final class TaskControllerImpl<T> implements TaskController<T> {
             int t = getTransition(state);
             switch (t) {
                 case T_NONE: return state;
-                case T_NEW_to_EXECUTE_WAIT: {
-                    state = newState(STATE_EXECUTE_WAIT, state);
-                    continue;
-                }
                 case T_EXECUTE_WAIT_to_EXECUTE: {
                     if (executable == null) {
                         state = newState(STATE_EXECUTE, state | FLAG_EXECUTE_DONE);
                         continue;
                     }
-                    // not possible to go any farther
                     return newState(STATE_EXECUTE, state | FLAG_DO_EXECUTE);
                 }
                 case T_EXECUTE_to_EXECUTE_DONE: {
                     if (! dependents.isEmpty()) {
                         cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_DEPENDENCY_EXECUTED | FLAG_SEND_CHILD_EXECUTED);
+                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_DEPENDENCY_EXECUTED | FLAG_SEND_TASK_EXECUTED);
                     } else {
-                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_EXECUTED);
+                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_TASK_EXECUTED);
                     }
                     continue;
-                }
-                case T_EXECUTE_DONE_to_TERMINATED: {
-                    state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED);
-                    continue;
-                }
-
-                // exceptional cases
-
-                case T_NEW_to_TERMINATED: {
-                    // not possible to go any farther
-                    return newState(STATE_TERMINATED, state);
                 }
                 default: throw new IllegalStateException();
             }
@@ -255,22 +195,10 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         }
     };
 
-    private class ChildTerminatedTask implements Runnable {
+    private class TaskExecuted implements Runnable {
         private final boolean userThread;
 
-        private ChildTerminatedTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            txn.taskTerminated(userThread);
-        }
-    }
-
-    private class ChildExecutedTask implements Runnable {
-        private final boolean userThread;
-
-        private ChildExecutedTask(final boolean userThread) {
+        private TaskExecuted(final boolean userThread) {
             this.userThread = userThread;
         }
 
@@ -309,12 +237,8 @@ final class TaskControllerImpl<T> implements TaskController<T> {
                 }
             }
         }
-
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
-            ThreadLocalExecutor.addTask(new ChildTerminatedTask(userThread));
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
-            ThreadLocalExecutor.addTask(new ChildExecutedTask(userThread));
+        if (Bits.allAreSet(state, FLAG_SEND_TASK_EXECUTED)) {
+            ThreadLocalExecutor.addTask(new TaskExecuted(userThread));
         }
         final TaskControllerImpl<?>[] dependents = cachedDependents.get();
         cachedDependents.remove();
@@ -333,7 +257,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     }
 
     private static int newState(int sid, int state) {
-        assert sid >= 0 && sid <= STATE_TERMINATED;
+        assert sid >= 0 && sid <= STATE_EXECUTE_DONE;
         return sid & STATE_MASK | state & ~STATE_MASK;
     }
 
@@ -351,7 +275,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
             }
             this.result = result;
             state = transition(state);
-            this.state = state & PERSISTENT_STATE;
+            this.state = state & STATE_MASK;
         }
         executeTasks(state);
     }
@@ -440,19 +364,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    public void taskCommit(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_COMMIT_REQ;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
+            this.state = state & STATE_MASK;
         }
         executeTasks(state);
     }
@@ -461,7 +373,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         assert ! holdsLock(this);
         int state;
         boolean dependencyDone = false;
-
         synchronized (this) {
             state = this.state;
             dependents.add(dependent);
@@ -474,41 +385,20 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         }
     }
 
-    void install() {
+    void install(final Set<TaskControllerImpl<?>> dependencies) {
         assert ! holdsLock(this);
-        int state;
+        txn.taskAdded(true);
         synchronized (this) {
-            unexecutedDependencies = dependencies.length;
-        }
-        try {
-            txn.taskAdded(this, true);
-        } catch (IllegalStateException e) {
-            synchronized (this) {
-                state = this.state | FLAG_USER_THREAD | FLAG_INSTALL_FAILED;
-                state = transition(state);
-                this.state = state & PERSISTENT_STATE;
-            }
-            executeTasks(state);
-            throw e;
+            unexecutedDependencies = dependencies.size();
         }
         for (final TaskControllerImpl<?> dependency : dependencies) {
-            try {
-                dependency.dependentAdded(this, true);
-            } catch (IllegalStateException e) {
-                txn.taskTerminated(true);
-                synchronized (this) {
-                    state = this.state | FLAG_USER_THREAD | FLAG_INSTALL_FAILED;
-                    state = transition(state);
-                    this.state = state & PERSISTENT_STATE;
-                }
-                executeTasks(state);
-                throw e;
-            }
+            dependency.dependentAdded(this, true);
         }
+        int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
             state = transition(state);
-            this.state = state & PERSISTENT_STATE;
+            this.state = state & STATE_MASK;
         }
         executeTasks(state);
     }

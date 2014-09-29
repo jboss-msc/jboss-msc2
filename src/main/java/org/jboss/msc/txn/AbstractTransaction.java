@@ -23,8 +23,6 @@ import org.jboss.msc._private.Version;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -47,28 +45,24 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int FLAG_COMMIT_REQ          = 1 << 3;
     private static final int FLAG_DO_PREPARE_LISTENER = 1 << 4;
     private static final int FLAG_DO_COMMIT_LISTENER  = 1 << 5;
-    private static final int FLAG_SEND_COMMIT_REQ     = 1 << 6;
-    private static final int FLAG_RESTARTED           = 1 << 7;
-    private static final int FLAG_CLEAN_UP            = 1 << 8;
+    private static final int FLAG_RESTARTED           = 1 << 6;
+    private static final int FLAG_CLEAN_UP            = 1 << 7;
     private static final int FLAG_USER_THREAD         = 1 << 31;
 
-    private static final int STATE_ACTIVE     = 0x0;
-    private static final int STATE_PREPARED   = 0x1;
-    private static final int STATE_COMMITTING = 0x2;
-    private static final int STATE_COMMITTED  = 0x3;
-    private static final int STATE_MASK       = 0x03;
+    private static final int STATE_ACTIVE    = 0x0;
+    private static final int STATE_PREPARED  = 0x1;
+    private static final int STATE_COMMITTED = 0x2;
+    private static final int STATE_MASK      = 0x3;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE_LISTENER | FLAG_DO_COMMIT_LISTENER;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ | FLAG_RESTARTED;
 
-    private static final int T_NONE                    = 0;
-    private static final int T_ACTIVE_to_PREPARED      = 1;
-    private static final int T_PREPARED_to_COMMITTING  = 2;
-    private static final int T_COMMITTING_to_COMMITTED = 3;
+    private static final int T_NONE                  = 0;
+    private static final int T_ACTIVE_to_PREPARED    = 1;
+    private static final int T_PREPARED_to_COMMITTED = 2;
     final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private final Queue<TaskControllerImpl<?>> tasks = new ConcurrentLinkedQueue<>();
     private final ProblemReport report = new ProblemReport();
     private final TaskFactory taskFactory = new TaskFactory() {
         public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
@@ -78,7 +72,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private long endTime;
     private int state;
     private int unexecutedTasks;
-    private int unterminatedTasks;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
@@ -168,14 +161,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             }
             case STATE_PREPARED: {
                 if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    return T_PREPARED_to_COMMITTING;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_COMMITTING: {
-                if (unterminatedTasks == 0) {
-                    return T_COMMITTING_to_COMMITTED;
+                    return T_PREPARED_to_COMMITTED;
                 } else {
                     return T_NONE;
                 }
@@ -203,11 +189,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE_LISTENER);
                     continue;
                 }
-                case T_PREPARED_to_COMMITTING: {
-                    state = newState(STATE_COMMITTING, state | FLAG_SEND_COMMIT_REQ);
-                    continue;
-                }
-                case T_COMMITTING_to_COMMITTED: {
+                case T_PREPARED_to_COMMITTED: {
                     state = newState(STATE_COMMITTED, state | FLAG_DO_COMMIT_LISTENER | FLAG_CLEAN_UP);
                     continue;
                 }
@@ -236,20 +218,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     };
 
-    private class SendCommitRequestTask implements Runnable {
-        private final boolean userThread;
-
-        SendCommitRequestTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            for (TaskControllerImpl<?> task : tasks) {
-                task.taskCommit(userThread);
-            }
-        }
-    }
-
     private void executeTasks(final int state) {
         final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
         if (userThread) {
@@ -266,9 +234,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
         if (Bits.allAreSet(state, FLAG_CLEAN_UP)) {
             ThreadLocalExecutor.addTask(cleanUpTask);
-        }
-        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
-            ThreadLocalExecutor.addTask(new SendCommitRequestTask(userThread));
         }
         ThreadLocalExecutor.executeTasks();
     }
@@ -336,6 +301,10 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     final void restart() throws InvalidTransactionStateException {
+        // TODO: Does it makes sense for this method to exist?
+        // ServiceControllerImpl is e.g. registering TerminationListeners
+        // and it is saving TransactionalInfo into volatile field that
+        // will never be cleared if this method will be used :(
         assert ! holdsLock(this);
         synchronized (this) {
             if (Bits.allAreSet(state, FLAG_RESTARTED)) {
@@ -344,9 +313,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
             }
-            unterminatedTasks = 0;
             this.state = FLAG_RESTARTED;
-            tasks.clear();
         }
     }
 
@@ -388,20 +355,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    void taskTerminated(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            unterminatedTasks--;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    void taskAdded(final TaskControllerImpl<?> child, final boolean userThread) throws InvalidTransactionStateException {
+    void taskAdded(final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -410,9 +364,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
             if (userThread) state |= FLAG_USER_THREAD;
-            tasks.add(child);
             unexecutedTasks++;
-            unterminatedTasks++;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
