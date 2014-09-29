@@ -36,21 +36,19 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
     @SuppressWarnings("rawtypes")
     private static final TaskControllerImpl[] NO_TASKS = new TaskControllerImpl[0];
-    private final Transaction transaction;
-    private final TaskParent parent;
+    private final AbstractTransaction txn;
     private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
     private Executable<T> executable;
 
-    TaskBuilderImpl(final Transaction transaction, final TaskParent parent, final Executable<T> executable) {
-        this.transaction = transaction;
-        this.parent = parent;
+    TaskBuilderImpl(final AbstractTransaction txn, final Executable<T> executable) {
+        this.txn = txn;
         this.executable = executable;
     }
 
     @Override
     public Transaction getTransaction() {
-        return transaction;
+        return txn.wrappingTxn;
     }
 
     @Override
@@ -100,7 +98,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl[] dependenciesArray = dependencies.isEmpty() ? NO_TASKS : dependencies.toArray(new TaskControllerImpl[dependencies.size()]);
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(parent, dependenciesArray, executable, classLoader);
+        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(txn, dependenciesArray, executable, classLoader);
         controller.install();
         return controller;
     }

@@ -68,42 +68,22 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
     private final long startTime = System.nanoTime();
-    private final Queue<TaskControllerImpl<?>> topLevelTasks = new ConcurrentLinkedQueue<>();
+    private final Queue<TaskControllerImpl<?>> tasks = new ConcurrentLinkedQueue<>();
     private final ProblemReport report = new ProblemReport();
-    final TaskParent topParent = new TaskParent() {
-
-        public void childExecuted(final boolean userThread) {
-            doChildExecuted(userThread);
-        }
-
-        public void childTerminated(final boolean userThread) {
-            doChildTerminated(userThread);
-        }
-
-        public void childAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
-            doChildAdded((TaskControllerImpl<?>) child, userThread);
-        }
-
-        public Transaction getTransaction() {
-            return wrappingTxn;
-        }
-
-    };
-
     private final TaskFactory taskFactory = new TaskFactory() {
         public final <T> TaskBuilder<T> newTask(Executable<T> task) throws IllegalStateException {
-            return new TaskBuilderImpl<>(wrappingTxn, topParent, task);
+            return new TaskBuilderImpl<>(AbstractTransaction.this, task);
         }
     };
     private long endTime;
     private int state;
-    private int unexecutedChildren;
-    private int unterminatedChildren;
+    private int unexecutedTasks;
+    private int unterminatedTasks;
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
     private List<TerminateCompletionListener> terminateCompletionListeners = new ArrayList<>(0);
-    private volatile Transaction wrappingTxn;
+    volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
         this.txnController = txnController;
@@ -180,7 +160,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedChildren == 0) {
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks == 0) {
                     return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
@@ -194,7 +174,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 }
             }
             case STATE_COMMITTING: {
-                if (unterminatedChildren == 0) {
+                if (unterminatedTasks == 0) {
                     return T_COMMITTING_to_COMMITTED;
                 } else {
                     return T_NONE;
@@ -264,8 +244,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
 
         public void run() {
-            for (TaskControllerImpl<?> task : topLevelTasks) {
-                task.childCommit(userThread);
+            for (TaskControllerImpl<?> task : tasks) {
+                task.taskCommit(userThread);
             }
         }
     }
@@ -364,9 +344,9 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
             }
-            unterminatedChildren = 0;
+            unterminatedTasks = 0;
             this.state = FLAG_RESTARTED;
-            topLevelTasks.clear();
+            tasks.clear();
         }
     }
 
@@ -395,11 +375,11 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private void doChildExecuted(final boolean userThread) {
+    void taskExecuted(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            unexecutedChildren--;
+            unexecutedTasks--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -408,11 +388,11 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    private void doChildTerminated(final boolean userThread) {
+    void taskTerminated(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            unterminatedChildren--;
+            unterminatedTasks--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -421,7 +401,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    private void doChildAdded(final TaskControllerImpl<?> child, final boolean userThread) throws InvalidTransactionStateException {
+    void taskAdded(final TaskControllerImpl<?> child, final boolean userThread) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -430,9 +410,9 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
             if (userThread) state |= FLAG_USER_THREAD;
-            topLevelTasks.add(child);
-            unexecutedChildren++;
-            unterminatedChildren++;
+            tasks.add(child);
+            unexecutedTasks++;
+            unterminatedTasks++;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }

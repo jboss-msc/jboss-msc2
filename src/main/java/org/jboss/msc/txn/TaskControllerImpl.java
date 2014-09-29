@@ -21,8 +21,6 @@ package org.jboss.msc.txn;
 import org.jboss.msc._private.MSCLogger;
 
 import java.util.ArrayList;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static java.lang.Thread.holdsLock;
 
@@ -55,14 +53,6 @@ import static java.lang.Thread.holdsLock;
  *          |
  *          |
  *          v
- *  +-----------------------+
- *  |                       |
- *  | EXECUTE_CHILDREN_WAIT |
- *  |                       |
- *  +-------+---------------+
- *          |
- *          |
- *          v
  *  +---------------+
  *  |               |
  *  |  EXECUTE_DONE |
@@ -70,14 +60,6 @@ import static java.lang.Thread.holdsLock;
  *  +-------+-------+
  *          |
  *          | COMMIT_REQ
- *          v
- *  +----------------+
- *  |                |
- *  | TERMINATE_WAIT |
- *  |                |
- *  +----------------+
- *          |
- *          |
  *          v
  *  +----------------+
  *  |                |
@@ -89,23 +71,20 @@ import static java.lang.Thread.holdsLock;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, TaskChild {
+final class TaskControllerImpl<T> implements TaskController<T> {
 
     private static final Object NO_RESULT = new Object();
 
     private static final ThreadLocal<ClassLoader> CL_HOLDER = new ThreadLocal<>();
 
-    private final TaskParent parent;
+    private final AbstractTransaction txn;
     private final TaskControllerImpl<?>[] dependencies;
     private final Executable<T> executable;
     private final ClassLoader classLoader;
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
-    private final Queue<TaskControllerImpl<?>> children = new ConcurrentLinkedQueue<>();
 
     private int state;
     private int unexecutedDependencies;
-    private int unexecutedChildren;
-    private int unterminatedChildren;
 
     @SuppressWarnings("unchecked")
     private volatile T result = (T) NO_RESULT;
@@ -117,21 +96,16 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int STATE_NEW                    = 0;
     private static final int STATE_EXECUTE_WAIT           = 1;
     private static final int STATE_EXECUTE                = 2;
-    private static final int STATE_EXECUTE_CHILDREN_WAIT  = 3;
-    private static final int STATE_EXECUTE_DONE           = 4;
-    private static final int STATE_TERMINATE_WAIT         = 5;
-    private static final int STATE_TERMINATED             = 6;
-    private static final int STATE_LAST = STATE_TERMINATED;
+    private static final int STATE_EXECUTE_DONE           = 3;
+    private static final int STATE_TERMINATED             = 4;
 
     private static final int T_NONE = 0;
 
     private static final int T_NEW_to_EXECUTE_WAIT = 1;
     private static final int T_NEW_to_TERMINATED = 2;
     private static final int T_EXECUTE_WAIT_to_EXECUTE = 3;
-    private static final int T_EXECUTE_to_EXECUTE_CHILDREN_WAIT = 4;
-    private static final int T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE = 5;
-    private static final int T_EXECUTE_DONE_to_TERMINATE_WAIT = 6;
-    private static final int T_TERMINATE_WAIT_to_TERMINATED = 7;
+    private static final int T_EXECUTE_to_EXECUTE_DONE = 4;
+    private static final int T_EXECUTE_DONE_to_TERMINATED = 5;
 
     private static final int FLAG_COMMIT_REQ      = 1 << 4;
 
@@ -142,42 +116,31 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
     private static final int FLAG_INSTALL_FAILED = 1 << 6;
 
     // non-persistent job flags
-    private static final int FLAG_SEND_COMMIT_REQ           = 1 << 7; // to children
-    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 8; // to parents
-    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 9; // to parents
-    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 10; // to dependents
+    private static final int FLAG_SEND_CHILD_EXECUTED       = 1 << 7; // to parents
+    private static final int FLAG_SEND_CHILD_TERMINATED     = 1 << 8; // to parents
+    private static final int FLAG_SEND_DEPENDENCY_EXECUTED  = 1 << 9; // to dependents
 
-    private static final int SEND_FLAGS = Bits.intBitMask(7, 10);
+    private static final int SEND_FLAGS = Bits.intBitMask(7, 9);
 
-    private static final int FLAG_DO_EXECUTE  = 1 << 11;
+    private static final int FLAG_DO_EXECUTE  = 1 << 10;
 
-    private static final int DO_FLAGS = Bits.intBitMask(11, 11);
+    private static final int DO_FLAGS = Bits.intBitMask(10, 10);
 
     @SuppressWarnings("unused")
     private static final int TASK_FLAGS = DO_FLAGS | SEND_FLAGS;
 
     private static final int FLAG_USER_THREAD = 1 << 31; // called from user thread; do not block
 
-    TaskControllerImpl(final TaskParent parent, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final ClassLoader classLoader) {
-        this.parent = parent;
+    TaskControllerImpl(final AbstractTransaction txn, final TaskControllerImpl<?>[] dependencies, final Executable<T> executable, final ClassLoader classLoader) {
+        this.txn = txn;
         this.dependencies = dependencies;
         this.executable = executable;
         this.classLoader = classLoader;
-        state = STATE_NEW;
     }
 
     @Override
     public Transaction getTransaction() {
-        return parent.getTransaction();
-    }
-
-    private AbstractTransaction getInternalTransaction() {
-        return getAbstractTransaction(parent.getTransaction());
-    }
-
-    private static AbstractTransaction getAbstractTransaction(final Transaction transaction) {
-        if (transaction instanceof BasicUpdateTransaction) return ((BasicUpdateTransaction)transaction).getDelegate();
-        else return (BasicReadTransaction)transaction;
+        return txn.wrappingTxn;
     }
 
     public T getResult() throws IllegalStateException {
@@ -218,28 +181,14 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             }
             case STATE_EXECUTE: {
                 if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
-                    return T_EXECUTE_to_EXECUTE_CHILDREN_WAIT;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_EXECUTE_CHILDREN_WAIT: {
-                if (unexecutedChildren == 0) {
-                    return T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE;
+                    return T_EXECUTE_to_EXECUTE_DONE;
                 } else {
                     return T_NONE;
                 }
             }
             case STATE_EXECUTE_DONE: {
                 if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
-                    return T_EXECUTE_DONE_to_TERMINATE_WAIT;
-                } else {
-                    return T_NONE;
-                }
-            }
-            case STATE_TERMINATE_WAIT: {
-                if (unterminatedChildren == 0) {
-                    return T_TERMINATE_WAIT_to_TERMINATED;
+                    return T_EXECUTE_DONE_to_TERMINATED;
                 } else {
                     return T_NONE;
                 }
@@ -275,24 +224,16 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
                     // not possible to go any farther
                     return newState(STATE_EXECUTE, state | FLAG_DO_EXECUTE);
                 }
-                case T_EXECUTE_to_EXECUTE_CHILDREN_WAIT: {
+                case T_EXECUTE_to_EXECUTE_DONE: {
                     if (! dependents.isEmpty()) {
                         cachedDependents.set(dependents.toArray(new TaskControllerImpl[dependents.size()]));
-                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state | FLAG_SEND_DEPENDENCY_EXECUTED);
+                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_DEPENDENCY_EXECUTED | FLAG_SEND_CHILD_EXECUTED);
                     } else {
-                        state = newState(STATE_EXECUTE_CHILDREN_WAIT, state);
+                        state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_EXECUTED);
                     }
                     continue;
                 }
-                case T_EXECUTE_CHILDREN_WAIT_to_EXECUTE_DONE: {
-                    state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_CHILD_EXECUTED);
-                    continue;
-                }
-                case T_EXECUTE_DONE_to_TERMINATE_WAIT: {
-                    state = newState(STATE_TERMINATE_WAIT, state | FLAG_SEND_COMMIT_REQ);
-                    continue;
-                }
-                case T_TERMINATE_WAIT_to_TERMINATED: {
+                case T_EXECUTE_DONE_to_TERMINATED: {
                     state = newState(STATE_TERMINATED, state | FLAG_SEND_CHILD_TERMINATED);
                     continue;
                 }
@@ -322,21 +263,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
 
         public void run() {
-            parent.childTerminated(userThread);
-        }
-    }
-
-    private class SendCommitRequestTask implements Runnable {
-        private final boolean userThread;
-
-        private SendCommitRequestTask(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
-        public void run() {
-            for (final TaskChild child : children) {
-                child.childCommit(userThread);
-            }
+            txn.taskTerminated(userThread);
         }
     }
 
@@ -348,7 +275,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         }
 
         public void run() {
-            parent.childExecuted(userThread);
+            txn.taskExecuted(userThread);
         }
     }
 
@@ -386,9 +313,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_TERMINATED)) {
             ThreadLocalExecutor.addTask(new ChildTerminatedTask(userThread));
         }
-        if (Bits.allAreSet(state, FLAG_SEND_COMMIT_REQ)) {
-            ThreadLocalExecutor.addTask(new SendCommitRequestTask(userThread));
-        }
         if (Bits.allAreSet(state, FLAG_SEND_CHILD_EXECUTED)) {
             ThreadLocalExecutor.addTask(new ChildExecutedTask(userThread));
         }
@@ -402,24 +326,19 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
     private void safeExecute(final Runnable command) {
         try {
-            getInternalTransaction().getExecutor().execute(command);
+            txn.getExecutor().execute(command);
         } catch (Throwable t) {
             MSCLogger.ROOT.runnableExecuteFailed(t, command);
         }
     }
 
     private static int newState(int sid, int state) {
-        assert sid >= 0 && sid <= STATE_LAST;
+        assert sid >= 0 && sid <= STATE_TERMINATED;
         return sid & STATE_MASK | state & ~STATE_MASK;
     }
 
     private static int stateOf(int oldVal) {
         return oldVal & STATE_MASK;
-    }
-
-    private static boolean stateIsIn(int state, int sid1) {
-        final int sid = stateOf(state);
-        return sid == sid1;
     }
 
     private void execComplete(final T result) {
@@ -502,7 +421,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
 
                 @Override
                 public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
-                    return new TaskBuilderImpl<>(getTransaction(), TaskControllerImpl.this, task);
+                    return txn.getTaskFactory().newTask(task);
                 }
             });
         } catch (Throwable t) {
@@ -511,59 +430,6 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         } finally {
             unsetClassLoader();
         }
-    }
-
-    @Override
-    public void childExecuted(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            unexecutedChildren--;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    @Override
-    public void childTerminated(final boolean userThread) {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            unterminatedChildren--;
-            state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-    }
-
-    @Override
-    public void childAdded(final TaskChild child, final boolean userThread) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
-        int state;
-        synchronized (this) {
-            state = this.state;
-            if (stateIsIn(state, STATE_EXECUTE)) {
-                unexecutedChildren++;
-                unterminatedChildren++;
-                children.add((TaskControllerImpl<?>) child);
-                if (userThread) state |= FLAG_USER_THREAD;
-                state = transition(state);
-                this.state = state & PERSISTENT_STATE;
-            } else {
-                if (userThread) {
-                    throw MSCLogger.TASK.cannotAddDepToTask();
-                } else {
-                    // todo log and ignore...
-                    return;
-                }
-            }
-        }
-        executeTasks(state);
     }
 
     public void dependencyExecuted(final boolean userThread) {
@@ -579,7 +445,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         executeTasks(state);
     }
 
-    public void childCommit(final boolean userThread) {
+    public void taskCommit(final boolean userThread) {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -599,10 +465,8 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
         synchronized (this) {
             state = this.state;
             dependents.add(dependent);
-            switch (stateOf(state)) {
-                case STATE_EXECUTE_DONE:
-                case STATE_EXECUTE_CHILDREN_WAIT:
-                    dependencyDone = true;
+            if (stateOf(state) == STATE_EXECUTE_DONE) {
+                dependencyDone = true;
             }
         }
         if (dependencyDone) {
@@ -617,7 +481,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             unexecutedDependencies = dependencies.length;
         }
         try {
-            parent.childAdded(this, true);
+            txn.taskAdded(this, true);
         } catch (IllegalStateException e) {
             synchronized (this) {
                 state = this.state | FLAG_USER_THREAD | FLAG_INSTALL_FAILED;
@@ -631,7 +495,7 @@ final class TaskControllerImpl<T> implements TaskController<T>, TaskParent, Task
             try {
                 dependency.dependentAdded(this, true);
             } catch (IllegalStateException e) {
-                parent.childTerminated(true);
+                txn.taskTerminated(true);
                 synchronized (this) {
                     state = this.state | FLAG_USER_THREAD | FLAG_INSTALL_FAILED;
                     state = transition(state);
