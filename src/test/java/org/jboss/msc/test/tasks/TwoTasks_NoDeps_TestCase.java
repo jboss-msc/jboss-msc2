@@ -20,7 +20,6 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.txn.AbstractTransactionTest;
 import org.jboss.msc.txn.TestExecutable;
-import org.jboss.msc.txn.TestExecuteContext;
 import org.jboss.msc.txn.TestTaskController;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Test;
@@ -31,46 +30,33 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class OneParentTask_NoDeps_TwoChildTasks_NoDeps_TxnCommitted_TestCase extends AbstractTransactionTest {
+public final class TwoTasks_NoDeps_TestCase extends AbstractTransactionTest {
 
     /**
      * Scenario:
      * <UL>
-     * <LI>parent task completes at EXECUTE
-     * <LI>child0 completes at EXECUTE</LI>
-     * <LI>child1 completes at EXECUTE</LI>
+     * <LI>task0 completes at EXECUTE</LI>
+     * <LI>task1 completes at EXECUTE</LI>
      * <LI>no dependencies</LI>
+     * <LI>no children</LI>
      * <LI>transaction committed</LI>
      * </UL>
      */
     @Test
     public void usecase1() {
         final UpdateTransaction transaction = newUpdateTransaction();
-        // preparing child0 task
-        final TestExecutable<Void> child0e = new TestExecutable<>();
-        // preparing child1 task
-        final TestExecutable<Void> child1e = new TestExecutable<>();
-        // installing parent task
-        final TestExecutable<Void> parent0e = new TestExecutable<Void>() {
-            @Override
-            public void executeInternal(final TestExecuteContext<Void> ctx) {
-                // installing child0 task
-                final TestTaskController<Void> child0Controller = newTask(ctx, child0e);
-                assertNotNull(child0Controller);
-                // installing child1 task
-                final TestTaskController<Void> child1Controller = newTask(ctx, child1e);
-                assertNotNull(child1Controller);
-            }
-        };
-        final TestTaskController<Void> parentController = newTask(transaction, parent0e);
-        assertNotNull(parentController);
+        // installing task0
+        final TestExecutable<Void> e0 = new TestExecutable<>();
+        final TestTaskController<Void> task0Controller = newTask(transaction, e0);
+        assertNotNull(task0Controller);
+        // installing task1
+        final TestExecutable<Void> e1 = new TestExecutable<>();
+        final TestTaskController<Void> task1Controller = newTask(transaction, e1);
+        assertNotNull(task1Controller);
         // preparing transaction
         prepare(transaction);
-        assertCalled(parent0e);
-        assertCalled(child0e);
-        assertCalled(child1e);
-        assertCallOrder(parent0e, child0e);
-        assertCallOrder(parent0e, child1e);
+        assertCalled(e0);
+        assertCalled(e1);
         // committing transaction
         assertTrue(canCommit(transaction));
         commit(transaction);

@@ -22,6 +22,8 @@ import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.Problem.Severity;
 
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+
 /**
  * Task that stops service.
  * 
@@ -34,29 +36,14 @@ final class StopServiceTask<T> implements Executable<Void> {
      * Creates a stop service task.
      * 
      * @param serviceController  stopping service
-     * @param transaction        the active transaction
-     * @param taskFactory        the task factory
-     * @return                   the stop task (can be used for creating tasks that depend on the conclusion of stopping
-     *                           transition)
-     */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, Transaction transaction, TaskFactory taskFactory) {
-
-        return create(serviceController, null, transaction, taskFactory);
-    }
-
-    /**
-     * Creates a stop service task.
-     * 
-     * @param serviceController  stopping service
      * @param taskDependency     a task that must be first concluded before service can stop
      * @param transaction        the active transaction
-     * @param taskFactory        the task factory
      * @return                   the stop task (can be used for creating tasks that depend on the conclusion of stopping
      *                           transition)
      */
     static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency,
-            Transaction transaction, TaskFactory taskFactory) {
-
+            Transaction transaction) {
+        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         // stop service
         final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
@@ -87,7 +74,7 @@ final class StopServiceTask<T> implements Executable<Void> {
         final Service<T> service = serviceController.getService();
         if (service == null) {
             serviceController.setServiceDown();
-            serviceController.notifyServiceDown(transaction, context);
+            serviceController.notifyServiceDown(transaction);
             serviceController.unlock();
             context.complete();
             return;
@@ -96,7 +83,7 @@ final class StopServiceTask<T> implements Executable<Void> {
             @Override
             public void complete(Void result) {
                 serviceController.setServiceDown();
-                serviceController.notifyServiceDown(transaction, context);
+                serviceController.notifyServiceDown(transaction);
                 serviceController.unlock();
                 context.complete();
             }
@@ -104,7 +91,7 @@ final class StopServiceTask<T> implements Executable<Void> {
             @Override
             public void complete() {
                 serviceController.setServiceDown();
-                serviceController.notifyServiceDown(transaction, context);
+                serviceController.notifyServiceDown(transaction);
                 serviceController.unlock();
                 context.complete();
             }

@@ -71,11 +71,11 @@ public final class ComplexTaskDependencyChainsTestCase extends AbstractTransacti
                 }
                 // installing task6
                 final TestExecutable<Void> e6 = new TestExecutable<>("6");
-                final TestTaskController<Void> task6Controller = newTask(ctx, e6, task5Controller);
+                final TestTaskController<Void> task6Controller = newTask(transaction, e6, task5Controller);
                 assertNotNull(task6Controller);
                 // installing task7
                 final TestExecutable<Void> e7 = new TestExecutable<>("7");
-                task7Controller = newTask(ctx, e7, task6Controller);
+                task7Controller = newTask(transaction, e7, task6Controller);
                 assertNotNull(task7Controller);
                 task7Created.countDown();
             }

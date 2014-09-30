@@ -26,6 +26,8 @@ import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.txn.Problem.Severity;
 
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+
 /**
  * Task that starts service.
  * 
@@ -40,13 +42,12 @@ final class StartServiceTask<T> implements Executable<T> {
      * @param serviceController  starting service
      * @param taskDependency the tasks that start service dependencies (these must be first concluded before service can start)
      * @param transaction          the active transaction
-     * @param taskFactory          the task factory
      * @return                     the start task (can be used for creating tasks that depend on the conclusion of
      *                              starting transition)
      */
-    static <T> TaskController<T> create(final ServiceControllerImpl<T> serviceController,
-                                        TaskController<?> taskDependency, final Transaction transaction, final TaskFactory taskFactory) {
+    static <T> TaskController<T> create(final ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency, final Transaction transaction) {
         // start service
+        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
         if (taskDependency != null) {
             startTaskBuilder.addDependency(taskDependency);
@@ -106,7 +107,7 @@ final class StartServiceTask<T> implements Executable<T> {
             @Override
             public void fail() {
                 serviceController.setServiceFailed();
-                serviceController.notifyServiceFailed(transaction, context);
+                serviceController.notifyServiceFailed(transaction);
                 serviceController.unlock();
                 context.complete();
             }

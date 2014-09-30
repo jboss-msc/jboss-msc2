@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public final class ThreeParentTasks_WithDeps_NoChildTasks_NoDeps_TxnCommitted_TestCase extends AbstractTransactionTest {
+public final class ThreeTasks_WithDeps_TestCase extends AbstractTransactionTest {
 
     /**
      * Scenario:

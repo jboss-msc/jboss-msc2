@@ -92,7 +92,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             if (appearing != null) {
                 registration = appearing;
             } else if (Bits.anyAreSet(state, ENABLED)){
-                registration.enableRegistry(transaction, getAbstractTransaction(transaction).getTaskFactory());
+                registration.enableRegistry(transaction);
             }
         }
         return registration;
@@ -131,7 +131,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         super.disable(transaction);
     }
 
-    void doDisable(Transaction transaction, TaskFactory taskFactory) {
+    void doDisable(Transaction transaction) {
         synchronized (this) {
             // idempotent
             if (!Bits.anyAreSet(state, ENABLED)) {
@@ -140,7 +140,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             state = (byte) (state & ~ENABLED);
         }
         for (Registration registration: registry.values()) {
-            registration.disableRegistry(transaction, taskFactory);
+            registration.disableRegistry(transaction);
         }
     }
 
@@ -152,7 +152,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         super.enable(transaction);
     }
 
-    void doEnable(Transaction transaction, TaskFactory taskFactory) {
+    void doEnable(Transaction transaction) {
         synchronized (this) {
             // idempotent
             if (Bits.anyAreSet(state, ENABLED)) {
@@ -161,7 +161,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
             state = (byte) (state | ENABLED);
         }
         for (Registration registration: registry.values()) {
-            registration.enableRegistry(transaction, taskFactory);
+            registration.enableRegistry(transaction);
         }
     }
 
@@ -189,7 +189,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
                     state = (byte) (state | REMOVED);
                 }
                 for (Registration registration : registry.values()) {
-                    registration.remove(transaction, context);
+                    registration.remove(transaction);
                 }
             } finally {
                 context.complete();

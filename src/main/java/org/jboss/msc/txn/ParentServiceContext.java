@@ -100,8 +100,8 @@ class ParentServiceContext extends ServiceContextImpl {
         }
 
         @Override
-        public void dependencyDown(Transaction transaction, TaskFactory taskFactory) {
-            dependent.remove(transaction, taskFactory);
+        public void dependencyDown(Transaction transaction) {
+            dependent._remove(transaction);
         }
     }
 }

@@ -186,10 +186,10 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      *
      * @param transaction the active transaction
      */
-    void completeInstallation(final Transaction transaction, final TaskFactory taskFactory) {
-        primaryRegistration.installService(transaction, taskFactory);
+    void completeInstallation(final Transaction transaction) {
+        primaryRegistration.installService(transaction);
         for (Registration alias: aliasRegistrations) {
-            alias.installService(transaction, taskFactory);
+            alias.installService(transaction);
         }
         boolean demandDependencies;
         synchronized (this) {
@@ -198,22 +198,22 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
-            demandDependencies(transaction, taskFactory);
+            demandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
-    void clear(Transaction transaction, TaskFactory taskFactory) {
-        primaryRegistration.clearController(transaction, taskFactory);
+    void clear(Transaction transaction) {
+        primaryRegistration.clearController(transaction);
         for (Registration registration: aliasRegistrations) {
-            registration.clearController(transaction, taskFactory);
+            registration.clearController(transaction);
         }
         final boolean undemand = isMode(MODE_ACTIVE);
         for (DependencyImpl<?> dependency: dependencies) {
             if (undemand) {
-                dependency.undemand(transaction, taskFactory);
+                dependency.undemand(transaction);
             }
-            dependency.clearDependent(transaction, taskFactory);
+            dependency.clearDependent(transaction);
         }
     }
 
@@ -270,14 +270,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void doDisable(final Transaction transaction, final TaskFactory taskFactory) {
+    public void doDisable(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized(this) {
             if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     @Override
@@ -288,14 +288,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     @Override
-    public void doEnable(final Transaction transaction, final TaskFactory taskFactory) {
+    public void doEnable(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized(this) {
             if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     private boolean isServiceEnabled() {
@@ -303,24 +303,24 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return Bits.allAreSet(state, SERVICE_ENABLED);
     }
 
-    void disableRegistry(final Transaction transaction, final TaskFactory taskFactory) {
+    void disableRegistry(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (this) {
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
-    void enableRegistry(final Transaction transaction, final TaskFactory taskFactory) {
+    void enableRegistry(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (this) {
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     private boolean isRegistryEnabled() {
@@ -335,12 +335,31 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         initTransactionalInfo(transaction);
         transactionalInfo.retry(transaction);
     }
-    
+
+    /**
+     * Removes this service.<p>
+     * All dependent services will be automatically stopped as the result of this operation.
+     *
+     * @param  transaction the active transaction
+     * @return the task that completes removal. Once this task is executed, the service will be at the
+     *         {@code REMOVED} state.
+     */
     @Override
     public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        remove(transaction, getAbstractTransaction(transaction).getTaskFactory());
+        _remove(transaction);
+    }
+
+    void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        // idempotent
+        synchronized (this) {
+            if (getState(state) == STATE_REMOVED) {
+                return;
+            }
+        }
+        initTransactionalInfo(transaction);
+        transactionalInfo.scheduleRemoval(transaction);
     }
 
     @Override
@@ -352,32 +371,11 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     }
 
     /**
-     * Removes this service.<p>
-     * All dependent services will be automatically stopped as the result of this operation.
-     * 
-     * @param  transaction the active transaction
-     * @param  taskFactory the task factory
-     * @return the task that completes removal. Once this task is executed, the service will be at the
-     *         {@code REMOVED} state.
-     */
-    TaskController<Void> remove(Transaction transaction, TaskFactory taskFactory) {
-        // idempotent
-        synchronized (this) {
-            if (getState(state) == STATE_REMOVED) {
-                return null;
-            }
-        }
-        initTransactionalInfo(transaction);
-        return transactionalInfo.scheduleRemoval(transaction, taskFactory);
-    }
-
-    /**
      * Notifies this service that it is demanded by one of its incoming dependencies.
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    void demand(final Transaction transaction, final TaskFactory taskFactory) {
+    void demand(final Transaction transaction) {
         initTransactionalInfo(transaction);
         final boolean propagate;
         synchronized (this) {
@@ -387,20 +385,19 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             propagate = !isMode(MODE_ACTIVE);
         }
         if (propagate) {
-            demandDependencies(transaction, taskFactory);
+            demandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     /**
      * Demands this service's dependencies to start.
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    private void demandDependencies(Transaction transaction, TaskFactory taskFactory) {
+    private void demandDependencies(Transaction transaction) {
         for (DependencyImpl<?> dependency: dependencies) {
-            dependency.demand(transaction, taskFactory);
+            dependency.demand(transaction);
         }
     }
 
@@ -409,9 +406,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      * dependency is being disabled or removed).
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    void undemand(final Transaction transaction, final TaskFactory taskFactory) {
+    void undemand(final Transaction transaction) {
         initTransactionalInfo(transaction);
         final boolean propagate;
         synchronized (this) {
@@ -421,20 +417,19 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             propagate = !isMode(MODE_ACTIVE);
         }
         if (propagate) {
-            undemandDependencies(transaction, taskFactory);
+            undemandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     /**
      * Undemands this service's dependencies to start.
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    private void undemandDependencies(Transaction transaction, TaskFactory taskFactory) {
+    private void undemandDependencies(Transaction transaction) {
         for (DependencyImpl<?> dependency: dependencies) {
-            dependency.undemand(transaction, taskFactory);
+            dependency.undemand(transaction);
         }
     }
 
@@ -450,14 +445,14 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.dependencySatisfied(transaction);
     }
 
-    public void dependencyUnsatisfied(final Transaction transaction, final TaskFactory taskFactory) {
+    public void dependencyUnsatisfied(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (this) {
            if (++ unsatisfiedDependencies > 1) {
                return;
             }
         }
-        transactionalInfo.transition(transaction, taskFactory);
+        transactionalInfo.transition(transaction);
     }
 
     /* Transition related methods */
@@ -477,8 +472,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.setTransition(STATE_DOWN);
     }
 
-    void setServiceRemoved(Transaction transaction, TaskFactory taskFactory) {
-        clear(transaction, taskFactory);
+    void setServiceRemoved(Transaction transaction) {
+        clear(transaction);
         transactionalInfo.setTransition(STATE_REMOVED);
     }
 
@@ -489,17 +484,17 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         }
     }
 
-    void notifyServiceFailed(Transaction transaction, TaskFactory taskFactory) {
-        primaryRegistration.serviceFailed(transaction, taskFactory);
+    void notifyServiceFailed(Transaction transaction) {
+        primaryRegistration.serviceFailed(transaction);
         for (Registration registration: aliasRegistrations) {
-            registration.serviceFailed(transaction, taskFactory);
+            registration.serviceFailed(transaction);
         }
     }
 
-    void notifyServiceDown(Transaction transaction, TaskFactory taskFactory) {
-        primaryRegistration.serviceDown(transaction, taskFactory);
+    void notifyServiceDown(Transaction transaction) {
+        primaryRegistration.serviceDown(transaction);
         for (Registration registration: aliasRegistrations) {
-            registration.serviceDown(transaction, taskFactory);
+            registration.serviceDown(transaction);
         }
     }
 
@@ -530,7 +525,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         private TaskController<Void> stopTask = null;
 
         public synchronized void dependencySatisfied(final Transaction transaction) {
-            transition(transaction, getAbstractTransaction(transaction).getTaskFactory());
+            transition(transaction);
         }
 
         void setTransition(byte transactionalState) {
@@ -541,52 +536,45 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             if (transactionalState != STATE_FAILED) {
                 return;
             }
-            startTask = StartServiceTask.create(ServiceControllerImpl.this, null, transaction, getAbstractTransaction(transaction).getTaskFactory());
+            startTask = StartServiceTask.create(ServiceControllerImpl.this, null, transaction);
         }
 
-        private synchronized void transition(Transaction transaction, TaskFactory taskFactory) {
+        private synchronized void transition(final Transaction transaction) {
             assert !holdsLock(ServiceControllerImpl.this);
             switch (transactionalState) {
                 case STATE_STOPPING:
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart()) {
-                        if (taskFactory == null) {
-                            taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-                        }
                         transactionalState = STATE_STARTING;
-                        startTask = StartServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
+                        startTask = StartServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
                     }
                     break;
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         transactionalState = STATE_STOPPING;
-                        StopFailedServiceTask.create(ServiceControllerImpl.this, taskFactory);
+                        StopFailedServiceTask.create(ServiceControllerImpl.this, transaction);
                     }
                     break;
                 case STATE_STARTING:
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
-                        if (taskFactory == null) {
-                            return;
-                        }
                         transactionalState = STATE_STOPPING;
-                        stopTask = StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction, taskFactory);
+                        stopTask = StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction);
                     }
                     break;
                 default:
                     break;
-
             }
         }
 
         private synchronized void restart(Transaction transaction) {
             if (state == STATE_UP || state == STATE_STARTING) {
                 transactionalState = STATE_RESTARTING;
-                StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction, getAbstractTransaction(transaction).getTaskFactory());
+                StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction);
             }
         }
 
-        private synchronized TaskController<Void> scheduleRemoval(Transaction transaction, TaskFactory taskFactory) {
+        private synchronized TaskController<Void> scheduleRemoval(Transaction transaction) {
             // idempotent
             if (transactionalState == STATE_REMOVED) {
                 return null;
@@ -597,8 +585,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             }
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
-            transition(transaction, taskFactory);
-            return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction, taskFactory);
+            transition(transaction);
+            return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
         }
 
         private byte getState() {

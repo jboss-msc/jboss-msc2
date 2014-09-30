@@ -84,11 +84,6 @@ public abstract class AbstractTransactionTest {
         return txnController.newTask(transaction, e).addDependencies(dependencies).release();
     }
 
-    protected static <T> TestTaskController<T> newTask(final TestExecuteContext<?> ctx, final TestExecutable<T> e,
-            final TestTaskController<?>... dependencies) {
-        return ctx.newTask(e).addDependencies(dependencies).release();
-    }
-
     protected static void prepare(Transaction transaction, Listener<PrepareResult<? extends Transaction>> listener) {
         txnController.prepare(transaction, listener);
     }

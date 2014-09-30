@@ -50,17 +50,15 @@ abstract class ServiceManager {
      * Enables the services managed by this object.
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    abstract void doEnable(final Transaction transaction, final TaskFactory taskFactory);
+    abstract void doEnable(final Transaction transaction);
 
     /**
      * Disables the services managed by this object.
      * 
      * @param transaction the active transaction
-     * @param taskFactory the task factory
      */
-    abstract void doDisable(final Transaction transaction, final TaskFactory taskFactory);
+    abstract void doDisable(final Transaction transaction);
 
     /**
      * Management operation for disabling one or more services. As a result, the affected services will stop if they are
@@ -126,7 +124,7 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                doEnable(transaction, context);
+                doEnable(transaction);
             } finally {
                 context.complete();
             }
@@ -144,7 +142,7 @@ abstract class ServiceManager {
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                doDisable(transaction, context);
+                doDisable(transaction);
             } finally {
                 context.complete();
             }

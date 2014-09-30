@@ -28,8 +28,4 @@ public final class TestExecuteContext<T> {
         this.delegate = delegate;
     }
 
-    public <T> TestTaskBuilder<T> newTask(TestExecutable<T> task) {
-        return new TestTaskBuilder(delegate.newTask(task));
-    }
-
 }

@@ -96,7 +96,7 @@ public class BasicTasksTestCase extends AbstractTransactionTest {
                 if (d > 0)
                     for (int i = 0; i < n; i++) {
                         Task task = new Task(n, d - 1);
-                        context.newTask(task).release();
+                        txnController.newTask(transaction, task).release();
                     }
                 super.executeInternal(context);
             }

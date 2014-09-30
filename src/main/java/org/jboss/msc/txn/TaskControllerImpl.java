@@ -342,11 +342,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
                 public void addProblem(final Throwable cause) {
                     addProblem(new Problem(cause));
                 }
-
-                @Override
-                public <N> TaskBuilder<N> newTask(final Executable<N> task) throws IllegalStateException {
-                    return txn.getTaskFactory().newTask(task);
-                }
             });
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);

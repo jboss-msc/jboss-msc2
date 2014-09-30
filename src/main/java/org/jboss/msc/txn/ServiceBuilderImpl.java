@@ -34,8 +34,6 @@ import org.jboss.msc.service.ServiceRegistry;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.jboss.msc.txn.Helper.getAbstractTransaction;
-
 /**
  * A service builder.
  *
@@ -237,11 +235,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
         serviceController.beginInstallation();
-        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         try {
-            serviceController.completeInstallation(transaction, taskFactory);
+            serviceController.completeInstallation(transaction);
         } catch (Throwable t) {
-            serviceController.clear(transaction, null);
+            serviceController.clear(transaction);
             throw t;
         }
         return serviceController;

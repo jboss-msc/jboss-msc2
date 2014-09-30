@@ -24,7 +24,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 
 import static org.jboss.msc._private.MSCLogger.SERVICE;
-import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 import static org.jboss.msc.txn.Helper.setModified;
 import static org.jboss.msc.txn.Helper.validateRegistry;
 import static org.jboss.msc.txn.Helper.validateTransaction;
@@ -74,7 +73,7 @@ class ServiceContextImpl implements ServiceContext {
             return;
         }
         setModified(transaction);
-        controller.remove(transaction, getAbstractTransaction(transaction).getTaskFactory());
+        controller.remove(transaction);
     }
 
     @Override

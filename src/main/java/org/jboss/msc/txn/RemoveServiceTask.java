@@ -18,6 +18,8 @@
 package org.jboss.msc.txn;
 
 
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+
 /**
  * Service removal task.
  * 
@@ -32,11 +34,11 @@ final class RemoveServiceTask implements Executable<Void> {
      * @param serviceController  service that is being removed
      * @param stopTask           the task that must be first concluded before service can remove
      * @param transaction        the active transaction
-     * @param taskFactory        the task factory
      * @return                   the remove task (can be used for creating tasks that depend on the conclusion of removal)
      */
     static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> stopTask,
-            Transaction transaction, TaskFactory taskFactory) {
+            Transaction transaction) {
+        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new RemoveServiceTask(serviceController, transaction));
         if (stopTask != null) {
             removeTaskBuilder.addDependency(stopTask);
@@ -54,9 +56,8 @@ final class RemoveServiceTask implements Executable<Void> {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
-        assert context instanceof TaskFactory;
         try {
-            serviceController.setServiceRemoved(transaction, context);
+            serviceController.setServiceRemoved(transaction);
         } finally {
             context.complete();
         }

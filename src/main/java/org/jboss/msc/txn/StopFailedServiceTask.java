@@ -17,6 +17,8 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+
 /**
  * Task that stops a failed service.
  *
@@ -29,12 +31,13 @@ final class StopFailedServiceTask implements Executable<Void> {
      * Creates stop failed service task.
      * 
      * @param service         failed service that is stopping
-     * @param taskFactory      the task factory
+     * @param transaction     the transaction
      * @return                the stop task (can be used for creating tasks that depend on the conclusion of stopping
      *                        transition)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction) {
         // post stop task
+        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service);
         return taskFactory.newTask(stopFailedService).release();
     }

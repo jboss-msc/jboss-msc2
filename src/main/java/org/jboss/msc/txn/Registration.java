@@ -95,9 +95,8 @@ final class Registration {
      * Installs a service,
      *
      * @param transaction       the active transaction
-     * @param taskFactory       the task factory
      */
-    void installService(final Transaction transaction, final TaskFactory taskFactory) {
+    void installService(final Transaction transaction) {
         final ServiceControllerImpl<?> serviceController;
         boolean registryEnabled = false;
         synchronized (this) {
@@ -110,21 +109,21 @@ final class Registration {
             }
         }
         if (registryEnabled) {
-            serviceController.enableRegistry(transaction, taskFactory);
+            serviceController.enableRegistry(transaction);
         } else {
-            serviceController.disableRegistry(transaction, taskFactory);
+            serviceController.disableRegistry(transaction);
         }
     }
 
-    void clearController(final Transaction transaction, final TaskFactory taskFactory) {
-        installDependenciesValidateTask(transaction, taskFactory);
+    void clearController(final Transaction transaction) {
+        installDependenciesValidateTask(transaction);
         synchronized (this) {
             holderRef.set(null);
         }
     }
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
-        installDependenciesValidateTask(transaction, getAbstractTransaction(transaction).getTaskFactory());
+        installDependenciesValidateTask(transaction);
         final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
@@ -154,29 +153,29 @@ final class Registration {
         }
     }
 
-    void serviceFailed(final Transaction transaction, final TaskFactory taskFactory) {
+    void serviceFailed(final Transaction transaction) {
         synchronized (this) {
             state = state | FAILED;
             // handle out of order notifications
             if (Bits.anyAreSet(state, UP)) {
                 state = state & ~UP;
                 for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
-                    incomingDependency.dependencyDown(transaction, taskFactory);
+                    incomingDependency.dependencyDown(transaction);
                 }
             }
         }
     }
 
-    void serviceDown(final Transaction transaction, final TaskFactory taskFactory) {
+    void serviceDown(final Transaction transaction) {
         synchronized (this) {
             state = state & ~(UP | FAILED);
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
-                incomingDependency.dependencyDown(transaction, taskFactory);
+                incomingDependency.dependencyDown(transaction);
             }
         }
     }
 
-    void addDemand(final Transaction transaction, final TaskFactory taskFactory) {
+    void addDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((++ state) & DEMANDED_MASK) > 1) {
@@ -185,11 +184,11 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller.demand(transaction, taskFactory);
+            controller.demand(transaction);
         }
     }
 
-    void removeDemand(final Transaction transaction, final TaskFactory taskFactory) {
+    void removeDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (((--state) & DEMANDED_MASK) > 0) {
@@ -198,11 +197,11 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller.undemand(transaction, taskFactory);
+            controller.undemand(transaction);
         }
     }
 
-    void remove(final Transaction transaction, final TaskFactory taskFactory) {
+    void remove(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;
@@ -210,11 +209,11 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller.remove(transaction, taskFactory);
+            controller._remove(transaction);
         }
     }
 
-    void disableRegistry(Transaction transaction, TaskFactory taskFactory) {
+    void disableRegistry(Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
@@ -222,11 +221,11 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller.disableRegistry(transaction, taskFactory);
+            controller.disableRegistry(transaction);
         }
     }
 
-    void enableRegistry(Transaction transaction, TaskFactory taskFactory) {
+    void enableRegistry(Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
             if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
@@ -234,14 +233,11 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller.enableRegistry(transaction, taskFactory);
+            controller.enableRegistry(transaction);
         }
     }
 
-    void installDependenciesValidateTask(final Transaction transaction, final TaskFactory taskFactory) {
-        if (taskFactory == null) {
-            return;
-        }
+    void installDependenciesValidateTask(final Transaction transaction) {
         RequiredDependenciesCheck task = transaction.getAttachmentIfPresent(REQUIRED_DEPENDENCIES_CHECK_TASK);
         if (task == null) {
             task = new RequiredDependenciesCheck(transaction.getReport());
