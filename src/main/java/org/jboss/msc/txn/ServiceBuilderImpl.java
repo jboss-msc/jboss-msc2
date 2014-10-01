@@ -237,7 +237,13 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         // create and install service controller
         final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
         serviceController.beginInstallation();
-        getAbstractTransaction(transaction).getTaskFactory().newTask(new InstallServiceTask(serviceController, transaction)).release();
+        final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
+        try {
+            serviceController.completeInstallation(transaction, taskFactory);
+        } catch (Throwable t) {
+            serviceController.clear(transaction, null);
+            throw t;
+        }
         return serviceController;
     }
 }

@@ -188,7 +188,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
      *
      * @param transaction the active transaction
      */
-    boolean completeInstallation(Transaction transaction, TaskFactory taskFactory) {
+    void completeInstallation(final Transaction transaction, final TaskFactory taskFactory) {
         primaryRegistration.installService(transaction, taskFactory);
         for (Registration alias: aliasRegistrations) {
             alias.installService(transaction, taskFactory);
@@ -203,7 +203,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             demandDependencies(transaction, taskFactory);
         }
         transactionalInfo.transition(transaction, taskFactory);
-        return true;
     }
 
     void reinstall(final Transaction transaction) {
