@@ -368,7 +368,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         public void rollback(RollbackContext context) {
             try {
                 // revert only stopping services
-                if (serviceController.revertStopping(transaction, context)) {
+                if (serviceController.revertStopping()) {
                     serviceController.notifyServiceUp(transaction);
                 }
             } finally {
