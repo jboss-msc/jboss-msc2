@@ -583,17 +583,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return transactionalState;
         }
 
+        // TODO: eliminate unused transaction and taskFactory parameters
         void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
-            // time to restart the service
-            if (transactionalState == STATE_RESTARTING) {
-                if (transactionalState == STATE_UP || transactionalState == STATE_FAILED) {
-                    return;
-                } else {
-                    assert transactionalState == STATE_DOWN;
-                    transactionalState = STATE_DOWN;
-                    transition(transaction, taskFactory);
-                }
-            }
             this.transactionalState = transactionalState;
         }
 
