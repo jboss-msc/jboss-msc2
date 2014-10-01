@@ -487,8 +487,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     /* Transition related methods */
 
-    // TODO: eliminate unused transaction and taskFactory parameters
-    void setServiceUp(T result, Transaction transaction, TaskFactory taskFactory) {
+    void setServiceUp(T result) {
         setValue(result);
         transactionalInfo.setTransition(STATE_UP);
     }
