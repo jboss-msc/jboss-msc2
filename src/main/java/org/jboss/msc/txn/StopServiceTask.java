@@ -135,7 +135,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         }
         final Service<T> service = serviceController.getService();
         if (service == null) {
-            serviceController.setServiceDown(transaction, context);
+            serviceController.setServiceDown();
             serviceController.notifyServiceDown(transaction, context);
             serviceController.unlock();
             context.complete();
@@ -144,7 +144,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
         service.stop(new StopContext() {
             @Override
             public void complete(Void result) {
-                serviceController.setServiceDown(transaction, context);
+                serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction, context);
                 serviceController.unlock();
                 context.complete();
@@ -152,7 +152,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
 
             @Override
             public void complete() {
-                serviceController.setServiceDown(transaction, context);
+                serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction, context);
                 serviceController.unlock();
                 context.complete();

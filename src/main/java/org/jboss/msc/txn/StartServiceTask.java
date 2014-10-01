@@ -253,7 +253,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         }
         final Service<T> service = serviceController.getService();
         if (service == null ){
-            serviceController.setServiceDown(transaction, context);
+            serviceController.setServiceDown();
             serviceController.notifyServiceDown(transaction);
             context.complete();
             return;
@@ -261,14 +261,14 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         service.stop(new StopContext() {
             @Override
             public void complete(Void result) {
-                serviceController.setServiceDown(transaction, context);
+                serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceDown(transaction, context);
+                serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }

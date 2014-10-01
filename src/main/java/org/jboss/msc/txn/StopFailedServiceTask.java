@@ -42,7 +42,7 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
         return taskFactory.newTask(stopFailedService).addDependency(revertStopFailed).release();
     }
 
-    private final Transaction transaction;
+    private final Transaction transaction; // TODO: eliminated unused variable
     private final ServiceControllerImpl<?> serviceController;
 
     private StopFailedServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
@@ -52,9 +52,8 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
 
     @Override
     public void execute(ExecuteContext<Void> context) {
-        assert context instanceof TaskFactory;
         try {
-            serviceController.setServiceDown(transaction, context);
+            serviceController.setServiceDown();
         } finally {
             context.complete();
         }

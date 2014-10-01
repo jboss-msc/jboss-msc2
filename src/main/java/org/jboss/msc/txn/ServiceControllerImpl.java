@@ -497,8 +497,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.setTransition(STATE_FAILED);
     }
 
-    // TODO: eliminate unused transaction and taskFactory parameters
-    void setServiceDown(Transaction transaction, TaskFactory taskFactory) {
+    void setServiceDown() {
         setValue(null);
         transactionalInfo.setTransition(STATE_DOWN);
     }
@@ -541,9 +540,10 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return false;
     }
 
+    // TODO: eliminate unused transaction and taskFactory parameters
     boolean revertStarting(Transaction transaction, TaskFactory taskFactory) {
         if (transactionalInfo.getTransition() == STATE_STARTING) {
-            setServiceDown(transaction, taskFactory);
+            setServiceDown();
             return true;
         }
         return false;
