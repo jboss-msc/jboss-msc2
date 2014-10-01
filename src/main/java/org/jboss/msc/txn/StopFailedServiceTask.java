@@ -29,24 +29,21 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
      * Creates stop failed service task.
      * 
      * @param service         failed service that is stopping
-     * @param transaction     the active transaction
      * @param taskFactory      the task factory
      * @return                the stop task (can be used for creating tasks that depend on the conclusion of stopping
      *                        transition)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction, TaskFactory taskFactory) {
+    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, TaskFactory taskFactory) {
         // post stop task
-        final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service, transaction);
+        final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service);
         final TaskBuilderImpl<Void> tb = (TaskBuilderImpl<Void>) taskFactory.<Void>newTask(null);
         final TaskController<Void> revertStopFailed = tb.setRevertible(stopFailedService).release();
         return taskFactory.newTask(stopFailedService).addDependency(revertStopFailed).release();
     }
 
-    private final Transaction transaction; // TODO: eliminated unused variable
     private final ServiceControllerImpl<?> serviceController;
 
-    private StopFailedServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
-        this.transaction = transaction;
+    private StopFailedServiceTask(ServiceControllerImpl<?> serviceController) {
         this.serviceController = serviceController;
     }
 

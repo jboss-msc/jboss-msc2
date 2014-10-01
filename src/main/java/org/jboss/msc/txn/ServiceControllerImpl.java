@@ -613,7 +613,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
                 case STATE_FAILED:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         transactionalState = STATE_STOPPING;
-                        StopFailedServiceTask.create(ServiceControllerImpl.this, transaction, taskFactory);
+                        StopFailedServiceTask.create(ServiceControllerImpl.this, taskFactory);
                     }
                     break;
                 case STATE_STARTING:
