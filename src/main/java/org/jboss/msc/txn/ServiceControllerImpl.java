@@ -492,8 +492,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         transactionalInfo.setTransition(STATE_UP);
     }
 
-    // TODO: eliminate unused transaction and taskFactory parameters
-    void setServiceFailed(Transaction transaction, TaskFactory taskFactory) {
+    void setServiceFailed() {
         MSCLogger.FAIL.startFailed(getServiceName());
         transactionalInfo.setTransition(STATE_FAILED);
     }

@@ -145,7 +145,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
 
             @Override
             public void fail() {
-                serviceController.setServiceFailed(transaction, context);
+                serviceController.setServiceFailed();
                 serviceController.notifyServiceFailed(transaction, context);
                 serviceController.unlock();
                 context.complete();

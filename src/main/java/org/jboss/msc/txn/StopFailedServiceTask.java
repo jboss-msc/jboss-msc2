@@ -63,7 +63,7 @@ final class StopFailedServiceTask implements Executable<Void>, Revertible {
     @Override
     public void rollback(RollbackContext context) {
         try {
-            serviceController.setServiceFailed(transaction, context);
+            serviceController.setServiceFailed();
         } finally {
             context.complete();
         }

@@ -251,7 +251,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
 
             @Override
             public void fail() {
-                serviceController.setServiceFailed(transaction, context);
+                serviceController.setServiceFailed();
                 serviceController.notifyServiceFailed(transaction, null);
                 context.complete();
             }
