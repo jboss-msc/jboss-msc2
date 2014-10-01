@@ -352,7 +352,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
         public void rollback(RollbackContext context) {
             try {
                 // revert only services that have not started
-                if (serviceController.revertStarting(transaction, context)) {
+                if (serviceController.revertStarting()) {
                     serviceController.notifyServiceDown(transaction);
                 }
             } finally {

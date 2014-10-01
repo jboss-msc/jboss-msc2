@@ -540,8 +540,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return false;
     }
 
-    // TODO: eliminate unused transaction and taskFactory parameters
-    boolean revertStarting(Transaction transaction, TaskFactory taskFactory) {
+    boolean revertStarting() {
         if (transactionalInfo.getTransition() == STATE_STARTING) {
             setServiceDown();
             return true;
