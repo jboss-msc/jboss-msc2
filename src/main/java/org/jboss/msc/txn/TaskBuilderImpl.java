@@ -51,10 +51,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
         if (executable instanceof Revertible) revertible = (Revertible) executable;
     }
 
-    TaskBuilderImpl(final Transaction transaction, final TaskParent parent) {
-        this(transaction, parent, null);
-    }
-
     @Override
     public Transaction getTransaction() {
         return transaction;

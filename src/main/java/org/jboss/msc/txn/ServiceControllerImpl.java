@@ -281,10 +281,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         return (state & STATE_MASK);
     }
 
-    synchronized TaskController<?> getStartTask(final Transaction transaction) {
-        return transactionalInfo != null ? transactionalInfo.startTask : null;
-    }
-
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
