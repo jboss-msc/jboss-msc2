@@ -99,13 +99,17 @@ final class Registration {
      */
     void installService(final Transaction transaction, final TaskFactory taskFactory) {
         final ServiceControllerImpl<?> serviceController;
+        boolean registryEnabled = false;
         synchronized (this) {
+            if (Bits.anyAreSet(state, REMOVED)) {
+                throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
+            }
             serviceController = holderRef.get();
+            if (Bits.anyAreSet(state, REGISTRY_ENABLED)) {
+                registryEnabled = true;
+            }
         }
-        if (Bits.anyAreSet(state, REMOVED)) {
-            throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
-        }
-        if (Bits.anyAreSet(state, REGISTRY_ENABLED)) {
+        if (registryEnabled) {
             serviceController.enableRegistry(transaction, taskFactory);
         } else {
             serviceController.disableRegistry(transaction, taskFactory);
