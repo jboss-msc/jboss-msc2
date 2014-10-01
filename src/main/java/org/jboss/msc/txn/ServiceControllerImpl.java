@@ -487,24 +487,27 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
 
     /* Transition related methods */
 
+    // TODO: eliminate unused transaction and taskFactory parameters
     void setServiceUp(T result, Transaction transaction, TaskFactory taskFactory) {
         setValue(result);
-        transactionalInfo.setTransition(STATE_UP, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_UP);
     }
 
+    // TODO: eliminate unused transaction and taskFactory parameters
     void setServiceFailed(Transaction transaction, TaskFactory taskFactory) {
         MSCLogger.FAIL.startFailed(getServiceName());
-        transactionalInfo.setTransition(STATE_FAILED, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_FAILED);
     }
 
+    // TODO: eliminate unused transaction and taskFactory parameters
     void setServiceDown(Transaction transaction, TaskFactory taskFactory) {
         setValue(null);
-        transactionalInfo.setTransition(STATE_DOWN, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_DOWN);
     }
 
     void setServiceRemoved(Transaction transaction, TaskFactory taskFactory) {
         clear(transaction, taskFactory);
-        transactionalInfo.setTransition(STATE_REMOVED, transaction, taskFactory);
+        transactionalInfo.setTransition(STATE_REMOVED);
     }
 
     void notifyServiceUp(final Transaction transaction) {
@@ -532,9 +535,10 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         }
     }
 
+    // TODO: eliminate unused transaction and taskFactory parameters
     boolean revertStopping(Transaction transaction, TaskFactory taskFactory) {
         if (transactionalInfo.getTransition() == STATE_STOPPING) {
-            transactionalInfo.setTransition(STATE_UP, transaction, taskFactory);
+            transactionalInfo.setTransition(STATE_UP);
             return true;
         }
         return false;
@@ -583,8 +587,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
             return transactionalState;
         }
 
-        // TODO: eliminate unused transaction and taskFactory parameters
-        void setTransition(byte transactionalState, Transaction transaction, TaskFactory taskFactory) {
+        void setTransition(byte transactionalState) {
             this.transactionalState = transactionalState;
         }
 
