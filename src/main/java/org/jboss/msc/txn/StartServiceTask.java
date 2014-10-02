@@ -226,7 +226,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(valueType, registry,  name, (BasicUpdateTransaction)transaction, context);
+                return parentContext.addService(valueType, registry,  name, (BasicUpdateTransaction) transaction);
             }
 
             @Override
@@ -240,7 +240,7 @@ final class StartServiceTask<T> implements Executable<T>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(registry,  name, (BasicUpdateTransaction)transaction, context);
+                return parentContext.addService(registry,  name, (BasicUpdateTransaction) transaction);
             }
         });
     }

@@ -331,7 +331,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(valueType,  registry,  name, (BasicUpdateTransaction)transaction, context);
+                return parentContext.addService(valueType,  registry,  name, (BasicUpdateTransaction) transaction);
             }
 
             @Override
@@ -345,7 +345,7 @@ final class StopServiceTask<T> implements Executable<Void>, Revertible {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return ((ParentServiceContext<?>) parentContext).addService(registry,  name, (BasicUpdateTransaction)transaction, context);
+                return parentContext.addService(registry,  name, (BasicUpdateTransaction) transaction);
             }
         });
     }

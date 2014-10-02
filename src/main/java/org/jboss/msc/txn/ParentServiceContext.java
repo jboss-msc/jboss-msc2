@@ -31,7 +31,6 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * automatically children services of parent.
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
- *
  */
 class ParentServiceContext<T> extends ServiceContextImpl {
 
@@ -42,7 +41,8 @@ class ParentServiceContext<T> extends ServiceContextImpl {
         this.parentRegistration = parentRegistration;
     }
 
-    <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction, final TaskFactory taskFactory) {
+    @Override
+    public <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction) {
         validateParentUp(transaction);
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(valueType, registry, name, transaction);
         final ServiceName parentName = parentRegistration.getServiceName();
@@ -50,7 +50,8 @@ class ParentServiceContext<T> extends ServiceContextImpl {
         return serviceBuilder;
     }
 
-    ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction, final TaskFactory taskFactory) {
+    @Override
+    public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction) {
         validateParentUp(transaction);
         final ServiceBuilderImpl<Void> serviceBuilder = (ServiceBuilderImpl<Void>) super.addService(registry, name, transaction);
         final ServiceName parentName = parentRegistration.getServiceName();
