@@ -73,17 +73,17 @@ class ParentServiceContext extends ServiceContextImpl {
 
         @Override
         public ConcurrentHashMap<ServiceName, DependencyImpl<?>> create() {
-            return new ConcurrentHashMap<ServiceName, DependencyImpl<?>>();
+            return new ConcurrentHashMap<>();
         }
 
     });
 
-    private static final <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration, Transaction transaction) {
+    private static <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration, Transaction transaction) {
         final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = transaction.getAttachment(PARENT_DEPENDENCIES);
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {
-            parentDependency = new ParentDependency<T>(parentRegistration);
+            parentDependency = new ParentDependency<>(parentRegistration);
             parentDependencies.put(parentName, parentDependency);
         }
         return parentDependency;
