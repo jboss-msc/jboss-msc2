@@ -162,16 +162,43 @@ public abstract class AbstractTransactionTest {
         }
     }
 
+    protected static void assertRestarted(final UpdateTransaction transaction) {
+        assertNotNull(transaction);
+        try {
+            txnController.canCommit(transaction);
+            fail("Cannot call canCommit() on restarted transaction");
+        } catch (InvalidTransactionStateException expected) {
+        }
+        try {
+            txnController.restart(transaction);
+            fail("Cannot call restart() on restarted transaction");
+        } catch (final InvalidTransactionStateException expected) {
+        }
+        try {
+            txnController.commit(transaction, null);
+            fail("Cannot call commit() on restarted transaction");
+        } catch (final InvalidTransactionStateException expected) {
+        }
+    }
+
     protected static void assertCommitted(final Transaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
+            fail("Cannot call canCommit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
         try {
             txnController.prepare(transaction, null);
             fail("Cannot call prepare() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
+        }
+        if (transaction instanceof UpdateTransaction) {
+            try {
+                txnController.restart((UpdateTransaction)transaction);
+                fail("Cannot call commit() on committed transaction");
+            } catch (final InvalidTransactionStateException expected) {
+            }
         }
         try {
             txnController.commit(transaction, null);
@@ -187,6 +214,12 @@ public abstract class AbstractTransactionTest {
         txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletionUninterruptibly();
         assertPrepared(transaction);
+    }
+
+    protected static void restart(final UpdateTransaction transaction) {
+        assertNotNull(transaction);
+        txnController.restart(transaction);
+        assertRestarted(transaction);
     }
 
     protected static void commit(final Transaction transaction) {

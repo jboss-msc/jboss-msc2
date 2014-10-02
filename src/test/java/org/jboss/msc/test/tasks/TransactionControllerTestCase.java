@@ -147,13 +147,9 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         prepare(updateTxn);
         service.waitStart();
         assertTrue(service.isUp());
-        txnController.restart(updateTxn);
+        restart(updateTxn);
         txnController.getServiceContext().removeService(registry, serviceName, updateTxn);
         prepare(updateTxn);
-        try {
-            txnController.restart(updateTxn);
-            fail();
-        } catch (InvalidTransactionStateException expected) {}
         service.waitStop();
         commit(updateTxn);
     }
