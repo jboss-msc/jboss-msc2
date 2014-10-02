@@ -185,7 +185,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
     @Override
     public ServiceContext getServiceContext() {
-        return new ParentServiceContext<T>(registry.getOrCreateRegistration(transaction, name), transactionController);
+        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name), transactionController);
     }
 
     private static boolean calledFromConstructorOf(Object obj) {

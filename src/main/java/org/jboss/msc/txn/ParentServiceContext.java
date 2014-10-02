@@ -32,7 +32,7 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * 
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-class ParentServiceContext<T> extends ServiceContextImpl {
+class ParentServiceContext extends ServiceContextImpl {
 
     private final Registration parentRegistration;
 
