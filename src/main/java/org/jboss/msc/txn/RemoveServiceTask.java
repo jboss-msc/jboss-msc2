@@ -34,16 +34,15 @@ final class RemoveServiceTask implements Executable<Void> {
      * @param serviceController  service that is being removed
      * @param stopTask           the task that must be first concluded before service can remove
      * @param transaction        the active transaction
-     * @return                   the remove task (can be used for creating tasks that depend on the conclusion of removal)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> stopTask,
+    static <T> void create(ServiceControllerImpl<T> serviceController, TaskController<?> stopTask,
             Transaction transaction) {
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
         final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new RemoveServiceTask(serviceController, transaction));
         if (stopTask != null) {
             removeTaskBuilder.addDependency(stopTask);
         }
-        return removeTaskBuilder.release();
+        removeTaskBuilder.release();
     }
 
     private final Transaction transaction;

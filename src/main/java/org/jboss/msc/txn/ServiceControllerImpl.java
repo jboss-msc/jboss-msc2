@@ -329,8 +329,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
      * All dependent services will be automatically stopped as the result of this operation.
      *
      * @param  transaction the active transaction
-     * @return the task that completes removal. Once this task is executed, the service will be at the
-     *         {@code REMOVED} state.
      */
     @Override
     public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
@@ -553,11 +551,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
             }
         }
 
-        private synchronized TaskController<Void> scheduleRemoval(Transaction transaction) {
+        private synchronized void scheduleRemoval(Transaction transaction) {
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             transition(transaction);
-            return RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
+            RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
         }
 
         private byte getState() {
