@@ -49,7 +49,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
     static final byte MODE_ON_DEMAND   = (byte)ServiceMode.ON_DEMAND.ordinal();
     static final byte MODE_MASK        = (byte)0b00000011;
     // controller states
-    static final byte STATE_NEW        = (byte)0b00000000;
     static final byte STATE_DOWN       = (byte)0b00000100;
     static final byte STATE_STARTING   = (byte)0b00001000;
     static final byte STATE_UP         = (byte)0b00001100;
@@ -88,7 +87,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     /**
      * The controller state.
      */
-    private volatile byte state = (byte)(STATE_NEW | MODE_ACTIVE);
+    private volatile byte state = (byte)(STATE_DOWN | MODE_ACTIVE);
     /**
      * The number of dependencies that are not satisfied.
      */
@@ -181,7 +180,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
-            transactionalInfo.transactionalState = STATE_DOWN;
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
@@ -489,7 +487,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
 
     private synchronized  void clean() {
         // prevent hard to find bugs
-        assert transactionalInfo.getState() == STATE_NEW || transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED: "State: " + transactionalInfo.getState();
+        assert transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED: "State: " + transactionalInfo.getState();
         state = (byte) (transactionalInfo.getState() | state & ~STATE_MASK);
         transactionalInfo = null;
     }
