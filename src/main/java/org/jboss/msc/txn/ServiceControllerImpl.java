@@ -57,8 +57,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
     static final byte STATE_RESTARTING = (byte)0b00011000;
     static final byte STATE_REMOVED    = (byte)0b00011100;
     static final byte STATE_MASK       = (byte)0b00011100;
-    // controller disposal flags
-    static final byte SERVICE_ENABLED  = (byte)0b01000000;
+    // controller flags
+    static final byte SERVICE_ENABLED  = (byte)0b00100000;
+    static final byte SERVICE_REMOVED  = (byte)0b01000000;
     static final byte REGISTRY_ENABLED = (byte)0b10000000;
 
     // TODO do we allow null values for non-void services?
@@ -253,6 +254,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
         setModified(transaction);
         initTransactionalInfo(transaction);
         synchronized (this) {
+            if (isServiceRemoved()) return;
             if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
@@ -266,6 +268,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
         setModified(transaction);
         initTransactionalInfo(transaction);
         synchronized (this) {
+            if (isServiceRemoved()) return;
             if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
@@ -278,9 +281,15 @@ final class ServiceControllerImpl<T> implements ServiceController {
         return Bits.allAreSet(state, SERVICE_ENABLED);
     }
 
+    private boolean isServiceRemoved() {
+        assert holdsLock(this);
+        return Bits.allAreSet(state, SERVICE_REMOVED);
+    }
+
     void disableRegistry(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (this) {
+            if (isServiceRemoved()) return;
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
@@ -291,6 +300,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     void enableRegistry(final Transaction transaction) {
         initTransactionalInfo(transaction);
         synchronized (this) {
+            if (isServiceRemoved()) return;
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
@@ -308,6 +318,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
         initTransactionalInfo(transaction);
+        synchronized (this) {
+            if (isServiceRemoved()) return;
+        }
         transactionalInfo.retry(transaction);
     }
 
@@ -329,9 +342,8 @@ final class ServiceControllerImpl<T> implements ServiceController {
     void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         // idempotent
         synchronized (this) {
-            if (getState(state) == STATE_REMOVED) {
-                return;
-            }
+            if (isServiceRemoved()) return;
+            state |= SERVICE_REMOVED;
         }
         initTransactionalInfo(transaction);
         transactionalInfo.scheduleRemoval(transaction);
@@ -342,6 +354,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
         initTransactionalInfo(transaction);
+        synchronized (this) {
+            if (isServiceRemoved()) return;
+        }
         transactionalInfo.restart(transaction);
     }
 
@@ -546,14 +561,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
         }
 
         private synchronized TaskController<Void> scheduleRemoval(Transaction transaction) {
-            // idempotent
-            if (transactionalState == STATE_REMOVED) {
-                return null;
-            }
-            // disable service
-            synchronized (ServiceControllerImpl.this) {
-                state &= ~SERVICE_ENABLED;
-            }
             // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
             // after complete transition task completes
             transition(transaction);
@@ -567,11 +574,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     private synchronized boolean shouldStart() {
-        return (isMode(MODE_ACTIVE) || demandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ACTIVE) || demandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) && Bits.allAreClear(state, SERVICE_REMOVED);
     }
 
     private synchronized boolean shouldStop() {
-        return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED);
+        return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED);
     }
 
     private void setMode(final byte mid) {
