@@ -60,22 +60,11 @@ final class StopServiceTask<T> implements Executable<Void> {
         this.transaction = transaction;
     }
 
-    private boolean taskValid;
-
     public void execute(final ExecuteContext<Void> context) {
-        final boolean locked = serviceController.lock();
-        if (!locked) return;
-        int currentState = serviceController.getState();
-        taskValid = currentState == ServiceControllerImpl.STATE_STOPPING || currentState == ServiceControllerImpl.STATE_STARTING || currentState == ServiceControllerImpl.STATE_RESTARTING;
-        if (!taskValid) {
-            context.complete();
-            return;
-        }
         final Service<T> service = serviceController.getService();
         if (service == null) {
             serviceController.setServiceDown();
             serviceController.notifyServiceDown(transaction);
-            serviceController.unlock();
             context.complete();
             return;
         }
@@ -84,7 +73,6 @@ final class StopServiceTask<T> implements Executable<Void> {
             public void complete(Void result) {
                 serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction);
-                serviceController.unlock();
                 context.complete();
             }
 
@@ -92,7 +80,6 @@ final class StopServiceTask<T> implements Executable<Void> {
             public void complete() {
                 serviceController.setServiceDown();
                 serviceController.notifyServiceDown(transaction);
-                serviceController.unlock();
                 context.complete();
             }
 

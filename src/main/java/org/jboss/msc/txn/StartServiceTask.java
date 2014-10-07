@@ -63,8 +63,6 @@ final class StartServiceTask<T> implements Executable<T> {
         this.transaction = transaction;
     }
 
-    private boolean taskValid;
-
     /**
      * Perform the task.
      *
@@ -72,18 +70,9 @@ final class StartServiceTask<T> implements Executable<T> {
      */
     @Override
     public void execute(final ExecuteContext<T> context) {
-        final boolean locked = serviceController.lock();
-        if (!locked) return;
-        int currentState = serviceController.getState();
-        taskValid = currentState == ServiceControllerImpl.STATE_STARTING || currentState == ServiceControllerImpl.STATE_STOPPING || currentState == ServiceControllerImpl.STATE_RESTARTING;
-        if (!taskValid) {
-            context.complete();
-            return;
-        }
         final Service<T> service = serviceController.getService();
         if (service == null ){
             serviceController.setServiceUp(null);
-            serviceController.unlock();
             context.complete(null);
             return;
         }
@@ -92,7 +81,6 @@ final class StartServiceTask<T> implements Executable<T> {
             public void complete(T result) {
                 serviceController.setServiceUp(result);
                 serviceController.notifyServiceUp(transaction);
-                serviceController.unlock();
                 context.complete(result);
             }
 
@@ -100,7 +88,6 @@ final class StartServiceTask<T> implements Executable<T> {
             public void complete() {
                 serviceController.setServiceUp(null);
                 serviceController.notifyServiceUp(transaction);
-                serviceController.unlock();
                 context.complete();
             }
 
@@ -108,7 +95,6 @@ final class StartServiceTask<T> implements Executable<T> {
             public void fail() {
                 serviceController.setServiceFailed();
                 serviceController.notifyServiceFailed(transaction);
-                serviceController.unlock();
                 context.complete();
             }
 

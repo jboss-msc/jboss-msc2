@@ -104,8 +104,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
     // will be non null iff write locked
     private volatile TransactionalInfo transactionalInfo = null;
 
-    private boolean locked;
-
     /**
      * Creates the service controller, thus beginning installation.
      * 
@@ -135,17 +133,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
         } else {
             // default mode (if not provided) is ACTIVE
         }
-    }
-
-    synchronized boolean lock() {
-        if (locked) return false;
-        locked = true;
-        return true;
-    }
-
-    synchronized void unlock() {
-        assert locked;
-        locked = false;
     }
 
     /**
