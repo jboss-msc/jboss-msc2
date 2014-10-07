@@ -442,7 +442,7 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         synchronized (ServiceControllerImpl.this) {
             -- unsatisfiedDependencies;
         }
-        transactionalInfo.dependencySatisfied(transaction);
+        transactionalInfo.transition(transaction);
     }
 
     public void dependencyUnsatisfied(final Transaction transaction) {
@@ -523,10 +523,6 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
         // if this service is under transition, this field points to the task that completes the transition
         private TaskController<T> startTask = null;
         private TaskController<Void> stopTask = null;
-
-        public synchronized void dependencySatisfied(final Transaction transaction) {
-            transition(transaction);
-        }
 
         void setTransition(byte transactionalState) {
             this.transactionalState = transactionalState;
