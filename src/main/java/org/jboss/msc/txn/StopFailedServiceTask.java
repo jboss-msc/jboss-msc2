@@ -32,26 +32,24 @@ final class StopFailedServiceTask implements Executable<Void> {
      * 
      * @param service         failed service that is stopping
      * @param transaction     the transaction
-     * @return                the stop task (can be used for creating tasks that depend on the conclusion of stopping
-     *                        transition)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> service, Transaction transaction) {
-        // post stop task
+    static <T> void create(ServiceControllerImpl<T> service, Transaction transaction) {
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-        final StopFailedServiceTask stopFailedService = new StopFailedServiceTask(service);
-        return taskFactory.newTask(stopFailedService).release();
+        taskFactory.newTask(new StopFailedServiceTask(service, transaction)).release();
     }
 
     private final ServiceControllerImpl<?> serviceController;
+    private final Transaction transaction;
 
-    private StopFailedServiceTask(ServiceControllerImpl<?> serviceController) {
+    private StopFailedServiceTask(ServiceControllerImpl<?> serviceController, Transaction transaction) {
         this.serviceController = serviceController;
+        this.transaction = transaction;
     }
 
     @Override
     public void execute(ExecuteContext<Void> context) {
         try {
-            serviceController.setServiceDown();
+            serviceController.setServiceDown(transaction);
         } finally {
             context.complete();
         }

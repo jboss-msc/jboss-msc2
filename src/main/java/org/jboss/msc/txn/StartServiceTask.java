@@ -40,19 +40,12 @@ final class StartServiceTask<T> implements Executable<T> {
      * Creates a start service task.
      * 
      * @param serviceController  starting service
-     * @param taskDependency the tasks that start service dependencies (these must be first concluded before service can start)
      * @param transaction          the active transaction
-     * @return                     the start task (can be used for creating tasks that depend on the conclusion of
-     *                              starting transition)
      */
-    static <T> TaskController<T> create(final ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency, final Transaction transaction) {
+    static <T> void create(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
         // start service
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-        final TaskBuilder<T> startTaskBuilder = taskFactory.newTask(new StartServiceTask<>(serviceController, transaction));
-        if (taskDependency != null) {
-            startTaskBuilder.addDependency(taskDependency);
-        }
-        return startTaskBuilder.release();
+        taskFactory.newTask(new StartServiceTask<>(serviceController, transaction)).release();
     }
 
     private final ServiceControllerImpl<T> serviceController;
@@ -72,28 +65,28 @@ final class StartServiceTask<T> implements Executable<T> {
     public void execute(final ExecuteContext<T> context) {
         final Service<T> service = serviceController.getService();
         if (service == null ){
-            serviceController.setServiceUp(null);
+            serviceController.setServiceUp(null, transaction);
             context.complete(null);
             return;
         }
         service.start(new StartContext<T>() {
             @Override
             public void complete(T result) {
-                serviceController.setServiceUp(result);
+                serviceController.setServiceUp(result, transaction);
                 serviceController.notifyServiceUp(transaction);
                 context.complete(result);
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceUp(null);
+                serviceController.setServiceUp(null, transaction);
                 serviceController.notifyServiceUp(transaction);
                 context.complete();
             }
 
             @Override
             public void fail() {
-                serviceController.setServiceFailed();
+                serviceController.setServiceFailed(transaction);
                 context.complete();
             }
 

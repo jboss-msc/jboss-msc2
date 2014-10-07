@@ -53,8 +53,8 @@ final class ServiceControllerImpl<T> implements ServiceController {
     static final byte STATE_STARTING   = (byte)0b00001000;
     static final byte STATE_UP         = (byte)0b00001100;
     static final byte STATE_FAILED     = (byte)0b00010000;
-    static final byte STATE_STOPPING   = (byte)0b00010100;
-    static final byte STATE_RESTARTING = (byte)0b00011000;
+    static final byte STATE_RESTARTING = (byte)0b00010100;
+    static final byte STATE_STOPPING   = (byte)0b00011000;
     static final byte STATE_REMOVED    = (byte)0b00011100;
     static final byte STATE_MASK       = (byte)0b00011100;
     // controller flags
@@ -338,13 +338,12 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        // idempotent
+        initTransactionalInfo(transaction);
         synchronized (this) {
-            if (isServiceRemoved()) return;
+            if (isServiceRemoved()) return; // idempotent
             state |= SERVICE_REMOVED;
         }
-        initTransactionalInfo(transaction);
-        transactionalInfo.scheduleRemoval(transaction);
+        transactionalInfo.transition(transaction);
     }
 
     @Override
@@ -445,24 +444,26 @@ final class ServiceControllerImpl<T> implements ServiceController {
 
     /* Transition related methods */
 
-    void setServiceUp(T result) {
+    void setServiceUp(T result, final Transaction transaction) {
         setValue(result);
         transactionalInfo.setTransition(STATE_UP);
+        transactionalInfo.transition(transaction);
     }
 
-    void setServiceFailed() {
+    void setServiceFailed(final Transaction transaction) {
         MSCLogger.FAIL.startFailed(getServiceName());
         transactionalInfo.setTransition(STATE_FAILED);
+        transactionalInfo.transition(transaction);
     }
 
-    void setServiceDown() {
+    void setServiceDown(final Transaction transaction) {
         setValue(null);
         transactionalInfo.setTransition(STATE_DOWN);
+        transactionalInfo.transition(transaction);
     }
 
-    void setServiceRemoved(Transaction transaction) {
+    void setServiceRemoved(final Transaction transaction) {
         clear(transaction);
-        transactionalInfo.setTransition(STATE_REMOVED);
     }
 
     void notifyServiceUp(final Transaction transaction) {
@@ -501,9 +502,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
     final class TransactionalInfo {
         // current transactional state - must be always set via {@link #setState()} method, not directly
         private volatile byte transactionalState = ServiceControllerImpl.this.currentState();
-        // if this service is under transition, this field points to the task that completes the transition
-        private TaskController<T> startTask = null;
-        private TaskController<Void> stopTask = null;
 
         void setTransition(byte transactionalState) {
             this.transactionalState = transactionalState;
@@ -513,17 +511,26 @@ final class ServiceControllerImpl<T> implements ServiceController {
             if (transactionalState != STATE_FAILED) {
                 return;
             }
-            startTask = StartServiceTask.create(ServiceControllerImpl.this, null, transaction);
+            transactionalState = STATE_RESTARTING;
+            transition(transaction);
         }
 
         private synchronized void transition(final Transaction transaction) {
             assert !holdsLock(ServiceControllerImpl.this);
+            final boolean removed;
+            synchronized (ServiceControllerImpl.this) {
+                removed = isServiceRemoved();
+            }
             switch (transactionalState) {
                 case STATE_STOPPING:
+                    break;
                 case STATE_DOWN:
                     if (unsatisfiedDependencies == 0 && shouldStart()) {
                         transactionalState = STATE_STARTING;
-                        startTask = StartServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
+                        StartServiceTask.create(ServiceControllerImpl.this, transaction);
+                    } else if (removed) {
+                        transactionalState = STATE_REMOVED;
+                        RemoveServiceTask.create(ServiceControllerImpl.this, transaction);
                     }
                     break;
                 case STATE_FAILED:
@@ -533,11 +540,15 @@ final class ServiceControllerImpl<T> implements ServiceController {
                     }
                     break;
                 case STATE_STARTING:
+                    break;
                 case STATE_UP:
                     if ((unsatisfiedDependencies > 0 || shouldStop())) {
                         transactionalState = STATE_STOPPING;
-                        stopTask = StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction);
+                        StopServiceTask.create(ServiceControllerImpl.this, transaction);
                     }
+                    break;
+                case STATE_RESTARTING:
+                    StopServiceTask.create(ServiceControllerImpl.this, transaction);
                     break;
                 default:
                     break;
@@ -545,17 +556,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
         }
 
         private synchronized void restart(Transaction transaction) {
-            if (state == STATE_UP || state == STATE_STARTING) {
-                transactionalState = STATE_RESTARTING;
-                StopServiceTask.create(ServiceControllerImpl.this, startTask, transaction);
+            if (transactionalState != STATE_UP) {
+                return;
             }
-        }
-
-        private synchronized void scheduleRemoval(Transaction transaction) {
-            // transition disabled service, guaranteeing that it is either at DOWN state or it will get to this state
-            // after complete transition task completes
+            transactionalState = STATE_RESTARTING;
             transition(transaction);
-            RemoveServiceTask.create(ServiceControllerImpl.this, stopTask, transaction);
         }
 
         private byte getState() {

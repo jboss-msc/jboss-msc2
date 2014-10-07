@@ -36,20 +36,11 @@ final class StopServiceTask<T> implements Executable<Void> {
      * Creates a stop service task.
      * 
      * @param serviceController  stopping service
-     * @param taskDependency     a task that must be first concluded before service can stop
      * @param transaction        the active transaction
-     * @return                   the stop task (can be used for creating tasks that depend on the conclusion of stopping
-     *                           transition)
      */
-    static <T> TaskController<Void> create(ServiceControllerImpl<T> serviceController, TaskController<?> taskDependency,
-            Transaction transaction) {
+    static <T> void create(ServiceControllerImpl<T> serviceController, Transaction transaction) {
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-        // stop service
-        final TaskBuilder<Void> stopTaskBuilder = taskFactory.newTask(new StopServiceTask<>(serviceController, transaction));
-        if (taskDependency != null) {
-            stopTaskBuilder.addDependency(taskDependency);
-        }
-        return stopTaskBuilder.release();
+        taskFactory.newTask(new StopServiceTask<>(serviceController, transaction)).release();
     }
 
     private final ServiceControllerImpl<T> serviceController;
@@ -63,7 +54,7 @@ final class StopServiceTask<T> implements Executable<Void> {
     public void execute(final ExecuteContext<Void> context) {
         final Service<T> service = serviceController.getService();
         if (service == null) {
-            serviceController.setServiceDown();
+            serviceController.setServiceDown(transaction);
             serviceController.notifyServiceDown(transaction);
             context.complete();
             return;
@@ -71,14 +62,14 @@ final class StopServiceTask<T> implements Executable<Void> {
         service.stop(new StopContext() {
             @Override
             public void complete(Void result) {
-                serviceController.setServiceDown();
+                serviceController.setServiceDown(transaction);
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }
 
             @Override
             public void complete() {
-                serviceController.setServiceDown();
+                serviceController.setServiceDown(transaction);
                 serviceController.notifyServiceDown(transaction);
                 context.complete();
             }
