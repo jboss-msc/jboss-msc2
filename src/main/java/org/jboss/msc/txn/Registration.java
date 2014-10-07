@@ -51,10 +51,6 @@ final class Registration {
      * Indicates this registration is scheduled to start or up.
      */
     private static final int UP = 0x8000000;
-    /** 
-     * Indicates this registration has failed to start.
-     */
-    private static final int FAILED = 0x4000000;
     /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
@@ -142,10 +138,6 @@ final class Registration {
 
     void serviceUp(final Transaction transaction) {
         synchronized (this) {
-            // handle out of order notifications
-            if (Bits.anyAreSet(state, FAILED)) {
-                return;
-            }
             state = state | UP;
             for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyUp(transaction);
@@ -153,22 +145,9 @@ final class Registration {
         }
     }
 
-    void serviceFailed(final Transaction transaction) {
-        synchronized (this) {
-            state = state | FAILED;
-            // handle out of order notifications
-            if (Bits.anyAreSet(state, UP)) {
-                state = state & ~UP;
-                for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
-                    incomingDependency.dependencyDown(transaction);
-                }
-            }
-        }
-    }
-
     void serviceDown(final Transaction transaction) {
         synchronized (this) {
-            state = state & ~(UP | FAILED);
+            state &= ~UP;
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyDown(transaction);
             }

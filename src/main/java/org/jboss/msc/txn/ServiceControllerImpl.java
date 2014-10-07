@@ -474,13 +474,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
         }
     }
 
-    void notifyServiceFailed(Transaction transaction) {
-        primaryRegistration.serviceFailed(transaction);
-        for (Registration registration: aliasRegistrations) {
-            registration.serviceFailed(transaction);
-        }
-    }
-
     void notifyServiceDown(Transaction transaction) {
         primaryRegistration.serviceDown(transaction);
         for (Registration registration: aliasRegistrations) {

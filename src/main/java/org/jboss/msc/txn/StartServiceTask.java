@@ -94,7 +94,6 @@ final class StartServiceTask<T> implements Executable<T> {
             @Override
             public void fail() {
                 serviceController.setServiceFailed();
-                serviceController.notifyServiceFailed(transaction);
                 context.complete();
             }
 
