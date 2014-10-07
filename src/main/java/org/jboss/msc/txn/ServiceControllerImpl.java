@@ -41,7 +41,7 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class ServiceControllerImpl<T> extends ServiceManager implements ServiceController {
+final class ServiceControllerImpl<T> implements ServiceController {
 
     // controller modes
     static final byte MODE_ACTIVE      = (byte)ServiceMode.ACTIVE.ordinal();
@@ -266,13 +266,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        super.disable(transaction);
-    }
-
-    @Override
-    public void doDisable(final Transaction transaction) {
         initTransactionalInfo(transaction);
-        synchronized(this) {
+        synchronized (this) {
             if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
@@ -284,13 +279,8 @@ final class ServiceControllerImpl<T> extends ServiceManager implements ServiceCo
     public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        super.enable(transaction);
-    }
-
-    @Override
-    public void doEnable(final Transaction transaction) {
         initTransactionalInfo(transaction);
-        synchronized(this) {
+        synchronized (this) {
             if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
