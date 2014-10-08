@@ -44,24 +44,21 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int FLAG_PREPARE_REQ = 1 << 2;
     private static final int FLAG_RESTART_REQ = 1 << 3;
     private static final int FLAG_COMMIT_REQ  = 1 << 4;
-    private static final int FLAG_DO_RESTART  = 1 << 5;
-    private static final int FLAG_DO_PREPARE  = 1 << 6;
-    private static final int FLAG_DO_COMMIT   = 1 << 7;
-    private static final int FLAG_DO_CLEAN_UP = 1 << 8;
+    private static final int FLAG_DO_PREPARE  = 1 << 5;
+    private static final int FLAG_DO_COMMIT   = 1 << 6;
+    private static final int FLAG_DO_CLEAN_UP = 1 << 7;
     private static final int FLAG_USER_THREAD = 1 << 31;
 
     private static final int STATE_ACTIVE     = 0x0;
     private static final int STATE_PREPARED   = 0x1;
-    private static final int STATE_RESTARTING = 0x2;
-    private static final int STATE_COMMITTED  = 0x3;
+    private static final int STATE_COMMITTED  = 0x2;
     private static final int STATE_MASK       = 0x3;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE | FLAG_DO_COMMIT;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ | FLAG_RESTART_REQ;
 
     private static final int T_NONE                   = 0;
     private static final int T_ACTIVE_to_PREPARED     = 1;
-    private static final int T_PREPARED_to_RESTARTING = 2;
-    private static final int T_PREPARED_to_COMMITTED  = 3;
+    private static final int T_PREPARED_to_COMMITTED  = 2;
     final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
@@ -149,15 +146,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 }
             }
             case STATE_PREPARED: {
-                if (Bits.allAreSet(state, FLAG_DO_RESTART)) {
-                    return T_PREPARED_to_RESTARTING;
-                } else if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
+                if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_PREPARED_to_COMMITTED;
                 } else {
                     return T_NONE;
                 }
             }
-            case STATE_RESTARTING:
             case STATE_COMMITTED: {
                 return T_NONE;
             }
@@ -181,10 +175,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE);
                     continue;
                 }
-                case T_PREPARED_to_RESTARTING: {
-                    state = newState(STATE_RESTARTING, state | FLAG_DO_RESTART);
-                    continue;
-                }
                 case T_PREPARED_to_COMMITTED: {
                     state = newState(STATE_COMMITTED, state | FLAG_DO_COMMIT | FLAG_DO_CLEAN_UP);
                     continue;
@@ -198,12 +188,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         public void run() {
             callPrepareCompletionListeners();
             callPrepareListener();
-        }
-    };
-
-    private final Runnable restartTask = new Runnable() {
-        public void run() {
-            // TODO: eliminate this useless task
         }
     };
 
@@ -232,9 +216,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             if (Bits.allAreSet(state, FLAG_DO_PREPARE)) {
                 ThreadLocalExecutor.addTask(prepareTask);
             }
-        }
-        if (Bits.allAreSet(state, FLAG_DO_RESTART)) {
-            ThreadLocalExecutor.addTask(restartTask);
         }
         if (Bits.allAreSet(state, FLAG_DO_CLEAN_UP)) {
             ThreadLocalExecutor.addTask(cleanUpTask);
@@ -298,22 +279,14 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     final void restart() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
-        int state;
         synchronized (this) {
-            state = this.state | FLAG_USER_THREAD;
             if (Bits.allAreSet(state, FLAG_RESTART_REQ)) {
                 throw MSCLogger.TXN.cannotRestartRestartedTxn();
             }
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
             }
-            state |= FLAG_RESTART_REQ | FLAG_DO_RESTART;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
-        }
-        executeTasks(state);
-        synchronized (this) {
-            this.state = FLAG_RESTART_REQ; // resets all persistent state except RESTART flag
+            state = FLAG_RESTART_REQ; // resets all persistent state except RESTART flag
         }
     }
 
