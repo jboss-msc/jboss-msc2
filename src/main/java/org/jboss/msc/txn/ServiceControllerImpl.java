@@ -28,7 +28,6 @@ import org.jboss.msc.service.ServiceName;
 
 import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.SERVICE;
-import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 import static org.jboss.msc.txn.Helper.setModified;
 import static org.jboss.msc.txn.Helper.validateTransaction;
 
@@ -97,12 +96,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
      * Indicates if this service is demanded to start.
      */
     private int demandedByCount;
-
-    /**
-     * Info enabled only when this service is write locked during a transaction.
-     */
-    // will be non null iff write locked
-    private volatile TransactionalInfo transactionalInfo = null;
 
     /**
      * Creates the service controller, thus beginning installation.
@@ -186,7 +179,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
         if (demandDependencies) {
             demandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            transition(transaction);
+        }
     }
 
     void clear(Transaction transaction) {
@@ -225,8 +220,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     T getValue() {
-        if (value == null &&
-                ((transactionalInfo != null && transactionalInfo.getState() != STATE_UP) || getState() != STATE_UP)) {
+        if (value == null && (getState() != STATE_UP)) {
             throw MSCLogger.SERVICE.serviceNotStarted(primaryRegistration.getServiceName());
         }
         return value == NULL_VALUE? null: value;
@@ -237,43 +231,30 @@ final class ServiceControllerImpl<T> implements ServiceController {
         this.value = value == null? (T) NULL_VALUE: value;
     }
 
-    /**
-     * Gets the current service controller state inside {@code transaction} context.
-     */
-    int getState() {
-        return transactionalInfo != null ? transactionalInfo.getState() : getState(state);
-    }
-
-    private static int getState(byte state) {
-        return (state & STATE_MASK);
-    }
-
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
             if (!isServiceEnabled()) return;
             state &= ~SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
             if (isServiceEnabled()) return;
             state |= SERVICE_ENABLED;
             if (!isRegistryEnabled()) return;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     private boolean isServiceEnabled() {
@@ -287,25 +268,23 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     void disableRegistry(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     void enableRegistry(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     private boolean isRegistryEnabled() {
@@ -317,11 +296,14 @@ final class ServiceControllerImpl<T> implements ServiceController {
     public void retry(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
+            if (getState() != STATE_FAILED) {
+                return;
+            }
+            setState(STATE_RESTARTING);
+            transition(transaction);
         }
-        transactionalInfo.retry(transaction);
     }
 
     /**
@@ -338,23 +320,25 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return; // idempotent
             state |= SERVICE_REMOVED;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     @Override
     public void restart(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        initTransactionalInfo(transaction);
         synchronized (this) {
             if (isServiceRemoved()) return;
+            if (getState() != STATE_UP) {
+                return;
+            }
+            setState(STATE_RESTARTING);
+            transition(transaction);
         }
-        transactionalInfo.restart(transaction);
     }
 
     /**
@@ -363,7 +347,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
      * @param transaction the active transaction
      */
     void demand(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         final boolean propagate;
         synchronized (this) {
             if (demandedByCount ++ > 0) {
@@ -374,7 +357,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
         if (propagate) {
             demandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            transition(transaction);
+        }
     }
 
     /**
@@ -395,7 +380,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
      * @param transaction the active transaction
      */
     void undemand(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         final boolean propagate;
         synchronized (this) {
             if (-- demandedByCount > 0) {
@@ -406,7 +390,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
         if (propagate) {
             undemandDependencies(transaction);
         }
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            transition(transaction);
+        }
     }
 
     /**
@@ -425,41 +411,45 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     void dependencySatisfied(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         synchronized (ServiceControllerImpl.this) {
             -- unsatisfiedDependencies;
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     public void dependencyUnsatisfied(final Transaction transaction) {
-        initTransactionalInfo(transaction);
         synchronized (this) {
            if (++ unsatisfiedDependencies > 1) {
                return;
             }
+            transition(transaction);
         }
-        transactionalInfo.transition(transaction);
     }
 
     /* Transition related methods */
 
     void setServiceUp(T result, final Transaction transaction) {
         setValue(result);
-        transactionalInfo.setTransition(STATE_UP);
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            setState(STATE_UP);
+            transition(transaction);
+        }
     }
 
     void setServiceFailed(final Transaction transaction) {
         MSCLogger.FAIL.startFailed(getServiceName());
-        transactionalInfo.setTransition(STATE_FAILED);
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            setState(STATE_FAILED);
+            transition(transaction);
+        }
     }
 
     void setServiceDown(final Transaction transaction) {
         setValue(null);
-        transactionalInfo.setTransition(STATE_DOWN);
-        transactionalInfo.transition(transaction);
+        synchronized (this) {
+            setState(STATE_DOWN);
+            transition(transaction);
+        }
     }
 
     void setServiceRemoved(final Transaction transaction) {
@@ -480,93 +470,41 @@ final class ServiceControllerImpl<T> implements ServiceController {
         }
     }
 
-    private synchronized void initTransactionalInfo(final Transaction transaction) {
-        if (transactionalInfo == null) {
-            transactionalInfo = new TransactionalInfo();
-            getAbstractTransaction(transaction).addListener(new TerminateCompletionListener() {
-                @Override
-                public void transactionTerminated() {
-                    clean();
+    private void transition(final Transaction transaction) {
+        assert holdsLock(ServiceControllerImpl.this);
+        final boolean removed = isServiceRemoved();
+        switch (getState()) {
+            case STATE_STOPPING:
+                break;
+            case STATE_DOWN:
+                if (unsatisfiedDependencies == 0 && shouldStart()) {
+                    setState(STATE_STARTING);
+                    StartServiceTask.create(ServiceControllerImpl.this, transaction);
+                } else if (removed) {
+                    setState(STATE_REMOVED);
+                    RemoveServiceTask.create(ServiceControllerImpl.this, transaction);
                 }
-            });
-        }
-    }
-
-    private synchronized  void clean() {
-        // prevent hard to find bugs
-        assert transactionalInfo.getState() == STATE_UP || transactionalInfo.getState() == STATE_DOWN || transactionalInfo.getState() == STATE_FAILED || transactionalInfo.getState() == STATE_REMOVED: "State: " + transactionalInfo.getState();
-        state = (byte) (transactionalInfo.getState() | state & ~STATE_MASK);
-        transactionalInfo = null;
-    }
-
-    final class TransactionalInfo {
-        // current transactional state - must be always set via {@link #setState()} method, not directly
-        private volatile byte transactionalState = ServiceControllerImpl.this.currentState();
-
-        void setTransition(byte transactionalState) {
-            this.transactionalState = transactionalState;
-        }
-
-        private synchronized void retry(Transaction transaction) {
-            if (transactionalState != STATE_FAILED) {
-                return;
-            }
-            transactionalState = STATE_RESTARTING;
-            transition(transaction);
-        }
-
-        private synchronized void transition(final Transaction transaction) {
-            assert !holdsLock(ServiceControllerImpl.this);
-            final boolean removed;
-            synchronized (ServiceControllerImpl.this) {
-                removed = isServiceRemoved();
-            }
-            switch (transactionalState) {
-                case STATE_STOPPING:
-                    break;
-                case STATE_DOWN:
-                    if (unsatisfiedDependencies == 0 && shouldStart()) {
-                        transactionalState = STATE_STARTING;
-                        StartServiceTask.create(ServiceControllerImpl.this, transaction);
-                    } else if (removed) {
-                        transactionalState = STATE_REMOVED;
-                        RemoveServiceTask.create(ServiceControllerImpl.this, transaction);
-                    }
-                    break;
-                case STATE_FAILED:
-                    if ((unsatisfiedDependencies > 0 || shouldStop())) {
-                        transactionalState = STATE_STOPPING;
-                        StopFailedServiceTask.create(ServiceControllerImpl.this, transaction);
-                    }
-                    break;
-                case STATE_STARTING:
-                    break;
-                case STATE_UP:
-                    if ((unsatisfiedDependencies > 0 || shouldStop())) {
-                        transactionalState = STATE_STOPPING;
-                        StopServiceTask.create(ServiceControllerImpl.this, transaction);
-                    }
-                    break;
-                case STATE_RESTARTING:
+                break;
+            case STATE_FAILED:
+                if ((unsatisfiedDependencies > 0 || shouldStop())) {
+                    setState(STATE_STOPPING);
+                    StopFailedServiceTask.create(ServiceControllerImpl.this, transaction);
+                }
+                break;
+            case STATE_STARTING:
+                break;
+            case STATE_UP:
+                if ((unsatisfiedDependencies > 0 || shouldStop())) {
+                    setState(STATE_STOPPING);
                     StopServiceTask.create(ServiceControllerImpl.this, transaction);
-                    break;
-                default:
-                    break;
-            }
+                }
+                break;
+            case STATE_RESTARTING:
+                StopServiceTask.create(ServiceControllerImpl.this, transaction);
+                break;
+            default:
+                break;
         }
-
-        private synchronized void restart(Transaction transaction) {
-            if (transactionalState != STATE_UP) {
-                return;
-            }
-            transactionalState = STATE_RESTARTING;
-            transition(transaction);
-        }
-
-        private byte getState() {
-            return transactionalState;
-        }
-
     }
 
     private synchronized boolean shouldStart() {
@@ -585,8 +523,12 @@ final class ServiceControllerImpl<T> implements ServiceController {
         return (state & MODE_MASK) == mode;
     }
 
-    private byte currentState() {
+    private void setState(final byte newState) {
         assert holdsLock(this);
+        state = (byte) (newState & STATE_MASK | state & ~STATE_MASK);
+    }
+
+    byte getState() {
         return (byte)(state & STATE_MASK);
     }
 }
