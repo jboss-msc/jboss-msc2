@@ -78,7 +78,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
-    private List<TerminateCompletionListener> terminateCompletionListeners = new ArrayList<>(0);
     volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
@@ -95,13 +94,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         synchronized (this) {
             assert stateOf(state) == STATE_ACTIVE;
             prepareCompletionListeners.add(listener);
-        }
-    }
-
-    final void addListener(final TerminateCompletionListener listener) {
-        synchronized (this) {
-            assert stateOf(state) == STATE_ACTIVE;
-            terminateCompletionListeners.add(listener);
         }
     }
 
@@ -211,13 +203,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private final Runnable restartTask = new Runnable() {
         public void run() {
-            callTerminateCompletionListeners();
+            // TODO: eliminate this useless task
         }
     };
 
     private final Runnable commitTask = new Runnable() {
         public void run() {
-            callTerminateCompletionListeners();
             callCommitListener();
         }
     };
@@ -264,14 +255,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             listener.transactionPrepared();
         } catch (final Throwable t) {
             MSCLogger.ROOT.prepareCompletionListenerFailed(t);
-        }
-    }
-
-    static void safeCallListener(final TerminateCompletionListener listener) {
-        try {
-            listener.transactionTerminated();
-        } catch (final Throwable t) {
-            MSCLogger.ROOT.terminateCompletionListenerFailed(t);
         }
     }
 
@@ -411,18 +394,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             safeCallListener(listener);
         }
         prepareCompletionListeners.clear();
-    }
-
-    private void callTerminateCompletionListeners() {
-        final List<TerminateCompletionListener> terminateCompletionListeners;
-        synchronized (this) {
-            terminateCompletionListeners = this.terminateCompletionListeners;
-            this.terminateCompletionListeners = new ArrayList<>(0);
-        }
-        for (final TerminateCompletionListener listener : terminateCompletionListeners) {
-            safeCallListener(listener);
-        }
-        terminateCompletionListeners.clear();
     }
 
     private void callPrepareListener() {

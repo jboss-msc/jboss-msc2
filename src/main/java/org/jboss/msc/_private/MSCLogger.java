@@ -100,11 +100,7 @@ public interface MSCLogger {
     void prepareCompletionListenerFailed(@Cause Throwable cause);
 
     @LogMessage(level = FATAL)
-    @Message(id = 15, value = "Transaction terminate completion listener failed")
-    void terminateCompletionListenerFailed(@Cause Throwable cause);
-
-    @LogMessage(level = FATAL)
-    @Message(id = 16, value = "Transaction create completion listener failed")
+    @Message(id = 15, value = "Transaction create completion listener failed")
     void transactionCreationCompletionListenerFailed(@Cause Throwable cause);
 
     // jump to 100...
