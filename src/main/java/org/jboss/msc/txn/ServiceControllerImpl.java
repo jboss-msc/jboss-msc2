@@ -411,15 +411,15 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     void dependencySatisfied(final Transaction transaction) {
-        synchronized (ServiceControllerImpl.this) {
-            -- unsatisfiedDependencies;
+        synchronized (this) {
+            --unsatisfiedDependencies;
             transition(transaction);
         }
     }
 
     public void dependencyUnsatisfied(final Transaction transaction) {
         synchronized (this) {
-           if (++ unsatisfiedDependencies > 1) {
+            if (++unsatisfiedDependencies > 1) {
                return;
             }
             transition(transaction);
@@ -471,7 +471,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     private void transition(final Transaction transaction) {
-        assert holdsLock(ServiceControllerImpl.this);
+        assert holdsLock(this);
         final boolean removed = isServiceRemoved();
         switch (getState()) {
             case STATE_STOPPING:
@@ -479,47 +479,49 @@ final class ServiceControllerImpl<T> implements ServiceController {
             case STATE_DOWN:
                 if (unsatisfiedDependencies == 0 && shouldStart()) {
                     setState(STATE_STARTING);
-                    StartServiceTask.create(ServiceControllerImpl.this, transaction);
+                    StartServiceTask.create(this, transaction);
                 } else if (removed) {
                     setState(STATE_REMOVED);
-                    RemoveServiceTask.create(ServiceControllerImpl.this, transaction);
+                    RemoveServiceTask.create(this, transaction);
                 }
                 break;
             case STATE_FAILED:
-                if ((unsatisfiedDependencies > 0 || shouldStop())) {
+                if (unsatisfiedDependencies > 0 || shouldStop()) {
                     setState(STATE_STOPPING);
-                    StopFailedServiceTask.create(ServiceControllerImpl.this, transaction);
+                    StopFailedServiceTask.create(this, transaction);
                 }
                 break;
             case STATE_STARTING:
                 break;
             case STATE_UP:
-                if ((unsatisfiedDependencies > 0 || shouldStop())) {
+                if (unsatisfiedDependencies > 0 || shouldStop()) {
                     setState(STATE_STOPPING);
-                    StopServiceTask.create(ServiceControllerImpl.this, transaction);
+                    StopServiceTask.create(this, transaction);
                 }
                 break;
             case STATE_RESTARTING:
-                StopServiceTask.create(ServiceControllerImpl.this, transaction);
+                StopServiceTask.create(this, transaction);
                 break;
             default:
                 break;
         }
     }
 
-    private synchronized boolean shouldStart() {
+    private boolean shouldStart() {
+        assert holdsLock(this);
         return (isMode(MODE_ACTIVE) || demandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) && Bits.allAreClear(state, SERVICE_REMOVED);
     }
 
-    private synchronized boolean shouldStop() {
+    private boolean shouldStop() {
+        assert holdsLock(this);
         return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED);
     }
 
-    private void setMode(final byte mid) {
+    private synchronized void setMode(final byte mid) {
         state = (byte) (mid & MODE_MASK | state & ~MODE_MASK);
     }
 
-    private boolean isMode(final byte mode) {
+    private synchronized boolean isMode(final byte mode) {
         return (state & MODE_MASK) == mode;
     }
 

@@ -36,8 +36,7 @@ final class RemoveServiceTask implements Executable<Void> {
      */
     static <T> void create(ServiceControllerImpl<T> serviceController, Transaction transaction) {
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-        final TaskBuilder<Void> removeTaskBuilder = taskFactory.newTask(new RemoveServiceTask(serviceController, transaction));
-        removeTaskBuilder.release();
+        taskFactory.newTask(new RemoveServiceTask(serviceController, transaction)).release();
     }
 
     private final Transaction transaction;
