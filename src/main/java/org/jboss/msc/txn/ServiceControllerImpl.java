@@ -349,7 +349,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     void demand(final Transaction transaction) {
         final boolean propagate;
         synchronized (this) {
-            if (demandedByCount ++ > 0) {
+            if (demandedByCount++ > 0) {
                 return;
             }
             propagate = !isMode(MODE_ACTIVE);
@@ -382,7 +382,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     void undemand(final Transaction transaction) {
         final boolean propagate;
         synchronized (this) {
-            if (-- demandedByCount > 0) {
+            if (--demandedByCount > 0) {
                 return;
             }
             propagate = !isMode(MODE_ACTIVE);
@@ -412,7 +412,9 @@ final class ServiceControllerImpl<T> implements ServiceController {
 
     void dependencySatisfied(final Transaction transaction) {
         synchronized (this) {
-            --unsatisfiedDependencies;
+            if (--unsatisfiedDependencies > 0) {
+                return;
+            }
             transition(transaction);
         }
     }
