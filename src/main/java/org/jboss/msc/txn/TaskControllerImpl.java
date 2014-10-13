@@ -20,7 +20,8 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -66,7 +67,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private final AbstractTransaction txn;
     private final Executable<T> executable;
     private final ClassLoader classLoader;
-    private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
+    private final Deque<TaskControllerImpl<?>> dependents = new ArrayDeque<>();
 
     private int state;
     private final AtomicInteger unexecutedDependencies = new AtomicInteger();
