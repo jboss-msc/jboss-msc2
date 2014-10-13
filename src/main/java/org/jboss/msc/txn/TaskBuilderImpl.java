@@ -18,13 +18,6 @@
 
 package org.jboss.msc.txn;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
-
-import static org.jboss.msc._private.MSCLogger.TXN;
-
 /**
  * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.
  * Dependency tasks must be associated with the same transaction as the subtask being built, or a parent thereof.
@@ -34,12 +27,12 @@ import static org.jboss.msc._private.MSCLogger.TXN;
  */
 final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
-    @SuppressWarnings("rawtypes")
     private final AbstractTransaction txn;
     private ClassLoader classLoader;
     private Executable<T> executable;
 
     TaskBuilderImpl(final AbstractTransaction txn, final Executable<T> executable) {
+        assert txn != null && executable != null;
         this.txn = txn;
         this.executable = executable;
     }
