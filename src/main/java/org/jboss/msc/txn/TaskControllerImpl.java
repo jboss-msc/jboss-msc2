@@ -22,6 +22,7 @@ import org.jboss.msc._private.MSCLogger;
 
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.holdsLock;
 
@@ -68,7 +69,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private final ArrayList<TaskControllerImpl<?>> dependents = new ArrayList<>();
 
     private int state;
-    private int unexecutedDependencies;
+    private final AtomicInteger unexecutedDependencies = new AtomicInteger();
 
     @SuppressWarnings("unchecked")
     private volatile T result = (T) NO_RESULT;
@@ -136,7 +137,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         int sid = stateOf(state);
         switch (sid) {
             case STATE_EXECUTE_WAIT: {
-                if (unexecutedDependencies == 0) {
+                if (unexecutedDependencies.get() == 0) {
                     return T_EXECUTE_WAIT_to_EXECUTE;
                 } else {
                     return T_NONE;
@@ -353,9 +354,9 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     public void dependencyExecuted(final boolean userThread) {
         assert ! holdsLock(this);
+        if (unexecutedDependencies.decrementAndGet() > 0) return;
         int state;
         synchronized (this) {
-            unexecutedDependencies--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -366,10 +367,8 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     void dependentAdded(final TaskControllerImpl<?> dependent, final boolean userThread) {
         assert ! holdsLock(this);
-        int state;
         boolean dependencyDone = false;
         synchronized (this) {
-            state = this.state;
             dependents.add(dependent);
             if (stateOf(state) == STATE_EXECUTE_DONE) {
                 dependencyDone = true;
@@ -383,19 +382,19 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     void install(final Set<TaskControllerImpl<?>> dependencies) {
         assert ! holdsLock(this);
         txn.taskAdded();
-        synchronized (this) {
-            unexecutedDependencies = dependencies.size();
+        if (unexecutedDependencies.addAndGet(dependencies.size()) > 0) {
+            for (final TaskControllerImpl<?> dependency : dependencies) {
+                dependency.dependentAdded(this, true);
+            }
+        } else {
+            int state;
+            synchronized (this) {
+                state = this.state | FLAG_USER_THREAD;
+                state = transition(state);
+                this.state = state & STATE_MASK;
+            }
+            executeTasks(state);
         }
-        for (final TaskControllerImpl<?> dependency : dependencies) {
-            dependency.dependentAdded(this, true);
-        }
-        int state;
-        synchronized (this) {
-            state = this.state | FLAG_USER_THREAD;
-            state = transition(state);
-            this.state = state & STATE_MASK;
-        }
-        executeTasks(state);
     }
 
     class AsyncTask implements Runnable {
