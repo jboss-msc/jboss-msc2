@@ -21,8 +21,8 @@ package org.jboss.msc.txn;
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc._private.Version;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,7 +75,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private final AtomicInteger unexecutedTasks = new AtomicInteger();
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
-    private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
+    private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
     volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
@@ -353,10 +353,10 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPrepareCompletionListeners() {
-        final List<PrepareCompletionListener> prepareCompletionListeners;
+        final Deque<PrepareCompletionListener> prepareCompletionListeners;
         synchronized (this) {
             prepareCompletionListeners = this.prepareCompletionListeners;
-            this.prepareCompletionListeners = new ArrayList<>(0);
+            this.prepareCompletionListeners = new ArrayDeque<>();
         }
         for (final PrepareCompletionListener listener : prepareCompletionListeners) {
             safeCallListener(listener);
