@@ -382,7 +382,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     void install(final Set<TaskControllerImpl<?>> dependencies) {
         assert ! holdsLock(this);
-        txn.taskAdded(true);
+        txn.taskAdded();
         synchronized (this) {
             unexecutedDependencies = dependencies.size();
         }

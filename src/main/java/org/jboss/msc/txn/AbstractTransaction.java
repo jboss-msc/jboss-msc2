@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.holdsLock;
 
@@ -71,7 +72,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     };
     private long endTime;
     private int state;
-    private int unexecutedTasks;
+    private final AtomicInteger unexecutedTasks = new AtomicInteger();
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
     private List<PrepareCompletionListener> prepareCompletionListeners = new ArrayList<>(0);
@@ -139,7 +140,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks == 0) {
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0) {
                     return T_ACTIVE_to_PREPARED;
                 } else {
                     return T_NONE;
@@ -317,9 +318,9 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     void taskExecuted(final boolean userThread) {
         assert ! holdsLock(this);
+        if (unexecutedTasks.decrementAndGet() > 0) return;
         int state;
         synchronized (this) {
-            unexecutedTasks--;
             state = this.state;
             if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
@@ -328,20 +329,14 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    void taskAdded(final boolean userThread) throws InvalidTransactionStateException {
+    void taskAdded() throws InvalidTransactionStateException {
         assert ! holdsLock(this);
-        int state;
         synchronized (this) {
-            state = this.state;
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
-            if (userThread) state |= FLAG_USER_THREAD;
-            unexecutedTasks++;
-            state = transition(state);
-            this.state = state & PERSISTENT_STATE;
+            unexecutedTasks.incrementAndGet();
         }
-        executeTasks(state);
     }
 
     boolean isActive() {
