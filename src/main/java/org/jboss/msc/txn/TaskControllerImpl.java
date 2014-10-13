@@ -22,7 +22,6 @@ import org.jboss.msc._private.MSCLogger;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.holdsLock;
@@ -70,7 +69,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private final Deque<TaskControllerImpl<?>> dependents = new ArrayDeque<>();
 
     private int state;
-    private final AtomicInteger unexecutedDependencies = new AtomicInteger();
+    private final AtomicInteger unexecutedDependencies = new AtomicInteger(); // TODO: eliminate
 
     @SuppressWarnings("unchecked")
     private volatile T result = (T) NO_RESULT;
@@ -380,22 +379,16 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         }
     }
 
-    void install(final Set<TaskControllerImpl<?>> dependencies) {
+    void install() {
         assert ! holdsLock(this);
         txn.taskAdded();
-        if (unexecutedDependencies.addAndGet(dependencies.size()) > 0) {
-            for (final TaskControllerImpl<?> dependency : dependencies) {
-                dependency.dependentAdded(this, true);
-            }
-        } else {
-            int state;
-            synchronized (this) {
-                state = this.state | FLAG_USER_THREAD;
-                state = transition(state);
-                this.state = state & STATE_MASK;
-            }
-            executeTasks(state);
+        int state;
+        synchronized (this) {
+            state = this.state | FLAG_USER_THREAD;
+            state = transition(state);
+            this.state = state & STATE_MASK;
         }
+        executeTasks(state);
     }
 
     class AsyncTask implements Runnable {

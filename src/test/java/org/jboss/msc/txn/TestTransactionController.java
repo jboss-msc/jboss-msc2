@@ -37,10 +37,6 @@ public final class TestTransactionController {
         return new TestTransactionController(TransactionController.createInstance());
     }
 
-    public <T> TestTaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) {
-        return new TestTaskBuilder(delegate.newTask(transaction, task));
-    }
-
     public boolean canCommit(final Transaction transaction) {
         return delegate.canCommit(transaction);
     }

@@ -36,7 +36,6 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
     @SuppressWarnings("rawtypes")
     private final AbstractTransaction txn;
-    private final Set<TaskControllerImpl<?>> dependencies = Collections.newSetFromMap(new IdentityHashMap<TaskControllerImpl<?>, Boolean>());
     private ClassLoader classLoader;
     private Executable<T> executable;
 
@@ -51,45 +50,8 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     }
 
     @Override
-    public TaskBuilderImpl<T> setExecutable(final Executable<T> executable) {
-        this.executable = executable;
-        return this;
-    }
-
-    @Override
     public TaskBuilderImpl<T> setClassLoader(final ClassLoader classLoader) {
         this.classLoader = classLoader;
-        return this;
-    }
-
-    @Override
-    public TaskBuilderImpl<T> addDependencies(final TaskController<?>... dependencies) throws IllegalStateException {
-        if (dependencies == null) {
-            throw TXN.methodParameterIsNull("dependencies");
-        }
-        for (final TaskController<?> dependency : dependencies) {
-            addDependency(dependency);
-        }
-        return this;
-    }
-
-    @Override
-    public TaskBuilderImpl<T> addDependencies(final Collection<? extends TaskController<?>> dependencies) throws IllegalStateException {
-        if (dependencies == null) {
-            throw TXN.methodParameterIsNull("dependencies");
-        }
-        for (final TaskController<?> dependency : dependencies) {
-            addDependency(dependency);
-        }
-        return this;
-    }
-
-    @Override
-    public TaskBuilderImpl<T> addDependency(final TaskController<?> dependency) throws IllegalStateException {
-        if (dependency == null) {
-            throw TXN.methodParameterIsNull("dependency");
-        }
-        dependencies.add((TaskControllerImpl<?>) dependency);
         return this;
     }
 
@@ -97,7 +59,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     public TaskControllerImpl<T> release() {
         @SuppressWarnings("rawtypes")
         final TaskControllerImpl<T> controller = new TaskControllerImpl<>(txn, executable, classLoader);
-        controller.install(dependencies);
+        controller.install();
         return controller;
     }
 }

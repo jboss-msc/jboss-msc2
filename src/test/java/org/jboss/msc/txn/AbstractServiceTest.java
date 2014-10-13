@@ -72,7 +72,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void removeRegistry(final ServiceRegistry serviceRegistry) {
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new RemoveRegistryTask(serviceRegistry, txn)).release();
+        serviceRegistry.remove(txn);
         prepare(txn);
         commit(txn);
     }
@@ -83,7 +83,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void enableRegistry(final ServiceRegistry serviceRegistry) {
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new EnableRegistryTask(serviceRegistry, txn)).release();
+        serviceRegistry.enable(txn);
         prepare(txn);
         commit(txn);
     }
@@ -94,7 +94,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void disableRegistry(final ServiceRegistry serviceRegistry) {
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new DisableRegistryTask(serviceRegistry, txn)).release();
+        serviceRegistry.disable(txn);
         prepare(txn);
         commit(txn);
     }
@@ -237,7 +237,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new RemoveServiceTestTask(serviceRegistry, serviceName, service, txn)).release();
+        service.getServiceContext().removeService(serviceRegistry, serviceName, txn);
         if (attemptToCommit(txn)) {
             assertNull(serviceRegistry.getService(serviceName));
             return true;
@@ -254,7 +254,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new EnableServiceTask(serviceRegistry, serviceName, txn)).release();
+        serviceRegistry.getRequiredService(serviceName).enable(txn);
         prepare(txn);
         commit(txn);
         assertNull(serviceRegistry.getService(serviceName));
@@ -267,7 +267,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final void disableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final UpdateTransaction txn = newUpdateTransaction();
-        txnController.newTask(txn, new DisableServiceTask(serviceRegistry, serviceName, txn)).release();
+        serviceRegistry.getRequiredService(serviceName).disable(txn);
         prepare(txn);
         commit(txn);
         assertNull(serviceRegistry.getService(serviceName));
