@@ -26,6 +26,7 @@ import org.jboss.msc.service.ServiceRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 import static org.jboss.msc.txn.Helper.setModified;
@@ -37,10 +38,12 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistry {
+final class ServiceRegistryImpl implements ServiceRegistry {
 
     private static final byte ENABLED = 1 << 0x00;
     private static final byte REMOVED  = 1 << 0x01;
+    private static final byte ENABLING = 1 << 0x02;
+    private static final byte DISABLING = 1 << 0x03;
 
     final TransactionController txnController;
     // map of service registrations
@@ -86,7 +89,7 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     Registration getOrCreateRegistration(Transaction transaction, ServiceName name) {
         Registration registration = registry.get(name);
         if (registration == null) {
-            checkRemoved();
+            synchronized (this) { checkRemoved(); }
             registration = new Registration(name, txnController);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
@@ -126,46 +129,45 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
-        checkRemoved();
         setModified(transaction);
-        super.disable(transaction);
-    }
-
-    void doDisable(Transaction transaction) {
         synchronized (this) {
-            // idempotent
-            if (!Bits.anyAreSet(state, ENABLED)) {
-                return;
-            }
-            state = (byte) (state & ~ENABLED);
+            checkRemoved();
+            if (!Bits.anyAreSet(state, ENABLED)) return; // idempotent
+            awaitStateWithoutFlags(ENABLING);
+            state &= ~ENABLED;
+            state |= DISABLING;
         }
         for (Registration registration: registry.values()) {
             registration.disableRegistry(transaction);
+        }
+        synchronized (this) {
+            state &= ~DISABLING;
+            notifyAll();
         }
     }
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
-        checkRemoved();
         setModified(transaction);
-        super.enable(transaction);
-    }
-
-    void doEnable(Transaction transaction) {
         synchronized (this) {
-            // idempotent
-            if (Bits.anyAreSet(state, ENABLED)) {
-                return;
-            }
-            state = (byte) (state | ENABLED);
+            checkRemoved();
+            if (Bits.anyAreSet(state, ENABLED)) return; // idempotent
+            awaitStateWithoutFlags(DISABLING);
+            state |= ENABLED;
+            state |= ENABLING;
         }
         for (Registration registration: registry.values()) {
             registration.enableRegistry(transaction);
         }
+        synchronized (this) {
+            state &= ~ENABLING;
+            notifyAll();
+        }
     }
 
-    private synchronized void checkRemoved() throws IllegalStateException {
+    private void checkRemoved() throws IllegalStateException {
+        assert holdsLock(this);
         if (Bits.anyAreSet(state, REMOVED)) {
             throw TXN.removedServiceRegistry();
         }
@@ -182,18 +184,39 @@ final class ServiceRegistryImpl extends ServiceManager implements ServiceRegistr
         @Override
         public synchronized void execute(ExecuteContext<Void> context) {
             try {
-                synchronized(ServiceRegistryImpl.this) {
+                synchronized (ServiceRegistryImpl.this) {
                     if (Bits.anyAreSet(state, REMOVED)) {
                         return;
                     }
                     state = (byte) (state | REMOVED);
+                    awaitStateWithoutFlags(ENABLING | DISABLING);
                 }
                 for (Registration registration : registry.values()) {
                     registration.remove(transaction);
                 }
+                registry.clear();
             } finally {
                 context.complete();
             }
         }
     }
+
+    private void awaitStateWithoutFlags(final int flags) {
+        assert holdsLock(this);
+        boolean interrupted = false;
+        try {
+            while (Bits.anyAreSet(state, flags)) {
+                try {
+                    wait();
+                } catch (final InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
 }
