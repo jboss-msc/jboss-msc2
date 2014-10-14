@@ -109,7 +109,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
      * @return the transition to take
      */
     private int getTransition(int state) {
-        assert holdsLock(this);
         switch (stateOf(state)) {
             case STATE_EXECUTE_WAIT: {
                 return T_EXECUTE_WAIT_to_EXECUTE;
@@ -145,31 +144,19 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         }
     }
 
-    private final Runnable executeTask = new Runnable() {
-        public void run() {
-            execute();
-        }
-    };
-
-    private final Runnable taskExecuted = new Runnable() {
-        public void run() {
-            txn.taskExecuted();
-        }
-    };
-
     private void executeTasks(final int state) {
         if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-            ThreadLocalExecutor.addTask(executeTask);
+            ThreadLocalExecutor.addTask(new Runnable() { public void run() { execute(); }});
         }
         if (Bits.allAreSet(state, FLAG_SEND_TASK_EXECUTED)) {
-            ThreadLocalExecutor.addTask(taskExecuted);
+            ThreadLocalExecutor.addTask(new Runnable() { public void run() { txn.taskExecuted(); }});
         }
         ThreadLocalExecutor.executeTasks();
     }
 
-    private static int newState(int sid, int state) {
+    private static int newState(int sid, int flags) {
         assert sid >= 0 && sid <= STATE_EXECUTE_DONE;
-        return sid & STATE_MASK | state & ~STATE_MASK;
+        return sid & STATE_MASK | flags & ~STATE_MASK;
     }
 
     private static int stateOf(int oldVal) {
