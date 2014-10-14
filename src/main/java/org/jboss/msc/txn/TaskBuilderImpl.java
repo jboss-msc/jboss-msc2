@@ -49,10 +49,7 @@ final class TaskBuilderImpl<T> implements TaskBuilder<T> {
     }
 
     @Override
-    public TaskControllerImpl<T> release() {
-        @SuppressWarnings("rawtypes")
-        final TaskControllerImpl<T> controller = new TaskControllerImpl<>(txn, executable, classLoader);
-        controller.install();
-        return controller;
+    public void release() {
+        new TaskControllerImpl<T>(txn, executable, classLoader).install();
     }
 }

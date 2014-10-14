@@ -19,8 +19,7 @@
 package org.jboss.msc.txn;
 
 /**
- * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.
- * Dependency tasks must be associated with the same transaction as the subtask being built, or a parent thereof.
+ * Task builder.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -43,11 +42,8 @@ interface TaskBuilder<T> {
     TaskBuilder<T> setClassLoader(final ClassLoader classLoader);
 
     /**
-     * Release this task to begin execution.  The given listener is called upon completion or failure, or immediately
-     * if this task was already released.
-     *
-     * @return the new controller
+     * Release this task to begin execution.
      */
-    TaskController<T> release();
+    void release();
 
 }
