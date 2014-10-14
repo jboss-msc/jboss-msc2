@@ -76,9 +76,8 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private static final byte T_EXECUTE_WAIT_to_EXECUTE = 1;
     private static final byte T_EXECUTE_to_EXECUTE_DONE = 2;
 
-    private static final byte FLAG_EXECUTE_DONE       = 1 << 3;
-    private static final byte FLAG_SEND_TASK_EXECUTED = 1 << 4;
-    private static final byte FLAG_DO_EXECUTE         = 1 << 5;
+    private static final byte FLAG_SEND_TASK_EXECUTED = 1 << 3;
+    private static final byte FLAG_DO_EXECUTE         = 1 << 4;
 
     TaskControllerImpl(final AbstractTransaction txn, final Executable<T> executable, final ClassLoader classLoader) {
         this.txn = txn;
@@ -111,17 +110,12 @@ final class TaskControllerImpl<T> implements TaskController<T> {
      */
     private int getTransition(int state) {
         assert holdsLock(this);
-        int sid = stateOf(state);
-        switch (sid) {
+        switch (stateOf(state)) {
             case STATE_EXECUTE_WAIT: {
                 return T_EXECUTE_WAIT_to_EXECUTE;
             }
             case STATE_EXECUTE: {
-                if (Bits.allAreSet(state, FLAG_EXECUTE_DONE)) {
-                    return T_EXECUTE_to_EXECUTE_DONE;
-                } else {
-                    return T_NONE;
-                }
+                return T_EXECUTE_to_EXECUTE_DONE;
             }
             case STATE_EXECUTE_DONE: {
                 return T_NONE;
@@ -138,19 +132,16 @@ final class TaskControllerImpl<T> implements TaskController<T> {
      */
     private int transition(int state) {
         assert holdsLock(this);
-        for (;;) {
-            int t = getTransition(state);
-            switch (t) {
-                case T_NONE: return state;
-                case T_EXECUTE_WAIT_to_EXECUTE: {
-                    return newState(STATE_EXECUTE, state | FLAG_DO_EXECUTE);
-                }
-                case T_EXECUTE_to_EXECUTE_DONE: {
-                    state = newState(STATE_EXECUTE_DONE, state | FLAG_SEND_TASK_EXECUTED);
-                    continue;
-                }
-                default: throw new IllegalStateException();
+        int t = getTransition(state);
+        switch (t) {
+            case T_NONE: return state;
+            case T_EXECUTE_WAIT_to_EXECUTE: {
+                return newState(STATE_EXECUTE, FLAG_DO_EXECUTE);
             }
+            case T_EXECUTE_to_EXECUTE_DONE: {
+                return newState(STATE_EXECUTE_DONE, FLAG_SEND_TASK_EXECUTED);
+            }
+            default: throw new IllegalStateException();
         }
     }
 
@@ -189,7 +180,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            state = this.state | FLAG_EXECUTE_DONE;
+            state = this.state;
             if (stateOf(state) != STATE_EXECUTE) {
                 throw MSCLogger.TASK.taskCannotComplete();
             }
