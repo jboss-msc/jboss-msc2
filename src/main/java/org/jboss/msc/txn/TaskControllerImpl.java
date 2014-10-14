@@ -79,7 +79,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private static final byte FLAG_EXECUTE_DONE       = 1 << 3;
     private static final byte FLAG_SEND_TASK_EXECUTED = 1 << 4;
     private static final byte FLAG_DO_EXECUTE         = 1 << 5;
-    private static final byte FLAG_USER_THREAD        = 1 << 6; // called from user thread; do not block
 
     TaskControllerImpl(final AbstractTransaction txn, final Executable<T> executable, final ClassLoader classLoader) {
         this.txn = txn;
@@ -161,43 +160,20 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         }
     };
 
-    private class TaskExecuted implements Runnable {
-        private final boolean userThread;
-
-        private TaskExecuted(final boolean userThread) {
-            this.userThread = userThread;
-        }
-
+    private final Runnable taskExecuted = new Runnable() {
         public void run() {
-            txn.taskExecuted(userThread);
+            txn.taskExecuted();
         }
-    }
+    };
 
     private void executeTasks(final int state) {
-        final boolean userThread = Bits.allAreSet(state, FLAG_USER_THREAD);
-        if (!Bits.allAreClear(state, FLAG_DO_EXECUTE)) {
-            if (userThread) {
-                if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-                    safeExecute(new AsyncTask(FLAG_DO_EXECUTE));
-                }
-            } else {
-                if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-                    ThreadLocalExecutor.addTask(executeTask);
-                }
-            }
+        if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
+            ThreadLocalExecutor.addTask(executeTask);
         }
         if (Bits.allAreSet(state, FLAG_SEND_TASK_EXECUTED)) {
-            ThreadLocalExecutor.addTask(new TaskExecuted(userThread));
+            ThreadLocalExecutor.addTask(taskExecuted);
         }
         ThreadLocalExecutor.executeTasks();
-    }
-
-    private void safeExecute(final Runnable command) {
-        try {
-            txn.getExecutor().execute(command);
-        } catch (Throwable t) {
-            MSCLogger.ROOT.runnableExecuteFailed(t, command);
-        }
     }
 
     private static int newState(int sid, int state) {
@@ -213,7 +189,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            state = this.state | FLAG_USER_THREAD | FLAG_EXECUTE_DONE;
+            state = this.state | FLAG_EXECUTE_DONE;
             if (stateOf(state) != STATE_EXECUTE) {
                 throw MSCLogger.TASK.taskCannotComplete();
             }
@@ -300,27 +276,9 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         txn.taskAdded();
         int state;
         synchronized (this) {
-            state = this.state | FLAG_USER_THREAD;
-            state = transition(state);
+            state = transition(this.state);
             this.state = (byte) (state & STATE_MASK);
         }
         executeTasks(state);
-    }
-
-    class AsyncTask implements Runnable {
-        private final int state;
-
-        AsyncTask(final int state) {
-            this.state = state;
-        }
-
-        public void run() {
-            executeTasks(state);
-        }
-
-        @Override
-        public String toString() {
-            return TaskControllerImpl.this + ".AsyncTask@" + System.identityHashCode(this);
-        }
     }
 }

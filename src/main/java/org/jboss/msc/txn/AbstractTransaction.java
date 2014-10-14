@@ -316,13 +316,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    void taskExecuted(final boolean userThread) {
+    void taskExecuted() {
         assert ! holdsLock(this);
         if (unexecutedTasks.decrementAndGet() > 0) return;
         int state;
         synchronized (this) {
             state = this.state;
-            if (userThread) state |= FLAG_USER_THREAD;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
