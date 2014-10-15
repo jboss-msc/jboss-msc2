@@ -144,40 +144,34 @@ public interface MSCLogger {
     @Message(id = 113, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message(id = 114, value = "Dependent may not be added at this point")
-    IllegalStateException cannotAddDepToTask();
-
-    @Message(id = 115, value = "A service named %s is already installed")
+    @Message(id = 114, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message(id = 116, value = "Cannot add new tasks to inactive transaction")
+    @Message(id = 115, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message(id = 117, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    @Message(id = 116, value = "It is forbidden to create dependency on registry created by other transaction controller")
     IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
 
-    @Message(id = 118, value = "Transaction controller mismatch.")
+    @Message(id = 117, value = "Transaction controller mismatch.")
     IllegalArgumentException transactionControllerMismatch();
 
-    @Message(id = 119, value = "ServiceBuilder.install() have been already called")
+    @Message(id = 118, value = "ServiceBuilder.install() have been already called")
     IllegalStateException cannotCallInstallTwice();
 
-    @Message(id = 120, value = "%s service installation failed because it introduced the following cycle: %s")
+    @Message(id = 119, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
-    @Message(id = 121, value = "%s service is not started yet")
-    IllegalStateException serviceNotStarted(final ServiceName name);
-
-    @Message(id = 122, value = "Transaction was downgraded to read-only transaction")
+    @Message(id = 120, value = "Transaction was downgraded to read-only transaction")
     InvalidTransactionStateException invalidatedUpdateTransaction();
 
-    @Message(id = 123, value = "Illegal transaction argument")
+    @Message(id = 121, value = "Illegal transaction argument")
     IllegalArgumentException illegalTransaction();
 
-    @Message(id = 124, value = "Transaction can be restarted only once")
+    @Message(id = 122, value = "Transaction can be restarted only once")
     InvalidTransactionStateException cannotRestartRestartedTxn();
 
-    @Message(id = 125, value = "Cannot restart unprepared transaction")
+    @Message(id = 123, value = "Cannot restart unprepared transaction")
     InvalidTransactionStateException cannotRestartUnpreparedTxn();
 
     /*

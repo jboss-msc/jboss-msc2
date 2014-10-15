@@ -61,9 +61,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
     static final byte SERVICE_REMOVED  = (byte)0b01000000;
     static final byte REGISTRY_ENABLED = (byte)0b10000000;
 
-    // TODO do we allow null values for non-void services?
-    private static final Object NULL_VALUE = new Object(); 
-
     /**
      * The service itself.
      */
@@ -83,7 +80,7 @@ final class ServiceControllerImpl<T> implements ServiceController {
     /**
      * The service value, resulting of service start.
      */
-    private T value;
+    private volatile T value;
     /**
      * The controller state.
      */
@@ -220,15 +217,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     T getValue() {
-        if (value == null && (getState() != STATE_UP)) {
-            throw MSCLogger.SERVICE.serviceNotStarted(primaryRegistration.getServiceName());
-        }
-        return value == NULL_VALUE? null: value;
+        return value;
     }
 
-    @SuppressWarnings("unchecked") // really ugly, but do we have a better solution?
     void setValue(T value) {
-        this.value = value == null? (T) NULL_VALUE: value;
+        this.value = value;
     }
 
     @Override
