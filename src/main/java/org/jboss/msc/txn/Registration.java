@@ -20,9 +20,7 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceName;
 
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -42,11 +40,11 @@ final class Registration {
     /**
      * Indicates if registry is enabled
      */
-    private static final int REGISTRY_ENABLED =       0x40000000;
+    private static final int REGISTRY_ENABLED = 0x40000000;
     /**
      * Indicates if registration is removed (true only when registry is removed).
      */
-    private static final int REMOVED  =      0x20000000;
+    private static final int REMOVED = 0x20000000;
     /**
      * Indicates this registration is scheduled to start or up.
      */
@@ -232,7 +230,7 @@ final class Registration {
 
     private static final class RequiredDependenciesCheck implements PrepareCompletionListener {
 
-        private Set<Registration> registrations = Collections.newSetFromMap(new IdentityHashMap<Registration, Boolean>());
+        private Set<Registration> registrations = new IdentityHashSet<>();
         private final ProblemReport report;
 
         RequiredDependenciesCheck(final ProblemReport report) {
@@ -241,12 +239,8 @@ final class Registration {
 
         void addRegistration(final Registration registration) {
             synchronized (this) {
-                if (registrations != null) {
-                    registrations.add(registration);
-                    return;
-                }
+                registrations.add(registration);
             }
-            throw new InvalidTransactionStateException();
         }
 
         @Override
@@ -254,7 +248,7 @@ final class Registration {
             final Set<Registration> registrations;
             synchronized (this) {
                 registrations = this.registrations;
-                this.registrations = null;
+                this.registrations = new IdentityHashSet<>();
             }
             for (final Registration registration : registrations) {
                 synchronized (registration) {
