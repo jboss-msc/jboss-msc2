@@ -476,8 +476,6 @@ final class ServiceControllerImpl<T> implements ServiceController {
         assert holdsLock(this);
         final boolean removed = isServiceRemoved();
         switch (getState()) {
-            case STATE_STOPPING:
-                break;
             case STATE_DOWN:
                 if (unsatisfiedDependencies == 0 && shouldStart()) {
                     setState(STATE_STARTING);
@@ -487,35 +485,29 @@ final class ServiceControllerImpl<T> implements ServiceController {
                     RemoveServiceTask.create(this, transaction);
                 }
                 break;
-            case STATE_FAILED:
-                if (unsatisfiedDependencies > 0 || shouldStop()) {
-                    setState(STATE_STOPPING);
-                    StopFailedServiceTask.create(this, transaction);
-                }
-                break;
-            case STATE_STARTING:
-                break;
             case STATE_UP:
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
                     setState(STATE_STOPPING);
                     StopServiceTask.create(this, transaction);
                 }
                 break;
+            case STATE_FAILED:
+                if (unsatisfiedDependencies > 0 || shouldStop()) {
+                    setState(STATE_STOPPING);
+                    StopFailedServiceTask.create(this, transaction);
+                }
+                break;
             case STATE_RESTARTING:
                 StopServiceTask.create(this, transaction);
-                break;
-            default:
                 break;
         }
     }
 
     private boolean shouldStart() {
-        assert holdsLock(this);
         return (isMode(MODE_ACTIVE) || demandedByCount > 0) && Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) && Bits.allAreClear(state, SERVICE_REMOVED);
     }
 
     private boolean shouldStop() {
-        assert holdsLock(this);
         return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED);
     }
 
