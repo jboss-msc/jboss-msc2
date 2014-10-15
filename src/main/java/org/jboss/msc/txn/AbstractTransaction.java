@@ -50,16 +50,16 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int FLAG_DO_CLEAN_UP = 1 << 7;
     private static final int FLAG_USER_THREAD = 1 << 31;
 
-    private static final int STATE_ACTIVE     = 0x0;
-    private static final int STATE_PREPARED   = 0x1;
-    private static final int STATE_COMMITTED  = 0x2;
-    private static final int STATE_MASK       = 0x3;
+    private static final int STATE_ACTIVE    = 0x0;
+    private static final int STATE_PREPARED  = 0x1;
+    private static final int STATE_COMMITTED = 0x2;
+    private static final int STATE_MASK      = 0x3;
     private static final int LISTENERS_MASK = FLAG_DO_PREPARE | FLAG_DO_COMMIT;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ | FLAG_RESTART_REQ;
 
-    private static final int T_NONE                   = 0;
-    private static final int T_ACTIVE_to_PREPARED     = 1;
-    private static final int T_PREPARED_to_COMMITTED  = 2;
+    private static final int T_NONE                  = 0;
+    private static final int T_ACTIVE_to_PREPARED    = 1;
+    private static final int T_PREPARED_to_COMMITTED = 2;
     final TransactionController txnController;
     final Executor taskExecutor;
     final Problem.Severity maxSeverity;
@@ -75,6 +75,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private final AtomicInteger unexecutedTasks = new AtomicInteger();
     private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
     private Listener<? super CommitResult<? extends Transaction>> commitListener;
+    private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
     volatile Transaction wrappingTxn;
 
@@ -89,8 +90,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     final void addListener(final PrepareCompletionListener listener) {
-        synchronized (this) {
-            assert stateOf(state) == STATE_ACTIVE;
+        synchronized (listenersLock) {
             prepareCompletionListeners.add(listener);
         }
     }
@@ -306,6 +306,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     protected void finalize() {
+        // TODO: this method is broken, fix it!
         try {
             commit(null);
         } finally {
@@ -353,7 +354,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private void callPrepareCompletionListeners() {
         final Deque<PrepareCompletionListener> prepareCompletionListeners;
-        synchronized (this) {
+        synchronized (listenersLock) {
             prepareCompletionListeners = this.prepareCompletionListeners;
             this.prepareCompletionListeners = new ArrayDeque<>();
         }
