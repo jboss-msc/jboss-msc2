@@ -27,21 +27,6 @@ package org.jboss.msc.txn;
 interface TaskBuilder<T> {
 
     /**
-     * Get the transaction associated with this builder.
-     *
-     * @return the transaction associated with this builder
-     */
-    Transaction getTransaction();
-
-    /**
-     * Set the class loader to use for this task.
-     *
-     * @param classLoader the class loader
-     * @return this task builder
-     */
-    TaskBuilder<T> setClassLoader(final ClassLoader classLoader);
-
-    /**
      * Release this task to begin execution.
      */
     void release();

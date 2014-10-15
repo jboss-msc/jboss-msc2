@@ -19,37 +19,22 @@
 package org.jboss.msc.txn;
 
 /**
- * A builder for subtasks.  Subtasks may be configured with dependencies and injections before being installed.
- * Dependency tasks must be associated with the same transaction as the subtask being built, or a parent thereof.
- *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class TaskBuilderImpl<T> implements TaskBuilder<T> {
 
     private final AbstractTransaction txn;
-    private ClassLoader classLoader;
     private Executable<T> executable;
 
     TaskBuilderImpl(final AbstractTransaction txn, final Executable<T> executable) {
-        assert txn != null && executable != null;
         this.txn = txn;
         this.executable = executable;
     }
 
     @Override
-    public Transaction getTransaction() {
-        return txn.wrappingTxn;
-    }
-
-    @Override
-    public TaskBuilderImpl<T> setClassLoader(final ClassLoader classLoader) {
-        this.classLoader = classLoader;
-        return this;
-    }
-
-    @Override
     public void release() {
-        new TaskControllerImpl<T>(txn, executable, classLoader).install();
+        new TaskControllerImpl<>(txn, executable).install();
     }
+
 }

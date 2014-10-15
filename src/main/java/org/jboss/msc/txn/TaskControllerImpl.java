@@ -57,11 +57,8 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     private static final Object NO_RESULT = new Object();
 
-    private static final ThreadLocal<ClassLoader> CL_HOLDER = new ThreadLocal<>();
-
     private final AbstractTransaction txn;
     private final Executable<T> executable;
-    private final ClassLoader classLoader;
     private byte state;
 
     @SuppressWarnings("unchecked")
@@ -79,10 +76,9 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private static final byte FLAG_SEND_TASK_EXECUTED = 1 << 3;
     private static final byte FLAG_DO_EXECUTE         = 1 << 4;
 
-    TaskControllerImpl(final AbstractTransaction txn, final Executable<T> executable, final ClassLoader classLoader) {
+    TaskControllerImpl(final AbstractTransaction txn, final Executable<T> executable) {
         this.txn = txn;
         this.executable = executable;
-        this.classLoader = classLoader;
     }
 
     @Override
@@ -178,28 +174,10 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         executeTasks(state);
     }
 
-    void setClassLoader() {
-        if (classLoader != null) {
-            final Thread thread = Thread.currentThread();
-            CL_HOLDER.set(thread.getContextClassLoader());
-            thread.setContextClassLoader(classLoader);
-        }
-    }
-
-    void unsetClassLoader() {
-        if (classLoader != null) {
-            final Thread thread = Thread.currentThread();
-            final ClassLoader classLoader = CL_HOLDER.get();
-            thread.setContextClassLoader(classLoader);
-            CL_HOLDER.remove();
-        }
-    }
-
     void execute() {
         final ProblemReport problemReport = getTransaction().getReport();
         final Executable<T> exec = executable;
         if (exec != null) try {
-            setClassLoader();
             exec.execute(new ExecuteContext<T>() {
                 @Override
                 public void complete(final T result) {
@@ -244,8 +222,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
         } catch (Throwable t) {
             MSCLogger.TASK.taskExecutionFailed(t, exec);
             problemReport.addProblem(new Problem(Problem.Severity.CRITICAL, t));
-        } finally {
-            unsetClassLoader();
         }
     }
 
