@@ -69,10 +69,6 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     private static final byte STATE_EXECUTE      = 1;
     private static final byte STATE_EXECUTE_DONE = 2;
 
-    private static final byte T_NONE = 0;
-    private static final byte T_EXECUTE_WAIT_to_EXECUTE = 1;
-    private static final byte T_EXECUTE_to_EXECUTE_DONE = 2;
-
     private static final byte FLAG_SEND_TASK_EXECUTED = 1 << 3;
     private static final byte FLAG_DO_EXECUTE         = 1 << 4;
 
@@ -98,44 +94,12 @@ final class TaskControllerImpl<T> implements TaskController<T> {
     //   Private impl
     // ===================================================
 
-    /**
-     * Calculate the transition to take from the current state.
-     *
-     * @param state the current state
-     * @return the transition to take
-     */
-    private int getTransition(int state) {
-        switch (stateOf(state)) {
-            case STATE_EXECUTE_WAIT: {
-                return T_EXECUTE_WAIT_to_EXECUTE;
-            }
-            case STATE_EXECUTE: {
-                return T_EXECUTE_to_EXECUTE_DONE;
-            }
-            case STATE_EXECUTE_DONE: {
-                return T_NONE;
-            }
-            default: throw new IllegalStateException();
-        }
-    }
-
-    /**
-     * Perform any necessary/possible transition.
-     *
-     * @param state the current state
-     * @return the new state
-     */
     private int transition(int state) {
         assert holdsLock(this);
-        int t = getTransition(state);
-        switch (t) {
-            case T_NONE: return state;
-            case T_EXECUTE_WAIT_to_EXECUTE: {
-                return newState(STATE_EXECUTE, FLAG_DO_EXECUTE);
-            }
-            case T_EXECUTE_to_EXECUTE_DONE: {
-                return newState(STATE_EXECUTE_DONE, FLAG_SEND_TASK_EXECUTED);
-            }
+        switch (stateOf(state)) {
+            case STATE_EXECUTE_WAIT: return newState(STATE_EXECUTE, FLAG_DO_EXECUTE);
+            case STATE_EXECUTE: return newState(STATE_EXECUTE_DONE, FLAG_SEND_TASK_EXECUTED);
+            case STATE_EXECUTE_DONE: return state;
             default: throw new IllegalStateException();
         }
     }
