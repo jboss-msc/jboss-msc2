@@ -157,6 +157,7 @@ final class Registration {
     void addDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
+            if (Bits.anyAreSet(state, REMOVED)) return;
             if (((++ state) & DEMANDED_MASK) > 1) {
                 return;
             }
@@ -170,6 +171,7 @@ final class Registration {
     void removeDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
+            if (Bits.anyAreSet(state, REMOVED)) return;
             if (((--state) & DEMANDED_MASK) > 0) {
                 return;
             }
