@@ -18,6 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc.util.CompletionListener;
+import org.jboss.msc.util.Listener;
 import org.junit.After;
 import org.junit.Before;
 

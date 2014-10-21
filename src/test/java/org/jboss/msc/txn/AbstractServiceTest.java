@@ -25,6 +25,7 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.util.CompletionListener;
 import org.junit.After;
 import org.junit.Before;
 

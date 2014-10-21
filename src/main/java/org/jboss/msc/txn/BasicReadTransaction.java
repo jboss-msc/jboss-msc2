@@ -20,6 +20,8 @@ package org.jboss.msc.txn;
 
 import java.util.concurrent.Executor;
 
+import org.jboss.msc.problem.Problem;
+
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>

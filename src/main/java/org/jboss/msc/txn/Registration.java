@@ -18,7 +18,9 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.util.AttachmentKey;
 
 import java.util.HashSet;
 import java.util.Set;

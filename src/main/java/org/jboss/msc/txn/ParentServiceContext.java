@@ -21,6 +21,8 @@ import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.util.AttachmentKey;
+import org.jboss.msc.util.Factory;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -69,7 +71,7 @@ class ParentServiceContext extends ServiceContextImpl {
         }
     }
 
-    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>>  PARENT_DEPENDENCIES= AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> () {
+    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> PARENT_DEPENDENCIES= AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceName, DependencyImpl<?>>>() {
 
         @Override
         public ConcurrentHashMap<ServiceName, DependencyImpl<?>> create() {

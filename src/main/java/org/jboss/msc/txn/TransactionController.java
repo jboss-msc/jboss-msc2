@@ -18,8 +18,12 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.problem.Problem;
+import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.util.Listener;
+import org.jboss.msc.util.SimpleAttachable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -62,7 +66,7 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Creates a new read-only transaction. This method is equivalent to calling
-     * {@link #createReadTransaction(java.util.concurrent.Executor, org.jboss.msc.txn.Problem.Severity, Listener)}
+     * {@link #createReadTransaction(java.util.concurrent.Executor, Problem.Severity, Listener)}
      * with <B>WARNING</B> problem serverity.
      *
      * @param executor the executor to use to run tasks
@@ -100,7 +104,7 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Creates a new updating transaction. This method is equivalent to calling
-     * {@link #createUpdateTransaction(java.util.concurrent.Executor, org.jboss.msc.txn.Problem.Severity, Listener)}
+     * {@link #createUpdateTransaction(java.util.concurrent.Executor, Problem.Severity, Listener)}
      * with <B>WARNING</B> problem serverity.
      *
      * @param executor the executor to use to run tasks

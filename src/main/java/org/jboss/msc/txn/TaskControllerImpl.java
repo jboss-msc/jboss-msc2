@@ -19,6 +19,8 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.problem.Problem;
+import org.jboss.msc.problem.ProblemReport;
 
 import static java.lang.Thread.holdsLock;
 

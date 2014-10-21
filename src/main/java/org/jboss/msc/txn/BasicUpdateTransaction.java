@@ -19,6 +19,8 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.problem.ProblemReport;
+import org.jboss.msc.util.AttachmentKey;
 
 import java.util.concurrent.TimeUnit;
 
