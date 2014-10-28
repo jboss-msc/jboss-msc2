@@ -228,7 +228,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         ThreadLocalExecutor.executeTasks();
     }
 
-    private void safeExecute(final Runnable command) {
+    void safeExecute(final Runnable command) {
         try {
             taskExecutor.execute(command);
         } catch (Throwable t) {

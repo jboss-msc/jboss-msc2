@@ -108,7 +108,7 @@ final class TaskControllerImpl<T> implements TaskController<T> {
 
     private void executeTasks(final int state) {
         if (Bits.allAreSet(state, FLAG_DO_EXECUTE)) {
-            ThreadLocalExecutor.addTask(new Runnable() { public void run() { execute(); }});
+            txn.safeExecute(new Runnable() { public void run() { execute(); }});
         }
         if (Bits.allAreSet(state, FLAG_SEND_TASK_EXECUTED)) {
             ThreadLocalExecutor.addTask(new Runnable() { public void run() { txn.taskExecuted(); }});
