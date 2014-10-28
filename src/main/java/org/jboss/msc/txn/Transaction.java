@@ -20,6 +20,9 @@ package org.jboss.msc.txn;
 
 import java.util.concurrent.TimeUnit;
 
+import org.jboss.msc.problem.ProblemReport;
+import org.jboss.msc.util.Attachable;
+
 /**
  * There are two subtypes of transactions:
  *

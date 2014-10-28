@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.txn;
+package org.jboss.msc.util;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>

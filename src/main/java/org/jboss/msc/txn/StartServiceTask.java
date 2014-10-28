@@ -18,13 +18,14 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.problem.Problem;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
-import org.jboss.msc.txn.Problem.Severity;
+import org.jboss.msc.problem.Problem.Severity;
 
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 

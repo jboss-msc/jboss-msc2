@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.txn;
+package org.jboss.msc.util;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,8 +25,11 @@ import java.util.concurrent.ConcurrentMap;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
 @SuppressWarnings("unchecked")
-class SimpleAttachable implements Attachable {
+public class SimpleAttachable implements Attachable {
     private final ConcurrentMap<AttachmentKey<?>, Object> attachments = new ConcurrentHashMap<>();
+
+    public SimpleAttachable() {
+    }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
         if (key == null) {

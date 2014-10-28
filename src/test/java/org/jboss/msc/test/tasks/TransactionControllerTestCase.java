@@ -23,7 +23,7 @@ import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.AbstractTransactionTest;
-import org.jboss.msc.txn.CompletionListener;
+import org.jboss.msc.util.CompletionListener;
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.ReadTransaction;
 import org.jboss.msc.txn.TestService;

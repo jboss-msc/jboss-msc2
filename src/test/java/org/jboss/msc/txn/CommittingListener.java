@@ -18,6 +18,9 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc.util.CompletionListener;
+import org.jboss.msc.util.Listener;
+
 /**
  * Listener that commits the transaction. It provides utility method {@link #awaitCommit()} to wait until transaction have been
  * committed.

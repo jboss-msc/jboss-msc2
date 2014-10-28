@@ -18,6 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc.problem.Problem;
+
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */

@@ -19,9 +19,11 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc.problem.Problem;
+import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.DependencyFlag;
-import org.jboss.msc.txn.Problem.Severity;
+import org.jboss.msc.problem.Problem.Severity;
 
 import static org.jboss.msc._private.MSCLogger.SERVICE;
 
