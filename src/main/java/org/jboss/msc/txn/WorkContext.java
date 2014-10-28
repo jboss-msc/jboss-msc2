@@ -17,7 +17,7 @@
  */
 package org.jboss.msc.txn;
 
-
+import org.jboss.msc.problem.Problem;
 
 /**
  * Context for a task.
@@ -25,7 +25,7 @@ package org.jboss.msc.txn;
  * @param <T> the result type of the associated task
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public interface WorkContext<T> extends ReportableContext, SimpleWorkContext {
+public interface WorkContext<T> {
 
     /**
      * Register the completion of this task with a value.  This method returns without blocking.
@@ -38,4 +38,22 @@ public interface WorkContext<T> extends ReportableContext, SimpleWorkContext {
      * Register the completion of this task with a {@code null} value.  This method returns without blocking.
      */
     void complete();
+
+    /**
+     * Add a problem to this execution.  Depending on the reason severity, the task may or may not
+     * roll back.
+     *
+     * @param reason the problem reason
+     */
+    void addProblem(Problem reason);
+
+    void addProblem(Problem.Severity severity, String message);
+
+    void addProblem(Problem.Severity severity, String message, Throwable cause);
+
+    void addProblem(String message, Throwable cause);
+
+    void addProblem(String message);
+
+    void addProblem(Throwable cause);
 }
