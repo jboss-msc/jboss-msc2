@@ -25,5 +25,12 @@ package org.jboss.msc.txn;
  * 
  * @param <T> transaction
  */
-public interface PrepareResult<T extends Transaction> extends Result<T> {
+public interface PrepareResult<T extends Transaction> {
+
+    /**
+     * Returns associated transaction
+     * @return associated transaction
+     */
+    T getTransaction();
+
 }
