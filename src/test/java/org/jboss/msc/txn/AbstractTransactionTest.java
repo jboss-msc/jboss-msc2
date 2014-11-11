@@ -19,7 +19,6 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc.util.CompletionListener;
-import org.jboss.msc.util.Listener;
 import org.junit.After;
 import org.junit.Before;
 
@@ -81,14 +80,6 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static boolean canCommit(Transaction transaction) {
-        return txnController.canCommit(transaction);
-    }
-
-    protected static void commit(Transaction transaction, Listener<Transaction> listener) {
-        txnController.commit(transaction, listener);
-    }
-
     protected static boolean attemptToCommit(final Transaction txn) {
         prepare(txn);
         if (txnController.canCommit(txn)) {
@@ -116,29 +107,6 @@ public abstract class AbstractTransactionTest {
         final UpdateTransaction transaction = listener.awaitCompletionUninterruptibly();
         createdTransactions.add(transaction);
         return transaction;
-    }
-
-    protected static void assertCalled(final TestTask task) {
-        assertNotNull(task);
-        assertTrue("Task " + task + " was not called", task.wasCalled());
-    }
-
-    protected static void assertCallOrder(final TestTask firstTask, final TestTask secondTask) {
-        assertCalled(firstTask);
-        assertCalled(secondTask);
-        assertTrue("Task " + firstTask + " have been called after " + secondTask,
-                firstTask.getCallTime() <= secondTask.getCallTime());
-    }
-
-    protected static void assertCallOrder(final TestTask firstTask, final TestTask secondTask, final TestTask... otherTasks) {
-        assertCallOrder(firstTask, secondTask);
-        if (otherTasks != null && otherTasks.length > 0) {
-            TestTask previousTask = secondTask;
-            for (final TestTask currentTask : otherTasks) {
-                assertCallOrder(previousTask, currentTask);
-                previousTask = currentTask;
-            }
-        }
     }
 
     protected static void assertPrepared(final Transaction transaction) {
