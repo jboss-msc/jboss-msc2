@@ -77,8 +77,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private long endTime;
     private int state;
     private final AtomicInteger unexecutedTasks = new AtomicInteger();
-    private Listener<? super PrepareResult<? extends Transaction>> prepareListener;
-    private Listener<? super CommitResult<? extends Transaction>> commitListener;
+    private Listener<Transaction> prepareListener;
+    private Listener<Transaction> commitListener;
     private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
     volatile Transaction wrappingTxn;
@@ -244,7 +244,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    final void prepare(final Listener<? super PrepareResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
+    final void prepare(final Listener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -256,14 +256,14 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotPreparePreparedTxn();
             }
             state |= FLAG_PREPARE_REQ;
-            prepareListener = completionListener;
+            prepareListener = (Listener<Transaction>)completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
     }
 
-    final void commit(final Listener<? super CommitResult<? extends Transaction>> completionListener) throws InvalidTransactionStateException {
+    final void commit(final Listener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -275,7 +275,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotCommitCommittedTxn();
             }
             state |= FLAG_COMMIT_REQ;
-            commitListener = completionListener;
+            commitListener = (Listener<Transaction>)completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -369,7 +369,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPrepareListener() {
-        final Listener<? super PrepareResult<? extends Transaction>> prepareListener;
+        final Listener<Transaction> prepareListener;
         synchronized (this) {
             prepareListener = this.prepareListener;
             this.prepareListener = null;
@@ -378,7 +378,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callCommitListener() {
-        final Listener<? super CommitResult<? extends Transaction>> commitListener;
+        final Listener<Transaction> commitListener;
         synchronized (this) {
             endTime = System.nanoTime();
             commitListener = this.commitListener;
@@ -388,28 +388,18 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callListeners(
-            final Listener<? super PrepareResult<? extends Transaction>> prepareListener,
-            final Listener<? super CommitResult<? extends Transaction>> commitListener) {
+            final Listener<Transaction> prepareListener,
+            final Listener<Transaction> commitListener) {
         if (prepareListener != null) {
             try {
-                prepareListener.handleEvent(new PrepareResult<Transaction>() {
-                    @Override
-                    public Transaction getTransaction() {
-                        return wrappingTxn;
-                    }
-                });
+                prepareListener.handleEvent(wrappingTxn);
             } catch (final Throwable ignored) {
                 MSCLogger.ROOT.listenerFailed(ignored, prepareListener);
             }
         }
         if (commitListener != null) {
             try {
-                commitListener.handleEvent(new CommitResult<Transaction>() {
-                    @Override
-                    public Transaction getTransaction() {
-                        return wrappingTxn;
-                    }
-                });
+                commitListener.handleEvent(wrappingTxn);
             } catch (final Throwable ignored) {
                 MSCLogger.ROOT.listenerFailed(ignored, commitListener);
             }

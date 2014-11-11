@@ -42,11 +42,11 @@ public final class TestTransactionController {
         return delegate.canCommit(transaction);
     }
 
-    public <T extends Transaction> void prepare(final T transaction, final Listener<? super PrepareResult<T>> completionListener) {
+    public <T extends Transaction> void prepare(final T transaction, final Listener<T> completionListener) {
         delegate.prepare(transaction, completionListener);
     }
 
-    public <T extends Transaction> void commit(final T transaction, final Listener<? super CommitResult<T>> completionListener) {
+    public <T extends Transaction> void commit(final T transaction, final Listener<T> completionListener) {
         delegate.commit(transaction, completionListener);
     }
 

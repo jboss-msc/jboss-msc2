@@ -81,15 +81,11 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static void prepare(Transaction transaction, Listener<PrepareResult<? extends Transaction>> listener) {
-        txnController.prepare(transaction, listener);
-    }
-
     protected static boolean canCommit(Transaction transaction) {
         return txnController.canCommit(transaction);
     }
 
-    protected static void commit(Transaction transaction, Listener<CommitResult<? extends Transaction>> listener) {
+    protected static void commit(Transaction transaction, Listener<Transaction> listener) {
         txnController.commit(transaction, listener);
     }
 
@@ -207,7 +203,7 @@ public abstract class AbstractTransactionTest {
 
     protected static void prepare(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<PrepareResult<? extends Transaction>> prepareListener = new CompletionListener<>();
+        final CompletionListener<Transaction> prepareListener = new CompletionListener<>();
         txnController.prepare(transaction, prepareListener);
         prepareListener.awaitCompletionUninterruptibly();
         assertPrepared(transaction);
@@ -221,17 +217,9 @@ public abstract class AbstractTransactionTest {
 
     protected static void commit(final Transaction transaction) {
         assertNotNull(transaction);
-        final CompletionListener<CommitResult<? extends Transaction>> commitListener = new CompletionListener<>();
+        final CompletionListener<Transaction> commitListener = new CompletionListener<>();
         txnController.commit(transaction, commitListener);
         commitListener.awaitCompletionUninterruptibly();
-        assertCommitted(transaction);
-    }
-
-    protected static void prepareAndCommitFromListener(final Transaction transaction) {
-        assertNotNull(transaction);
-        final CommittingListener transactionListener = new CommittingListener(txnController);
-        txnController.prepare(transaction, transactionListener);
-        transactionListener.awaitCommit();
         assertCommitted(transaction);
     }
 
