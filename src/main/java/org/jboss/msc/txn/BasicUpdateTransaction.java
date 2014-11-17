@@ -79,6 +79,12 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     }
 
     @Override
+    public boolean isPrepared() {
+        assertState();
+        return delegate.isPrepared();
+    }
+
+    @Override
     public boolean isTerminated() {
         assertState();
         return delegate.isTerminated();

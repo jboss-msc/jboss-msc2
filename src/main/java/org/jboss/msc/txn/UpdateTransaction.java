@@ -14,4 +14,11 @@ package org.jboss.msc.txn;
  * @see org.jboss.msc.txn.TransactionController
  */
 public interface UpdateTransaction extends ReadTransaction {
+
+    /**
+     * Indicates whether this transaction have been prepared.
+     * @return {@code true} if already prepared, {@code false} otherwise
+     */
+    boolean isPrepared();
+
 }

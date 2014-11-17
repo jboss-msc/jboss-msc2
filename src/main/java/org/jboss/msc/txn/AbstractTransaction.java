@@ -107,6 +107,13 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         return sid & STATE_MASK | oldState & ~STATE_MASK;
     }
 
+    public final boolean isPrepared() {
+        assert ! holdsLock(this);
+        synchronized (this) {
+            return stateOf(state) == STATE_PREPARED;
+        }
+    }
+
     public final boolean isTerminated() {
         assert ! holdsLock(this);
         synchronized (this) {
