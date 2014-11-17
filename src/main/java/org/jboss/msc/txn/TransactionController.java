@@ -393,18 +393,6 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Get the transaction problem report.
-     * 
-     * @param transaction the transaction
-     * @return the transaction report
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public ProblemReport getReport(final Transaction transaction) throws SecurityException {
-        validateTransaction(transaction);
-        return transaction.getReport();
-    }
-
-    /**
      * Returns the service context, for creating and removing services.
      * 
      * @return the service context
