@@ -19,7 +19,6 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.Problem;
-import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.util.Listener;
@@ -378,18 +377,6 @@ public final class TransactionController extends SimpleAttachable {
      */
     public ServiceContainer createServiceContainer() {
         return new ServiceContainerImpl(this);
-    }
-
-    /**
-     * Get the transaction executor.
-     * 
-     * @param transaction the transaction
-     * @return the transaction executor
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    public Executor getExecutor(final Transaction transaction) throws SecurityException {
-        validateTransaction(transaction);
-        return getAbstractTransaction(transaction).getExecutor();
     }
 
     /**

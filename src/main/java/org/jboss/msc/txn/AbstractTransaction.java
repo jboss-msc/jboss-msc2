@@ -132,7 +132,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    final Executor getExecutor() {
+    public final Executor getExecutor() {
         return taskExecutor;
     }
 

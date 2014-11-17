@@ -22,6 +22,7 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.util.AttachmentKey;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -88,6 +89,12 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     public boolean isTerminated() {
         assertState();
         return delegate.isTerminated();
+    }
+
+    @Override
+    public Executor getExecutor() {
+        assertState();
+        return delegate.getExecutor();
     }
 
     @Override

@@ -18,6 +18,7 @@
 
 package org.jboss.msc.txn;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.msc.problem.ProblemReport;
@@ -64,5 +65,11 @@ public interface Transaction extends Attachable {
      * @return transaction problem report
      */
     ProblemReport getReport();
+
+    /**
+     * Returns transaction executor.
+     * @return transaction executor
+     */
+    Executor getExecutor();
 
 }
