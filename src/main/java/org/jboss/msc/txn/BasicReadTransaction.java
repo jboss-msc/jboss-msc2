@@ -20,16 +20,14 @@ package org.jboss.msc.txn;
 
 import java.util.concurrent.Executor;
 
-import org.jboss.msc.problem.Problem;
-
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class BasicReadTransaction extends AbstractTransaction implements ReadTransaction {
 
-    BasicReadTransaction(final TransactionController controller, final Executor taskExecutor, final Problem.Severity maxSeverity) {
-        super(controller, taskExecutor, maxSeverity);
+    BasicReadTransaction(final TransactionController controller, final Executor taskExecutor) {
+        super(controller, taskExecutor);
         setWrappingTransaction(this);
     }
 

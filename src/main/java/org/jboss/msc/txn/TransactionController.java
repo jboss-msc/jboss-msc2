@@ -18,7 +18,6 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
-import org.jboss.msc.problem.Problem;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.util.Listener;
@@ -64,54 +63,21 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Creates a new read-only transaction. This method is equivalent to calling
-     * {@link #createReadTransaction(java.util.concurrent.Executor, Problem.Severity, Listener)}
-     * with <B>WARNING</B> problem serverity.
-     *
-     * @param executor the executor to use to run tasks
-     * @param listener transaction creation completion listener
-     * @throws IllegalArgumentException if any parameter is null
-     */
-    public void createReadTransaction(final Executor executor, final Listener<ReadTransaction> listener) throws IllegalArgumentException {
-        createReadTransaction(executor, Problem.Severity.WARNING, listener);
-    }
-
-    /**
      * Creates a new read-only transaction. This method is asynchronous in its nature.
      * The completion <B>listener</B> is called when read-only transaction is created and ready to be used.
      *
      * @param executor the executor to use to run tasks
-     * @param maxSeverity the maximum severity to allow
      * @param listener transaction creation completion listener
-     * @throws IllegalArgumentException if any parameter is {@code null} or if <B>maxSeverity</B> is equal or higher than <B>CRITICAL</B>
+     * @throws IllegalArgumentException if any parameter is {@code null}
      */
-    public void createReadTransaction(final Executor executor, final Problem.Severity maxSeverity, final Listener<ReadTransaction> listener) throws IllegalArgumentException {
+    public void createReadTransaction(final Executor executor, final Listener<ReadTransaction> listener) throws IllegalArgumentException {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
-        }
-        if (maxSeverity == null) {
-            throw TXN.methodParameterIsNull("maxSeverity");
-        }
-        if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
-            throw TXN.illegalSeverity("maxSeverity");
         }
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
-        registerReadTransaction(new BasicReadTransaction(this, executor, maxSeverity), listener);
-    }
-
-    /**
-     * Creates a new updating transaction. This method is equivalent to calling
-     * {@link #createUpdateTransaction(java.util.concurrent.Executor, Problem.Severity, Listener)}
-     * with <B>WARNING</B> problem serverity.
-     *
-     * @param executor the executor to use to run tasks
-     * @param listener transaction creation completion listener
-     * @throws IllegalArgumentException if any parameter is null
-     */
-    public void createUpdateTransaction(final Executor executor, final Listener<UpdateTransaction> listener) throws IllegalArgumentException {
-        createUpdateTransaction(executor, Problem.Severity.WARNING, listener);
+        registerReadTransaction(new BasicReadTransaction(this, executor), listener);
     }
 
     /**
@@ -119,24 +85,17 @@ public final class TransactionController extends SimpleAttachable {
      * The completion <B>listener</B> is called when updating transaction is created and ready to be used.
      *
      * @param executor the executor to use to run tasks
-     * @param maxSeverity the maximum severity to allow
      * @param listener transaction creation completion listener
-     * @throws IllegalArgumentException if any parameter is {@code null} or if <B>maxSeverity</B> is equal or higher than <B>CRITICAL</B>
+     * @throws IllegalArgumentException if any parameter is {@code null}
      */
-    public void createUpdateTransaction(final Executor executor, final Problem.Severity maxSeverity, final Listener<UpdateTransaction> listener) throws IllegalArgumentException {
+    public void createUpdateTransaction(final Executor executor, final Listener<UpdateTransaction> listener) throws IllegalArgumentException {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
-        }
-        if (maxSeverity == null) {
-            throw TXN.methodParameterIsNull("maxSeverity");
-        }
-        if (maxSeverity.compareTo(Problem.Severity.CRITICAL) >= 0) {
-            throw TXN.illegalSeverity("maxSeverity");
         }
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
-        registerUpdateTransaction(new BasicUpdateTransaction(new BasicReadTransaction(this, executor, maxSeverity)), listener);
+        registerUpdateTransaction(new BasicUpdateTransaction(new BasicReadTransaction(this, executor)), listener);
     }
 
     /**
@@ -192,7 +151,7 @@ public final class TransactionController extends SimpleAttachable {
             throw TXN.methodParameterIsNull("listener");
         }
         // if basicUpdateTxn didn't modify anything, convert it
-        BasicReadTransaction basicReadTxn = null;
+        BasicReadTransaction basicReadTxn;
         synchronized (basicUpdateTxn) {
             if (basicUpdateTxn.isModified()) {
                 // if transaction modified anything we cannot downgrade

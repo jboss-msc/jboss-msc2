@@ -108,70 +108,67 @@ public interface MSCLogger {
     @Message(id = 101, value = "Parameter %s is null")
     IllegalArgumentException methodParameterIsNull(final String parameterName);
 
-    @Message(id = 102, value = "%s must be at most ERROR")
-    IllegalArgumentException illegalSeverity(final String parameterName);
-
-    @Message(id = 103, value = "%s and %s flags are mutually exclusive")
+    @Message(id = 102, value = "%s and %s flags are mutually exclusive")
     IllegalStateException mutuallyExclusiveFlags(final String flag1, final String flag2);
 
-    @Message(id = 104, value = "Parameter %s is invalid")
+    @Message(id = 103, value = "Parameter %s is invalid")
     IllegalArgumentException methodParameterIsInvalid(final String parameterName);
 
-    @Message(id = 105, value = "ServiceRegistry is removed")
+    @Message(id = 104, value = "ServiceRegistry is removed")
     IllegalStateException removedServiceRegistry();
 
-    @Message(id = 106, value = "Transaction must be in active state to prepare")
+    @Message(id = 105, value = "Transaction must be in active state to prepare")
     InvalidTransactionStateException cannotPrepareNonActiveTxn();
 
-    @Message(id = 107, value = "Transaction cannot prepare: prepare already called")
+    @Message(id = 106, value = "Transaction cannot prepare: prepare already called")
     InvalidTransactionStateException cannotPreparePreparedTxn();
 
-    @Message(id = 108, value = "Transaction must be in prepared state to commit ")
+    @Message(id = 107, value = "Transaction must be in prepared state to commit ")
     InvalidTransactionStateException cannotCommitUnpreparedTxn();
 
-    @Message(id = 109, value = "Transaction cannot commit: commit already called")
+    @Message(id = 108, value = "Transaction cannot commit: commit already called")
     InvalidTransactionStateException cannotCommitCommittedTxn();
 
-    @Message(id = 110, value = "Transaction must be in prepared state to inspect commitable status")
+    @Message(id = 109, value = "Transaction must be in prepared state to inspect commitable status")
     InvalidTransactionStateException cannotInspectUnpreparedTxn();
 
-    @Message(id = 111, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
+    @Message(id = 110, value = "Cannot create child task at this stage: transaction is no longer active (current state: %s)")
     InvalidTransactionStateException cannotAddChildToInactiveTxn(final int state);
 
-    @Message(id = 112, value = "No result is available")
+    @Message(id = 111, value = "No result is available")
     IllegalStateException noTaskResult();
 
-    @Message(id = 113, value = "Task may not be completed now")
+    @Message(id = 112, value = "Task may not be completed now")
     IllegalStateException taskCannotComplete();
 
-    @Message(id = 114, value = "A service named %s is already installed")
+    @Message(id = 113, value = "A service named %s is already installed")
     DuplicateServiceException duplicateService(final ServiceName serviceName);
 
-    @Message(id = 115, value = "Cannot add new tasks to inactive transaction")
+    @Message(id = 114, value = "Cannot add new tasks to inactive transaction")
     InvalidTransactionStateException inactiveTransaction();
 
-    @Message(id = 116, value = "It is forbidden to create dependency on registry created by other transaction controller")
+    @Message(id = 115, value = "It is forbidden to create dependency on registry created by other transaction controller")
     IllegalArgumentException cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
 
-    @Message(id = 117, value = "Transaction controller mismatch.")
+    @Message(id = 116, value = "Transaction controller mismatch.")
     IllegalArgumentException transactionControllerMismatch();
 
-    @Message(id = 118, value = "ServiceBuilder.install() have been already called")
+    @Message(id = 117, value = "ServiceBuilder.install() have been already called")
     IllegalStateException cannotCallInstallTwice();
 
-    @Message(id = 119, value = "%s service installation failed because it introduced the following cycle: %s")
+    @Message(id = 118, value = "%s service installation failed because it introduced the following cycle: %s")
     CircularDependencyException cycleDetected(final Object name, final Object cycleReport);
 
-    @Message(id = 120, value = "Transaction was downgraded to read-only transaction")
+    @Message(id = 119, value = "Transaction was downgraded to read-only transaction")
     InvalidTransactionStateException invalidatedUpdateTransaction();
 
-    @Message(id = 121, value = "Illegal transaction argument")
+    @Message(id = 120, value = "Illegal transaction argument")
     IllegalArgumentException illegalTransaction();
 
-    @Message(id = 122, value = "Transaction can be restarted only once")
+    @Message(id = 121, value = "Transaction can be restarted only once")
     InvalidTransactionStateException cannotRestartRestartedTxn();
 
-    @Message(id = 123, value = "Cannot restart unprepared transaction")
+    @Message(id = 122, value = "Cannot restart unprepared transaction")
     InvalidTransactionStateException cannotRestartUnpreparedTxn();
 
     /*

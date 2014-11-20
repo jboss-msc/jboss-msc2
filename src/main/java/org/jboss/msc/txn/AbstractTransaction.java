@@ -66,7 +66,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int T_PREPARED_to_COMMITTED = 2;
     final TransactionController txnController;
     final Executor taskExecutor;
-    final Problem.Severity maxSeverity;
+    private final Problem.Severity maxSeverity = Problem.Severity.WARNING;
     private final long startTime = System.nanoTime();
     private final ProblemReport report = new ProblemReport();
     private final TaskFactory taskFactory = new TaskFactory() {
@@ -83,10 +83,9 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
     volatile Transaction wrappingTxn;
 
-    AbstractTransaction(final TransactionController txnController, final Executor taskExecutor, final Problem.Severity maxSeverity) {
+    AbstractTransaction(final TransactionController txnController, final Executor taskExecutor) {
         this.txnController = txnController;
         this.taskExecutor = taskExecutor;
-        this.maxSeverity = maxSeverity;
     }
 
     void setWrappingTransaction(final Transaction wrappingTxn) {
