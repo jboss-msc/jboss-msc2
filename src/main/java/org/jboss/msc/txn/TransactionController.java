@@ -348,20 +348,6 @@ public final class TransactionController extends SimpleAttachable {
     }
     
     /**
-     * Adds a task with an executable component to {@code transaction}.
-     *
-     * @param transaction the transaction
-     * @param task        the task
-     * @return the subtask builder
-     * @throws IllegalStateException if the transaction is not open
-     * @throws SecurityException if transaction was not created by this controller
-     */
-    <T> TaskBuilder<T> newTask(final Transaction transaction, final Executable<T> task) throws IllegalStateException, SecurityException {
-        validateTransaction(transaction);
-        return getAbstractTransaction(transaction).getTaskFactory().newTask(task);
-    }
-
-    /**
      * Prepare {@code transaction}.  It is an error to prepare a transaction with unreleased tasks.
      * Once this method returns, either {@link #commit(Transaction, Listener)} or {@link #restart(UpdateTransaction)} must be called.
      * After calling this method (regardless of its outcome), the transaction can not be directly modified before termination.
