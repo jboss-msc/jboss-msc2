@@ -205,25 +205,26 @@ public final class Problem implements Serializable {
      */
     public enum Severity {
         /**
-         * This problem will not cause adverse effects, but it is something the user should be made aware of.  Such
-         * problems will never cause a transaction to fail by themselves.  Examples include deprecation or indication
-         * of a possible configuration problem.
+         * This problem will not cause adverse effects, but it is something the user should be made aware of.
+         * The transaction <B>DON'T NEED TO</B> be rolled back in this case.
+         * Examples include deprecation or indication of a possible configuration problem.
          */
         INFO,
         /**
-         * This problem could possibly cause adverse effects now or in the future.  The transaction may be configured
-         * to fail in this condition, though by default it will not.
+         * This problem could possibly cause adverse effects now or in the future.
+         * The transaction <B>SHOULD</B> be rolled back in this case.
          */
         WARNING,
         /**
-         * This problem will likely cause adverse effects now or in the future.  The transaction may be configured
-         * to succeed even in this condition, though by default it will fail.  Examples include a failed service or a
-         * missing service dependency.
+         * This problem will likely cause adverse effects now or in the future.
+         * The transaction <B>HAVE TO</B> be rolled back in this case.
+         * Examples include a failed service or a missing service dependency.
          */
         ERROR,
         /**
-         * This problem will cause irreparable damage to the integrity of the transaction.  The transaction will always
-         * roll back in this case.  Examples include resource exhaustion.
+         * This problem will cause irreparable damage to the integrity of the transaction.
+         * The transaction <B>HAVE TO</B> be rolled back in this case.
+         * Examples include resource exhaustion.
          */
         CRITICAL,
         ;
@@ -235,8 +236,10 @@ public final class Problem implements Serializable {
          * @return {@code true} if this is found, {@code false} otherwise
          */
         public boolean in(final Severity... severities) {
-            for (final Severity severity : severities) {
-                if (this == severity) return true;
+            if (severities != null) {
+                for (final Severity severity : severities) {
+                    if (this == severity) return true;
+                }
             }
             return false;
         }
