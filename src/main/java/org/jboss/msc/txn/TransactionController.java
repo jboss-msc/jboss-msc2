@@ -100,14 +100,18 @@ public final class TransactionController extends SimpleAttachable {
 
     /**
      * Restarts prepared update transaction.
-     * @param txn to be restarted.
+     * @param txn to be committed
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      * @throws InvalidTransactionStateException if transaction is not in prepared state or on attempt to restart it more than once
+     * @return new compensating transaction
      */
-    public void restart(final UpdateTransaction txn) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
+    public UpdateTransaction restart(final UpdateTransaction txn) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
         final BasicUpdateTransaction basicUpdateTxn = validateTransaction(txn);
-        basicUpdateTxn.getDelegate().restart();
+        synchronized (txnLock) {
+            basicUpdateTxn.getDelegate().restart();
+            return new BasicUpdateTransaction(new BasicReadTransaction(this, txn.getExecutor()));
+        }
     }
 
     /**

@@ -297,7 +297,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
             }
-            state = FLAG_RESTART_REQ; // resets all persistent state except RESTART flag
+            endTime = System.nanoTime();
+            state = STATE_COMMITTED | FLAG_RESTART_REQ;
         }
     }
 

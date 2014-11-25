@@ -177,10 +177,11 @@ public abstract class AbstractTransactionTest {
         assertPrepared(transaction);
     }
 
-    protected static void restart(final UpdateTransaction transaction) {
+    protected static UpdateTransaction restart(final UpdateTransaction transaction) {
         assertNotNull(transaction);
-        txnController.restart(transaction);
+        final UpdateTransaction retVal = txnController.restart(transaction);
         assertRestarted(transaction);
+        return retVal;
     }
 
     protected static void commit(final Transaction transaction) {

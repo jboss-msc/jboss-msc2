@@ -136,7 +136,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     public void restartTransaction() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
         txnController.createUpdateTransaction(defaultExecutor, createListener);
-        final UpdateTransaction updateTxn = createListener.awaitCompletion();
+        UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
         final ServiceContainer container = txnController.createServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
@@ -147,7 +147,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         prepare(updateTxn);
         service.waitStart();
         assertTrue(service.isUp());
-        restart(updateTxn);
+        updateTxn = restart(updateTxn);
         txnController.getServiceContext().removeService(registry, serviceName, updateTxn);
         prepare(updateTxn);
         service.waitStop();
