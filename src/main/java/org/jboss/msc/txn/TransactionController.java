@@ -70,7 +70,7 @@ public final class TransactionController extends SimpleAttachable {
      * @param listener transaction creation completion listener
      * @throws IllegalArgumentException if any parameter is {@code null}
      */
-    public void createReadTransaction(final Executor executor, final Listener<ReadTransaction> listener) throws IllegalArgumentException {
+    public void createReadTransaction(final Executor executor, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
         }
@@ -88,7 +88,7 @@ public final class TransactionController extends SimpleAttachable {
      * @param listener transaction creation completion listener
      * @throws IllegalArgumentException if any parameter is {@code null}
      */
-    public void createUpdateTransaction(final Executor executor, final Listener<UpdateTransaction> listener) throws IllegalArgumentException {
+    public void createUpdateTransaction(final Executor executor, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException {
         if (executor == null) {
             throw TXN.methodParameterIsNull("executor");
         }
@@ -149,7 +149,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
-    public boolean downgradeTransaction(final UpdateTransaction updateTxn, final Listener<ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
+    public boolean downgradeTransaction(final UpdateTransaction updateTxn, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
         final BasicUpdateTransaction basicUpdateTxn = validateTransaction(updateTxn);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
@@ -169,7 +169,7 @@ public final class TransactionController extends SimpleAttachable {
             assert runningTxns == 1;
             updatingTxnRunning = false;
             if (pendingTxns.size() > 0) {
-                pendingTxns.addFirst(new PendingTxnEntry(basicReadTxn, listener));
+                pendingTxns.addFirst(new PendingTxnEntry(basicReadTxn, (Listener<Object>)listener));
                 runningTxns--;
                 notifications = getNotifications();
             }
@@ -179,7 +179,7 @@ public final class TransactionController extends SimpleAttachable {
                 safeCallListener(notification.listener, notification.txn);
             }
         } else {
-            safeCallListener(listener, basicReadTxn);
+            safeCallListener((Listener<Object>)listener, basicReadTxn);
         }
         return true;
     }
@@ -221,13 +221,13 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
-    public boolean upgradeTransaction(final ReadTransaction readTxn, final Listener<UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
+    public boolean upgradeTransaction(final ReadTransaction readTxn, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
         final BasicReadTransaction basicReadTxn = validateTransaction(readTxn);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
         if (readTxn instanceof UpdateTransaction) {
-            safeCallListener(listener, readTxn);
+            safeCallListener((Listener<Object>)listener, readTxn);
             return true;
         }
         synchronized (txnLock) {
@@ -239,50 +239,50 @@ public final class TransactionController extends SimpleAttachable {
             if (runningTxns == 1) {
                 updatingTxnRunning = true;
             } else {
-                pendingTxns.add(new PendingTxnEntry(new BasicUpdateTransaction(basicReadTxn), listener));
+                pendingTxns.add(new PendingTxnEntry(new BasicUpdateTransaction(basicReadTxn), (Listener<Object>)listener));
                 runningTxns--;
                 return true;
             }
         }
-        safeCallListener(listener, new BasicUpdateTransaction(basicReadTxn));
+        safeCallListener((Listener<Object>)listener, new BasicUpdateTransaction(basicReadTxn));
         return true;
     }
 
     private static final class PendingTxnEntry {
         private final Transaction txn;
-        private final Listener<? extends Transaction> listener;
+        private final Listener<Object> listener;
 
-        private PendingTxnEntry(final Transaction txn, final Listener<? extends Transaction> listener) {
+        private PendingTxnEntry(final Transaction txn, final Listener<Object> listener) {
             this.txn = txn;
             this.listener = listener;
         }
     }
 
-    private void registerUpdateTransaction(final UpdateTransaction updateTxn, final Listener<UpdateTransaction> listener) {
+    private void registerUpdateTransaction(final UpdateTransaction updateTxn, final Listener<? super UpdateTransaction> listener) {
         synchronized (txnLock) {
             if (runningTxns == 0) {
                 updatingTxnRunning = true;
                 runningTxns++;
             } else {
-                pendingTxns.add(new PendingTxnEntry(updateTxn, listener));
+                pendingTxns.add(new PendingTxnEntry(updateTxn, (Listener<Object>)listener));
                 return;
             }
         }
-        safeCallListener(listener, updateTxn);
+        safeCallListener((Listener<Object>)listener, updateTxn);
     }
 
-    private void registerReadTransaction(final ReadTransaction readTxn, final Listener<ReadTransaction> listener) {
+    private void registerReadTransaction(final ReadTransaction readTxn, final Listener<? super ReadTransaction> listener) {
         synchronized (txnLock) {
             if (runningTxns == 0) {
                 runningTxns++;
             } else if (!updatingTxnRunning && pendingTxns.isEmpty()) {
                 runningTxns++;
             } else {
-                pendingTxns.add(new PendingTxnEntry(readTxn, listener));
+                pendingTxns.add(new PendingTxnEntry(readTxn, (Listener<Object>)listener));
                 return;
             }
         }
-        safeCallListener(listener, readTxn);
+        safeCallListener((Listener<Object>)listener, readTxn);
     }
 
     void unregister() {
@@ -325,9 +325,9 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     @SuppressWarnings("unchecked")
-    private static void safeCallListener(final Listener<? extends Transaction> completionListener, final Transaction txn) {
+    private static void safeCallListener(final Listener<Object> completionListener, final Transaction txn) {
         try {
-            ((Listener<Transaction>)completionListener).handleEvent(txn);
+            completionListener.handleEvent(txn);
         } catch (final Throwable t) {
             MSCLogger.ROOT.transactionCreationCompletionListenerFailed(t);
         }
