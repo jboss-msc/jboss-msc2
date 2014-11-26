@@ -59,8 +59,8 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         final UpdateTransaction updateTxn2 = upgradeListener2.awaitCompletion();
         assertNotNull(updateTxn2);
         assertTrue(updateTxn1 == updateTxn2);
-        prepare(readTxn);
-        commit(updateTxn1); // users can call transaction lifecycle methods on both Read and Update transaction interchangeably (in upgrade case)
+        prepare(updateTxn1);
+        commit(updateTxn1);
         assertTrue(readTxn.isTerminated());
         assertTrue(updateTxn1.isTerminated());
     }
@@ -75,7 +75,6 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         txnController.createUpdateTransaction(defaultExecutor, updateTxnCreateListener);
         final boolean upgraded = txnController.upgradeTransaction(readTxn, new CompletionListener<UpdateTransaction>());
         assertFalse(upgraded); // upgrade of read transaction will fail if there's pending update transaction in request queue
-        prepare(readTxn);
         commit(readTxn);
         final UpdateTransaction updateTxn = updateTxnCreateListener.awaitCompletion();
         assertNotNull(updateTxn);
@@ -97,7 +96,6 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         final ReadTransaction readTxn = downgradeListener.awaitCompletion();
         assertNotNull(readTxn);
         assertTrue(updateTxn != readTxn);
-        prepare(readTxn);
         try {
             commit(updateTxn); // users cannot use reference to update transaction that have been downgraded
             fail("Exception expected");

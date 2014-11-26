@@ -77,7 +77,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private long endTime;
     private int state;
     private final AtomicInteger unexecutedTasks = new AtomicInteger();
-    private Listener<Transaction> prepareListener;
+    private Listener<? super UpdateTransaction> prepareListener;
     private Listener<Transaction> commitListener;
     private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
@@ -250,7 +250,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    final void prepare(final Listener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
+    final void prepare(final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
@@ -262,7 +262,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 throw MSCLogger.TXN.cannotPreparePreparedTxn();
             }
             state |= FLAG_PREPARE_REQ;
-            prepareListener = (Listener<Transaction>)completionListener;
+            prepareListener = completionListener;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -274,8 +274,10 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int state;
         synchronized (this) {
             state = this.state | FLAG_USER_THREAD;
-            if (stateOf(state) != STATE_PREPARED) {
+            if (wrappingTxn instanceof UpdateTransaction && stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotCommitUnpreparedTxn();
+            } else {
+                state |= FLAG_PREPARE_REQ;
             }
             if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                 throw MSCLogger.TXN.cannotCommitCommittedTxn();
@@ -376,7 +378,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPrepareListener() {
-        final Listener<Transaction> prepareListener;
+        final Listener<? super UpdateTransaction> prepareListener;
         synchronized (this) {
             prepareListener = this.prepareListener;
             this.prepareListener = null;
@@ -395,11 +397,11 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callListeners(
-            final Listener<Transaction> prepareListener,
+            final Listener<? super UpdateTransaction> prepareListener,
             final Listener<Transaction> commitListener) {
         if (prepareListener != null) {
             try {
-                prepareListener.handleEvent(wrappingTxn);
+                prepareListener.handleEvent((UpdateTransaction)wrappingTxn);
             } catch (final Throwable ignored) {
                 MSCLogger.ROOT.listenerFailed(ignored, prepareListener);
             }

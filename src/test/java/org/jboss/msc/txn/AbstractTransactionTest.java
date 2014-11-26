@@ -80,7 +80,7 @@ public abstract class AbstractTransactionTest {
         return executor;
     }
 
-    protected static boolean attemptToCommit(final Transaction txn) {
+    protected static boolean attemptToCommit(final UpdateTransaction txn) {
         prepare(txn);
         if (txnController.canCommit(txn)) {
             commit(txn);
@@ -109,7 +109,7 @@ public abstract class AbstractTransactionTest {
         return transaction;
     }
 
-    protected static void assertPrepared(final Transaction transaction) {
+    protected static void assertPrepared(final UpdateTransaction transaction) {
         assertNotNull(transaction);
         try {
             txnController.canCommit(transaction);
@@ -149,12 +149,12 @@ public abstract class AbstractTransactionTest {
             fail("Cannot call canCommit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
-        try {
-            txnController.prepare(transaction, null);
-            fail("Cannot call prepare() on committed transaction");
-        } catch (final InvalidTransactionStateException expected) {
-        }
         if (transaction instanceof UpdateTransaction) {
+            try {
+                txnController.prepare((UpdateTransaction)transaction, null);
+                fail("Cannot call prepare() on committed transaction");
+            } catch (final InvalidTransactionStateException expected) {
+            }
             try {
                 txnController.restart((UpdateTransaction)transaction);
                 fail("Cannot call commit() on committed transaction");
@@ -169,7 +169,7 @@ public abstract class AbstractTransactionTest {
         assertTrue(transaction.isTerminated());
     }
 
-    protected static void prepare(final Transaction transaction) {
+    protected static void prepare(final UpdateTransaction transaction) {
         assertNotNull(transaction);
         final CompletionListener<Transaction> prepareListener = new CompletionListener<>();
         txnController.prepare(transaction, prepareListener);

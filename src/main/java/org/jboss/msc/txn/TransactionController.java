@@ -163,6 +163,7 @@ public final class TransactionController extends SimpleAttachable {
             }
             basicReadTxn = basicUpdateTxn.getDelegate();
             basicUpdateTxn.invalidate();
+            basicReadTxn.setWrappingTransaction(basicReadTxn);
         }
         Deque<PendingTxnEntry> notifications = null;
         synchronized (txnLock) {
@@ -239,12 +240,16 @@ public final class TransactionController extends SimpleAttachable {
             if (runningTxns == 1) {
                 updatingTxnRunning = true;
             } else {
-                pendingTxns.add(new PendingTxnEntry(new BasicUpdateTransaction(basicReadTxn), (Listener<Object>)listener));
+                final BasicUpdateTransaction upgradedTxn = new BasicUpdateTransaction(basicReadTxn);
+                basicReadTxn.setWrappingTransaction(upgradedTxn);
+                pendingTxns.add(new PendingTxnEntry(upgradedTxn, (Listener<Object>)listener));
                 runningTxns--;
                 return true;
             }
         }
-        safeCallListener((Listener<Object>)listener, new BasicUpdateTransaction(basicReadTxn));
+        final BasicUpdateTransaction upgradedTxn = new BasicUpdateTransaction(basicReadTxn);
+        basicReadTxn.setWrappingTransaction(upgradedTxn);
+        safeCallListener((Listener<Object>)listener, upgradedTxn);
         return true;
     }
 
@@ -363,13 +368,13 @@ public final class TransactionController extends SimpleAttachable {
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public <T extends Transaction> void prepare(final T transaction, final Listener<T> completionListener) throws InvalidTransactionStateException, SecurityException {
+    public void prepare(final UpdateTransaction transaction, final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(transaction);
         getAbstractTransaction(transaction).prepare(completionListener);
     }
 
     /**
-     * Commit the work done by {@link #prepare(Transaction, Listener)} and terminate {@code transaction}.
+     * Commit the work done by {@link #prepare(UpdateTransaction, Listener)} and terminate {@code transaction}.
      *
      * @param transaction        the transaction to be committed
      * @param completionListener the listener to call when the commit is complete
