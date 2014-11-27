@@ -77,11 +77,9 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> replaceService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceController service)
+    public <T> ServiceBuilder<T> replaceService(final UpdateTransaction transaction, final ServiceController service)
     throws IllegalArgumentException, InvalidTransactionStateException {
-        validateRegistry(registry);
         validateTransaction(transaction, txnController);
-        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         // TODO implement
         throw new RuntimeException("not implemented");
     }
