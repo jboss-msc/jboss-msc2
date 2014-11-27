@@ -238,7 +238,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             final TestService service) {
         assertNotNull(serviceRegistry.getService(serviceName));
         final UpdateTransaction txn = newUpdateTransaction();
-        service.getServiceContext().removeService(serviceRegistry, serviceName, txn);
+        service.getServiceContext().removeService(txn, serviceRegistry, serviceName);
         if (attemptToCommit(txn)) {
             assertNull(serviceRegistry.getService(serviceName));
             return true;
@@ -298,7 +298,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         try {
             IllegalArgumentException expected = null;
             try {
-                serviceContext.addService(serviceRegistry, serviceName, outsiderTransaction);
+                serviceContext.addService(outsiderTransaction, serviceRegistry, serviceName);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }
@@ -306,7 +306,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
             expected = null;
             try {
-                serviceContext.addService(serviceRegistry, serviceName, outsiderTransaction);
+                serviceContext.addService(outsiderTransaction, serviceRegistry, serviceName);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }
@@ -317,7 +317,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
         IllegalArgumentException expected = null;
         try {
-            serviceContext.addService(serviceRegistry, serviceName, null);
+            serviceContext.addService(null, serviceRegistry, serviceName);
         } catch (IllegalArgumentException e) {
             expected = e;
         }
@@ -325,7 +325,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
         expected = null;
         try {
-            serviceContext.addService(serviceRegistry, serviceName, null);
+            serviceContext.addService(null, serviceRegistry, serviceName);
         } catch (IllegalArgumentException e) {
             expected = e;
         }
@@ -335,7 +335,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         try {
             expected = null;
             try {
-                serviceContext.addService(null, serviceName, transaction);
+                serviceContext.addService(transaction, null, serviceName);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }
@@ -343,7 +343,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
             expected = null;
             try {
-                serviceContext.addService(null, serviceName, transaction);
+                serviceContext.addService(transaction, null, serviceName);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }
@@ -351,7 +351,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
             expected = null;
             try {
-                serviceContext.addService(serviceRegistry, null, transaction);
+                serviceContext.addService(transaction, serviceRegistry, null);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }
@@ -359,7 +359,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
             expected = null;
             try {
-                serviceContext.addService(serviceRegistry, null, transaction);
+                serviceContext.addService(transaction, serviceRegistry, null);
             } catch (IllegalArgumentException e) {
                 expected = e;
             }

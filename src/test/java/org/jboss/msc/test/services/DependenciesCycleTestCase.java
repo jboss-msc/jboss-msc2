@@ -232,7 +232,7 @@ public class DependenciesCycleTestCase extends AbstractServiceTest {
     }
 
     private void addService(final UpdateTransaction txn, final ServiceName name, final ServiceName[] aliases, final ServiceName... dependencies) {
-        ServiceBuilder sb = txnController.getServiceContext().addService(serviceRegistry, name, txn);
+        ServiceBuilder sb = txnController.getServiceContext().addService(txn, serviceRegistry, name);
         sb.addAliases(aliases);
         for (int i = 0; i < dependencies.length; i++) {
             sb.addDependency(dependencies[i]);

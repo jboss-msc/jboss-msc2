@@ -92,7 +92,7 @@ public class TestServiceBuilder {
             final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode,
             final DependencyInfo<?>... dependencies) {
         // create service builder
-        this.serviceBuilder = serviceContext.addService(serviceRegistry, serviceName, txn);
+        this.serviceBuilder = serviceContext.addService(txn, serviceRegistry, serviceName);
         // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the
         // resulting Dependency object)
         this.service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);

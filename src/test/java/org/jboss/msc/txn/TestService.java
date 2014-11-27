@@ -161,7 +161,7 @@ public final class TestService implements Service<Void> {
         }
 
         public void create(StartContext<?> startContext, ServiceContext parentContext) {
-            final ServiceBuilder<Void> childBuilder = startContext.addService(registry, serviceName, parentContext);
+            final ServiceBuilder<Void> childBuilder = startContext.addService(parentContext, registry, serviceName);
             childBuilder.setMode(serviceMode);
             childService = new TestService(serviceName, childBuilder, false);
             childBuilder.setService(childService);

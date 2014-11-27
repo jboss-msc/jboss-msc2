@@ -131,7 +131,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
@@ -233,7 +233,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, LAZY, serviceRegistry);
@@ -329,7 +329,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);
@@ -427,7 +427,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
@@ -526,7 +526,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, ON_DEMAND, serviceRegistry);
@@ -624,7 +624,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         final Future<TestService> secondServiceFuture;
         final UpdateTransaction txn1 = newUpdateTransaction();
         try {
-            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(serviceRegistry, firstSN,  txn1);
+            final ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
             firstService = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(firstService);
             secondServiceFuture = firstService.addChild(secondSN, ACTIVE, serviceRegistry);

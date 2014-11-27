@@ -72,7 +72,7 @@ final class StartServiceTask<T> implements Executable<T> {
         }
         service.start(new StartContext<T>() {
             @Override
-            public void complete(T result) {
+            public void complete(final T result) {
                 serviceController.setServiceUp(result, transaction);
                 serviceController.notifyServiceUp(transaction);
                 context.complete(result);
@@ -92,7 +92,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(Problem reason) {
+            public void addProblem(final Problem reason) {
                 if (reason == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("reason");
                 }
@@ -100,7 +100,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(Severity severity, String message) {
+            public void addProblem(final Severity severity, final String message) {
                 if (severity == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("severity");
                 }
@@ -111,7 +111,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(Severity severity, String message, Throwable cause) {
+            public void addProblem(final Severity severity, final String message, final Throwable cause) {
                 if (severity == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("severity");
                 }
@@ -125,7 +125,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(String message, Throwable cause) {
+            public void addProblem(final String message, final Throwable cause) {
                 if (message == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("message");
                 }
@@ -136,7 +136,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(String message) {
+            public void addProblem(final String message) {
                 if (message == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("message");
                 }
@@ -144,7 +144,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public void addProblem(Throwable cause) {
+            public void addProblem(final Throwable cause) {
                 if (cause == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("cause");
                 }
@@ -152,8 +152,7 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public <S> ServiceBuilder<S> addService(ServiceRegistry registry, ServiceName name,
-                    ServiceContext parentContext) {
+            public <S> ServiceBuilder<S> addService(final ServiceContext parentContext, final ServiceRegistry registry, final ServiceName name) {
                 if (registry == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("registry");
                 }
@@ -163,7 +162,7 @@ final class StartServiceTask<T> implements Executable<T> {
                 if (parentContext == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
                 }
-                return parentContext.addService(registry,  name, (BasicUpdateTransaction) transaction);
+                return parentContext.addService((BasicUpdateTransaction) transaction, registry,  name);
             }
         });
     }

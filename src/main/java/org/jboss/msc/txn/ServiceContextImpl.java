@@ -43,7 +43,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction)
+    public <T> ServiceBuilder<T> addService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -56,7 +56,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public void removeService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
+    public void removeService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -77,7 +77,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> replaceService(ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
+    public <T> ServiceBuilder<T> replaceService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceController service)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);

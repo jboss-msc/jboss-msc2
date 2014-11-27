@@ -117,7 +117,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         final ServiceContainer container = txnController.createServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder sb = txnController.getServiceContext().addService(registry, serviceName, updateTxn);
+        final ServiceBuilder sb = txnController.getServiceContext().addService(updateTxn, registry, serviceName);
         final TestService service = new TestService(serviceName, sb, false);
         sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         service.waitStart();
@@ -139,14 +139,14 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         final ServiceContainer container = txnController.createServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder sb = txnController.getServiceContext().addService(registry, serviceName, updateTxn);
+        final ServiceBuilder sb = txnController.getServiceContext().addService(updateTxn, registry, serviceName);
         final TestService service = new TestService(serviceName, sb, false);
         sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         prepare(updateTxn);
         service.waitStart();
         assertTrue(service.isUp());
         updateTxn = restart(updateTxn);
-        txnController.getServiceContext().removeService(registry, serviceName, updateTxn);
+        txnController.getServiceContext().removeService(updateTxn, registry, serviceName);
         prepare(updateTxn);
         service.waitStop();
         commit(updateTxn);
