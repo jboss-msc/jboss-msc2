@@ -62,13 +62,6 @@ final class StopServiceTask<T> implements Executable<Void> {
         }
         service.stop(new StopContext() {
             @Override
-            public void complete(Void result) {
-                serviceController.setServiceDown(transaction);
-                serviceController.notifyServiceDown(transaction);
-                context.complete();
-            }
-
-            @Override
             public void complete() {
                 serviceController.setServiceDown(transaction);
                 serviceController.notifyServiceDown(transaction);

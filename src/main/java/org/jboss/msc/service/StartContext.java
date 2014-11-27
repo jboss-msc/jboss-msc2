@@ -26,10 +26,17 @@ import org.jboss.msc.txn.WorkContext;
  * @param <T> the service value type
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StartContext<T> extends WorkContext<T> {
+public interface StartContext<T> extends WorkContext {
 
     /**
-     * Marking completion of this service start failed.
+     * Marking service completion with a value. This method returns without blocking.
+     *
+     * @param result the result of the service, or {@code null} if the execution type is {@link Void}
+     */
+    void complete(T result);
+
+    /**
+     * Marking completion of this service start failed.  This method returns without blocking.
      */
     void fail();
 

@@ -25,6 +25,6 @@ import org.jboss.msc.txn.WorkContext;
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StopContext extends WorkContext<Void> {
+public interface StopContext extends WorkContext {
 
 }

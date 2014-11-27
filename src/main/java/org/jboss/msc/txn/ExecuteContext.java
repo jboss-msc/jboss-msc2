@@ -19,13 +19,15 @@
 package org.jboss.msc.txn;
 
 /**
- * Context for a task that may also create new tasks.
+ * Context for a task.
  *
  * @param <T> the result type of the associated task
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-interface ExecuteContext<T> extends WorkContext<T> {
+interface ExecuteContext<T> extends WorkContext {
+
+    void complete(T result);
 
 }

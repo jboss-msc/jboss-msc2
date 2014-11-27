@@ -20,31 +20,18 @@ package org.jboss.msc.txn;
 import org.jboss.msc.problem.Problem;
 
 /**
- * Context for a task.
+ * Service lifecycle context.
  *
- * @param <T> the result type of the associated task
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface WorkContext<T> {
+public interface WorkContext {
 
     /**
-     * Register the completion of this task with a value.  This method returns without blocking.
-     *
-     * @param result the result of the task, or {@code null} if the execution type is {@link Void}
-     */
-    void complete(T result);
-
-    /**
-     * Register the completion of this task with a {@code null} value.  This method returns without blocking.
+     * Marking service completion without value. This method returns without blocking.
      */
     void complete();
 
-    /**
-     * Add a problem to this execution.  Depending on the reason severity, the task may or may not
-     * roll back.
-     *
-     * @param reason the problem reason
-     */
     void addProblem(Problem reason);
 
     void addProblem(Problem.Severity severity, String message);
@@ -56,4 +43,5 @@ public interface WorkContext<T> {
     void addProblem(String message);
 
     void addProblem(Throwable cause);
+
 }
