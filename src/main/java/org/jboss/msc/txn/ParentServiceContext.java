@@ -44,18 +44,9 @@ class ParentServiceContext extends ServiceContextImpl {
     }
 
     @Override
-    public <S> ServiceBuilder<S> addService(final Class<S> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction) {
+    public <S> ServiceBuilder<S> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction) {
         validateParentUp(transaction);
-        final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(valueType, registry, name, transaction);
-        final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration, transaction));
-        return serviceBuilder;
-    }
-
-    @Override
-    public ServiceBuilder<Void> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction) {
-        validateParentUp(transaction);
-        final ServiceBuilderImpl<Void> serviceBuilder = (ServiceBuilderImpl<Void>) super.addService(registry, name, transaction);
+        final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(registry, name, transaction);
         final ServiceName parentName = parentRegistration.getServiceName();
         serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration, transaction));
         return serviceBuilder;

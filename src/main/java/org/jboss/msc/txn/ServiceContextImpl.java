@@ -43,7 +43,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(final Class<T> valueType, final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction)
+    public <T> ServiceBuilder<T> addService(final ServiceRegistry registry, final ServiceName name, final UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);
@@ -77,30 +77,7 @@ class ServiceContextImpl implements ServiceContext {
     }
 
     @Override
-    public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, UpdateTransaction transaction)
-    throws IllegalArgumentException, InvalidTransactionStateException {
-        validateRegistry(registry);
-        validateTransaction(transaction, txnController);
-        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
-        if (name == null) {
-            throw new IllegalArgumentException("name is null");
-        }
-        setModified(transaction);
-        return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
-    }
-
-    @Override
-    public <T> ServiceBuilder<T> replaceService(Class<T> valueType, ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
-    throws IllegalArgumentException, InvalidTransactionStateException {
-        validateRegistry(registry);
-        validateTransaction(transaction, txnController);
-        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
-        // TODO implement
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public ServiceBuilder<Void> replaceService(ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
+    public <T> ServiceBuilder<T> replaceService(ServiceRegistry registry, ServiceController service, UpdateTransaction transaction)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
         validateTransaction(transaction, txnController);

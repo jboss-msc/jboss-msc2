@@ -152,25 +152,8 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public <S> ServiceBuilder<S> addService(Class<S> valueType, ServiceRegistry registry, ServiceName name,
+            public <S> ServiceBuilder<S> addService(ServiceRegistry registry, ServiceName name,
                     ServiceContext parentContext) {
-                if (valueType == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("valueType");
-                }
-                if (registry == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
-                }
-                if (name == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
-                }
-                if (parentContext == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
-                }
-                return parentContext.addService(valueType, registry,  name, (BasicUpdateTransaction) transaction);
-            }
-
-            @Override
-            public ServiceBuilder<Void> addService(ServiceRegistry registry, ServiceName name, ServiceContext parentContext) {
                 if (registry == null) {
                     throw MSCLogger.SERVICE.methodParameterIsNull("registry");
                 }
