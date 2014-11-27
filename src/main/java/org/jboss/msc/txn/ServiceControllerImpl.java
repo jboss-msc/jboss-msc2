@@ -321,6 +321,14 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     @Override
+    public void replace(final UpdateTransaction transaction, final Object newService) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
+        // TODO implement
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
     public void restart(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);

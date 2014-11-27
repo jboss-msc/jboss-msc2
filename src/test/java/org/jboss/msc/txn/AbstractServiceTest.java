@@ -234,11 +234,15 @@ public class AbstractServiceTest extends AbstractTransactionTest {
         return addService(serviceRegistry, serviceName, failToStart, null, dependencies);
     }
 
-    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
-            final TestService service) {
-        assertNotNull(serviceRegistry.getService(serviceName));
+    protected final boolean removeService(final ServiceName serviceName) {
+        return removeService(serviceRegistry, serviceName);
+    }
+
+    protected final boolean removeService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {
+        ServiceController controller = serviceRegistry.getService(serviceName);
+        assertNotNull(controller);
         final UpdateTransaction txn = newUpdateTransaction();
-        service.getServiceContext().removeService(txn, serviceRegistry, serviceName);
+        controller.remove(txn);
         if (attemptToCommit(txn)) {
             assertNull(serviceRegistry.getService(serviceName));
             return true;
@@ -246,10 +250,6 @@ public class AbstractServiceTest extends AbstractTransactionTest {
             //assertNotNull(serviceRegistry.getRequiredService(serviceName));
             return false;
         }
-    }
-
-    protected final boolean removeService(final ServiceName serviceName, final TestService service) {
-        return removeService(serviceRegistry, serviceName, service);
     }
 
     protected final void enableService(final ServiceRegistry serviceRegistry, final ServiceName serviceName) {

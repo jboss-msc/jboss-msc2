@@ -49,32 +49,4 @@ public interface ServiceContext {
     <T> ServiceBuilder<T> addService(UpdateTransaction transaction, ServiceRegistry registry, ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
-    /**
-     * Removes a service, causing this service to stop if it is {@code UP}.
-     *
-     * @param transaction the transaction
-     * @param registry    the service registry
-     * @param name        the service name
-     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
-     * or if transaction controller associated with <code>transaction</code>
-     * is not the same as the one associated with this service context and with <code>registry</code>.
-     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
-     */
-    void removeService(UpdateTransaction transaction, ServiceRegistry registry, ServiceName name)
-    throws IllegalArgumentException, InvalidTransactionStateException;
-
-    /**
-     * Replaces {@code service} by a new service.
-     *
-     * @param transaction the transaction
-     * @param service     the service to be replaced
-     * @return the builder for the service
-     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
-     * or if transaction controller associated with <code>transaction</code>
-     * is not the same as the one associated with this service context and with <code>registry</code>.
-     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
-     */
-    <T> ServiceBuilder<T> replaceService(UpdateTransaction transaction, ServiceController service)
-    throws IllegalArgumentException, InvalidTransactionStateException;
-
 }

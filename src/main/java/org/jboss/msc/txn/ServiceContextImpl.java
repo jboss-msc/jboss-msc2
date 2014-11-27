@@ -55,33 +55,4 @@ class ServiceContextImpl implements ServiceContext {
         return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
     }
 
-    @Override
-    public void removeService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceName name)
-    throws IllegalArgumentException, InvalidTransactionStateException {
-        validateRegistry(registry);
-        validateTransaction(transaction, txnController);
-        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
-        if (name == null) {
-            throw SERVICE.methodParameterIsNull("name");
-        }
-        final Registration registration = ((ServiceRegistryImpl) registry).getRegistration(name);
-        if (registration == null) {
-            return;
-        }
-        final ServiceControllerImpl<?> controller = registration.getController();
-        if (controller == null) {
-            return;
-        }
-        setModified(transaction);
-        controller.remove(transaction);
-    }
-
-    @Override
-    public <T> ServiceBuilder<T> replaceService(final UpdateTransaction transaction, final ServiceController service)
-    throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, txnController);
-        // TODO implement
-        throw new RuntimeException("not implemented");
-    }
-
 }

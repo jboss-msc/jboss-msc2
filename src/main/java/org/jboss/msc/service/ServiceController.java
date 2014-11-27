@@ -87,7 +87,17 @@ public interface ServiceController<T> {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
     void retry(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
-    
+
+    /**
+     * Replaces {@code service} by a new service.
+     *
+     * @param transaction the transaction
+     * @param newService the new service to be published
+     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void replace(UpdateTransaction transaction, T newService) throws IllegalArgumentException, InvalidTransactionStateException;
+
     /**
      * Gets associated service.
      * @return service

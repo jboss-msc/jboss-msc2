@@ -19,6 +19,7 @@ package org.jboss.msc.test.tasks;
 
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContainer;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
@@ -141,12 +142,12 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         final ServiceName serviceName = ServiceName.of("test");
         final ServiceBuilder sb = txnController.getServiceContext().addService(updateTxn, registry, serviceName);
         final TestService service = new TestService(serviceName, sb, false);
-        sb.setService(service).setMode(ServiceMode.ACTIVE).install();
+        final ServiceController serviceController = sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         prepare(updateTxn);
         service.waitStart();
         assertTrue(service.isUp());
         updateTxn = restart(updateTxn);
-        txnController.getServiceContext().removeService(updateTxn, registry, serviceName);
+        serviceController.remove(updateTxn);
         prepare(updateTxn);
         service.waitStop();
         commit(updateTxn);

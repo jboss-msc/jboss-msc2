@@ -56,7 +56,7 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -84,13 +84,13 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // first attempt, cannot remove first service
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // second attempt: successfully remove second service
-        assertTrue(removeService(secondSN, secondService));
+        assertTrue(removeService(secondSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -116,13 +116,13 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // attempt to remove first service
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // attempt to remove second service
-        assertTrue(removeService(secondSN, secondService));
+        assertTrue(removeService(secondSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -147,7 +147,7 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -175,13 +175,13 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // first attempt: try to remove first service
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // second attempt: try to remove second service
-        assertTrue(removeService(secondSN, secondService));
+        assertTrue(removeService(secondSN));
         assertFalse(firstService.isUp());
         assertFalse(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -206,7 +206,7 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -232,13 +232,13 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // first attempt: try to remove first service
-        assertFalse(removeService(firstSN, firstService));
+        assertFalse(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
         // second attempt: remove second service
-        assertTrue(removeService(secondSN, secondService));
+        assertTrue(removeService(secondSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -263,7 +263,7 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
@@ -288,7 +288,7 @@ public class OneFailingService_OneDep_TestCase extends AbstractServiceTest {
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());
         assertFalse(secondService.isFailed());
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertTrue(firstService.isFailed());
         assertFalse(secondService.isUp());

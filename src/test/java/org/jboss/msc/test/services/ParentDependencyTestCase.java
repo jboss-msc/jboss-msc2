@@ -77,7 +77,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -109,7 +109,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -147,7 +147,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         serviceRegistry.getRequiredService(secondSN);
 
         // remove first service
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
@@ -178,7 +178,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -211,7 +211,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -248,7 +248,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
@@ -277,7 +277,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -307,7 +307,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -344,7 +344,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
@@ -374,7 +374,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -405,7 +405,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -442,7 +442,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
@@ -472,7 +472,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -504,7 +504,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -541,7 +541,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertFalse(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
@@ -570,7 +570,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -602,7 +602,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertFalse(thirdService.isUp());
@@ -639,7 +639,7 @@ public class ParentDependencyTestCase extends AbstractServiceTest {
         assertTrue(secondService.isUp());
         serviceRegistry.getRequiredService(secondSN);
 
-        assertTrue(removeService(firstSN, firstService));
+        assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
         assertFalse(secondService.isUp());
         assertNull(serviceRegistry.getService(secondSN));
