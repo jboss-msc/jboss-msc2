@@ -41,13 +41,12 @@ public interface StartContext<T> extends WorkContext {
     void fail();
 
     /**
-     * Start installation of a child service into {@code registry}.
+     * Get a service context which may be used to add child services. Child services have an implicit dependency on
+     * their parent, and are automatically removed when the parent service stops (or if the parent service fails
+     * during startup).
      *
-     * @param ctx the parent service context
-     * @param registry the target service registry where new service will be installed
-     * @param name the service name
-     * @return the builder for the service
+     * @return the child context
      */
-    <S> ServiceBuilder<S> addService(ServiceContext ctx, ServiceRegistry registry, ServiceName name);
+    ServiceContext getChildContext();
 
 }

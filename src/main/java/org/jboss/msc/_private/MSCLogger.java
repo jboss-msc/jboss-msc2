@@ -171,6 +171,9 @@ public interface MSCLogger {
     @Message(id = 122, value = "Cannot restart unprepared transaction")
     InvalidTransactionStateException cannotRestartUnpreparedTxn();
 
+    @Message(id = 123, value = "Lifecycle context is no longer valid")
+    IllegalStateException lifecycleContextNotValid();
+
     /*
      * Location nesting types.
      */

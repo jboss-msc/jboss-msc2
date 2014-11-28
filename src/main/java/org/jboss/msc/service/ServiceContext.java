@@ -22,11 +22,7 @@ import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.UpdateTransaction;
 
 /**
- * A service context can be used to add new tasks, and to create and remove services and registries.
- * Each one of these operations is controlled by a transaction, which must belong to the same {@code
- * TransactionController} that provided this service context,
- * {@link org.jboss.msc.txn.TransactionController#getServiceContext() directly}
- * or {@link ServiceBuilder#getServiceContext() indirectly}.
+ * A service context can be used to add new services.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -37,7 +33,6 @@ public interface ServiceContext {
     /**
      * Gets a builder which can be used to add a service to {@code registry}.
      *
-     * @param transaction the transaction
      * @param registry    the target service registry where new service will be installed
      * @param name        the service name
      * @return the builder for the service
@@ -46,7 +41,7 @@ public interface ServiceContext {
      * is not the same as the one associated with this service context and with <code>registry</code>.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    <T> ServiceBuilder<T> addService(UpdateTransaction transaction, ServiceRegistry registry, ServiceName name)
+    <T> ServiceBuilder<T> addService(ServiceRegistry registry, ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException;
 
 }

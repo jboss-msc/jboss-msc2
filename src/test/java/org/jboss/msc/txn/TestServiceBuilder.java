@@ -85,14 +85,14 @@ public class TestServiceBuilder {
 
     public TestServiceBuilder(final UpdateTransaction txn, final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final boolean failToStart, final ServiceMode serviceMode, final DependencyInfo<?>... dependencies) {
-        this(txn, txnController.getServiceContext(), serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
+        this(txn, txnController.getServiceContext(txn), serviceRegistry, serviceName, failToStart, serviceMode, dependencies);
     }
 
     public TestServiceBuilder(final UpdateTransaction txn, ServiceContext serviceContext, final ServiceRegistry serviceRegistry,
             final ServiceName serviceName, final boolean failToStart, final ServiceMode serviceMode,
             final DependencyInfo<?>... dependencies) {
         // create service builder
-        this.serviceBuilder = serviceContext.addService(txn, serviceRegistry, serviceName);
+        this.serviceBuilder = serviceContext.addService(serviceRegistry, serviceName);
         // create test service (dependency infos will be used by the service to add dependencies to servicebuilder and keep the
         // resulting Dependency object)
         this.service = new TestService(serviceName, serviceBuilder, failToStart, dependencies);

@@ -38,25 +38,24 @@ class ParentServiceContext extends ServiceContextImpl {
 
     private final Registration parentRegistration;
 
-    public ParentServiceContext(Registration parentRegistration, TransactionController transactionController) {
-        super (transactionController);
+    public ParentServiceContext(Registration parentRegistration, UpdateTransaction txn) {
+        super (txn);
         this.parentRegistration = parentRegistration;
     }
 
     @Override
-    public <S> ServiceBuilder<S> addService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceName name) {
-        validateParentUp(transaction);
-        final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(transaction, registry, name);
+    public <S> ServiceBuilder<S> addService(final ServiceRegistry registry, final ServiceName name) {
+        validateParentUp();
+        final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(registry, name);
         final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration, transaction));
+        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration));
         return serviceBuilder;
     }
 
-    private void validateParentUp(final Transaction transaction) {
+    private void validateParentUp() {
         if (parentRegistration.getController() == null) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not installed");
         }
-        validateTransaction(transaction, parentRegistration.txnController);
         if (!Bits.allAreSet(parentRegistration.getController().getState(), ServiceControllerImpl.STATE_STARTING)) {
             throw new IllegalStateException("Service context error: " + parentRegistration.getServiceName() + " is not starting");
         }
@@ -71,8 +70,8 @@ class ParentServiceContext extends ServiceContextImpl {
 
     });
 
-    private static <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration, Transaction transaction) {
-        final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = transaction.getAttachment(PARENT_DEPENDENCIES);
+    private <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration) {
+        final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {

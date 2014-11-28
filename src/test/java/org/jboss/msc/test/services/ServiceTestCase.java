@@ -49,7 +49,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         final TestService service;
         final ServiceController firstServiceController;
         try {
-            ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
+            ServiceBuilder<Void> serviceBuilder = txnController.getServiceContext(txn1).addService(serviceRegistry, firstSN);
             service = new TestService(firstSN, serviceBuilder, false);
             serviceBuilder.setService(service);
             firstServiceController = serviceBuilder.install();
@@ -80,12 +80,12 @@ public class ServiceTestCase extends AbstractServiceTest {
         final ServiceController firstServiceController;
         final ServiceController secondServiceController;
         try {
-            final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, secondSN);
+            final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext(txn1).addService(serviceRegistry, secondSN);
             secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceController = secondServiceBuilder.install();
 
-            final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, firstSN);
+            final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext(txn1).addService(serviceRegistry, firstSN);
             firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();
@@ -120,7 +120,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         final TestService secondService;
         final ServiceController secondServiceController;
         try {
-            final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext().addService(txn1, serviceRegistry, secondSN);
+            final ServiceBuilder<Void> secondServiceBuilder = txnController.getServiceContext(txn1).addService(serviceRegistry, secondSN);
             secondService = new TestService(secondSN, secondServiceBuilder, false);
             secondServiceBuilder.setService(secondService);
             secondServiceController = secondServiceBuilder.install();
@@ -136,7 +136,7 @@ public class ServiceTestCase extends AbstractServiceTest {
         final TestService firstService;
         final ServiceController firstServiceController;
         try {
-            final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext().addService(txn2, serviceRegistry, firstSN);
+            final ServiceBuilder<Void> firstServiceBuilder = txnController.getServiceContext(txn2).addService(serviceRegistry, firstSN);
             firstService = new TestService(firstSN, firstServiceBuilder, false, new DependencyInfo<Void>(secondSN));
             firstServiceBuilder.setService(firstService);
             firstServiceController = firstServiceBuilder.install();

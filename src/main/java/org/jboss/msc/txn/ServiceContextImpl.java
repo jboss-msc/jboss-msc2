@@ -17,16 +17,14 @@
  */
 package org.jboss.msc.txn;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 
-import static org.jboss.msc._private.MSCLogger.SERVICE;
 import static org.jboss.msc.txn.Helper.setModified;
 import static org.jboss.msc.txn.Helper.validateRegistry;
-import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * ServiceContext implementation.
@@ -36,23 +34,25 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  */
 class ServiceContextImpl implements ServiceContext {
 
-    private final TransactionController txnController;
+    private final UpdateTransaction txn;
 
-    public ServiceContextImpl(final TransactionController txnController) {
-        this.txnController = txnController;
+    public ServiceContextImpl(final UpdateTransaction txn) {
+        this.txn = txn;
     }
 
     @Override
-    public <T> ServiceBuilder<T> addService(final UpdateTransaction transaction, final ServiceRegistry registry, final ServiceName name)
+    public <T> ServiceBuilder<T> addService(final ServiceRegistry registry, final ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException {
         validateRegistry(registry);
-        validateTransaction(transaction, txnController);
-        validateTransaction(transaction, ((ServiceRegistryImpl)registry).txnController);
         if (name == null) {
-            throw new IllegalArgumentException("name is null");
+            MSCLogger.SERVICE.methodParameterIsNull("name");
         }
-        setModified(transaction);
-        return new ServiceBuilderImpl<>(txnController, (ServiceRegistryImpl) registry, name, transaction);
+        setModified(txn);
+        return new ServiceBuilderImpl<>(txn, (ServiceRegistryImpl) registry, name);
+    }
+
+    UpdateTransaction getTransaction() {
+        return txn;
     }
 
 }

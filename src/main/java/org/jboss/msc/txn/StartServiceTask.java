@@ -17,13 +17,13 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.ServiceControllerImpl.STATE_UP;
+import static org.jboss.msc.txn.ServiceControllerImpl.STATE_FAILED;
+
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContext;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.problem.Problem.Severity;
 
@@ -46,13 +46,14 @@ final class StartServiceTask<T> implements Executable<T> {
     static <T> void create(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
         // start service
         final TaskFactory taskFactory = getAbstractTransaction(transaction).getTaskFactory();
-        taskFactory.newTask(new StartServiceTask<>(serviceController, transaction)).release();
+        taskFactory.newTask(new StartServiceTask<>(serviceController, (UpdateTransaction)transaction)).release();
     }
 
     private final ServiceControllerImpl<T> serviceController;
-    private final Transaction transaction;
+    private final UpdateTransaction transaction;
+    private volatile ServiceContext childContext;
 
-    private StartServiceTask(final ServiceControllerImpl<T> serviceController, final Transaction transaction) {
+    private StartServiceTask(final ServiceControllerImpl<T> serviceController, final UpdateTransaction transaction) {
         this.serviceController = serviceController;
         this.transaction = transaction;
     }
@@ -152,18 +153,17 @@ final class StartServiceTask<T> implements Executable<T> {
             }
 
             @Override
-            public <S> ServiceBuilder<S> addService(final ServiceContext parentContext, final ServiceRegistry registry, final ServiceName name) {
-                if (registry == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("registry");
+            public ServiceContext getChildContext() {
+                final byte state = serviceController.getState();
+                if (state == STATE_UP || state == STATE_FAILED) {
+                    throw MSCLogger.SERVICE.lifecycleContextNotValid();
                 }
-                if (name == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("name");
+                if (childContext == null) {
+                    childContext = new ParentServiceContext(serviceController.getPrimaryRegistration(), transaction);
                 }
-                if (parentContext == null) {
-                    throw MSCLogger.SERVICE.methodParameterIsNull("parentContext");
-                }
-                return parentContext.addService((BasicUpdateTransaction) transaction, registry,  name);
+                return childContext;
             }
+
         });
     }
 }

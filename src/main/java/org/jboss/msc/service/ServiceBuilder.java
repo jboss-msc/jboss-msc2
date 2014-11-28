@@ -113,14 +113,6 @@ public interface ServiceBuilder<T> {
     <D> Dependency<D> addDependency(ServiceRegistry registry, ServiceName name, DependencyFlag... flags) throws IllegalStateException;
 
     /**
-     * Returns a service context for creating and removing services.
-     * All services created by this context will be automatically children of the service being installed.
-     * 
-     * @return service context
-     */
-    ServiceContext getServiceContext();
-
-    /**
      * Initiates installation of this configured service to the container.
      * 
      * @return the controller for the installed service

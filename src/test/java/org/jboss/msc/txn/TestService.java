@@ -20,7 +20,6 @@ package org.jboss.msc.txn;
 import org.jboss.msc.service.Dependency;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
@@ -38,7 +37,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -52,18 +50,14 @@ public final class TestService implements Service<Void> {
     private CountDownLatch stopLatch = new CountDownLatch(1);
 
     private final ServiceName serviceName;
-    private final ServiceContext serviceContext;
     private final Dependency<?>[] dependencies;
     private final boolean failToStart;
     private AtomicBoolean up = new AtomicBoolean();
     private AtomicBoolean failed = new AtomicBoolean();
     private Collection<ChildServiceFactory> childServiceFactories = Collections.emptyList();
 
-    public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart,
-            final DependencyInfo<?>... dependencyInfos) {
-        this.serviceContext = serviceBuilder.getServiceContext();
+    public TestService(ServiceName serviceName, ServiceBuilder<Void> serviceBuilder, final boolean failToStart, final DependencyInfo<?>... dependencyInfos) {
         this.serviceName = serviceName;
-        assertNotNull(serviceContext);
         this.failToStart = failToStart;
         this.dependencies = new Dependency[dependencyInfos.length];
         for (int i = 0; i < dependencies.length; i++) {
@@ -80,7 +74,7 @@ public final class TestService implements Service<Void> {
             context.fail();
         } else {
             for (ChildServiceFactory childFactory: childServiceFactories) {
-                childFactory.create(context, serviceContext);
+                childFactory.create(context);
             }
             up.set(true);
             context.complete();
@@ -125,10 +119,6 @@ public final class TestService implements Service<Void> {
         return up.get();
     }
 
-    public ServiceContext getServiceContext() {
-        return serviceContext;
-    }
-
     public Dependency<?> getDependency(int index) {
         return dependencies[index];
     }
@@ -160,8 +150,8 @@ public final class TestService implements Service<Void> {
             latch = new CountDownLatch(1);
         }
 
-        public void create(StartContext<?> startContext, ServiceContext parentContext) {
-            final ServiceBuilder<Void> childBuilder = startContext.addService(parentContext, registry, serviceName);
+        public void create(StartContext<?> startContext) {
+            final ServiceBuilder<Void> childBuilder = startContext.getChildContext().addService(registry, serviceName);
             childBuilder.setMode(serviceMode);
             childService = new TestService(serviceName, childBuilder, false);
             childBuilder.setService(childService);

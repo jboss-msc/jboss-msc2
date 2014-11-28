@@ -70,8 +70,8 @@ public final class TestTransactionController {
         return delegate.restart(updateTxn);
     }
 
-    public ServiceContext getServiceContext() {
-        return delegate.getServiceContext();
+    public ServiceContext getServiceContext(final UpdateTransaction updateTxn) {
+        return delegate.getServiceContext(updateTxn);
     }
 
     public ServiceContainer createServiceContainer() {

@@ -42,7 +42,6 @@ public final class TransactionController extends SimpleAttachable {
 
     private static final RuntimePermission TXN_CONTROLLER_CREATE_PERM = new RuntimePermission("canCreateTransactionController");
 
-    private final ServiceContext serviceContext = new ServiceContextImpl(this);
     // TXN administration lock
     private final Object txnLock = new Object();
     // whether currently running TXNs are read-only or updating. There can be only single updating TXN at a time.
@@ -348,12 +347,14 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     /**
-     * Returns the service context, for creating and removing services.
-     * 
+     * Returns the service context for creating services.
+     *
+     * @param transaction update transaction
      * @return the service context
      */
-    public ServiceContext getServiceContext() {
-        return serviceContext;
+    public ServiceContext getServiceContext(final UpdateTransaction transaction) {
+        validateTransaction(transaction);
+        return new ServiceContextImpl(transaction);
     }
     
     /**

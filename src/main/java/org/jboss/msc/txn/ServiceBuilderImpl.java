@@ -25,7 +25,6 @@ import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.DuplicateServiceException;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
@@ -48,8 +47,6 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
 
     static final DependencyFlag[] noFlags = new DependencyFlag[0];
 
-    // the transaction controller
-    private final TransactionController transactionController;
     // the service registry
     private final ServiceRegistryImpl registry;
     // service name
@@ -73,16 +70,11 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * @param name         service name
      * @param transaction  active transaction
      */
-    ServiceBuilderImpl(final TransactionController transactionController, final ServiceRegistryImpl registry, final ServiceName name, final Transaction transaction) {
-        this.transactionController = transactionController;
+    ServiceBuilderImpl(final Transaction transaction, final ServiceRegistryImpl registry, final ServiceName name) {
         this.transaction = transaction;
         this.registry = registry;
         this.name = name;
         this.mode = ServiceMode.ACTIVE;
-    }
-
-    ServiceName getServiceName() {
-        return name;
     }
 
     void addDependency(DependencyImpl<?> dependency) {
@@ -177,11 +169,6 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
         dependencies.add(dependency);
         return dependency;
-    }
-
-    @Override
-    public ServiceContext getServiceContext() {
-        return new ParentServiceContext(registry.getOrCreateRegistration(transaction, name), transactionController);
     }
 
     private static boolean calledFromConstructorOf(Object obj) {
