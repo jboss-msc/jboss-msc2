@@ -93,6 +93,12 @@ final class ServiceControllerImpl<T> implements ServiceController {
      * Indicates if this service is demanded to start.
      */
     private int demandedByCount;
+    /**
+     * The system nanotime of the moment in which the last lifecycle change was
+     * initiated.
+     */
+    @SuppressWarnings("VolatileLongOrDoubleField")
+    volatile long lifecycleTime;
 
     /**
      * Creates the service controller, thus beginning installation.
@@ -488,12 +494,14 @@ final class ServiceControllerImpl<T> implements ServiceController {
                 break;
             case STATE_UP:
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
+                    lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
                     StopServiceTask.create(this, transaction);
                 }
                 break;
             case STATE_FAILED:
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
+                    lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
                     StopFailedServiceTask.create(this, transaction);
                 }

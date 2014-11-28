@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013 Red Hat, Inc., and individual contributors
+ * Copyright 2014 Red Hat, Inc., and individual contributors
  * as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +16,26 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.service;
+package org.jboss.msc.txn;
+
+import java.security.PrivilegedAction;
 
 /**
- * Service stop lifecycle context.
- *
- * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-public interface StopContext extends LifecycleContext {
+final class SetTCCLAction implements PrivilegedAction<ClassLoader> {
 
+    private final ClassLoader classLoader;
+
+    SetTCCLAction(final ClassLoader classLoader) {
+        this.classLoader = classLoader;
+    }
+
+    public ClassLoader run() {
+        try {
+            return Thread.currentThread().getContextClassLoader();
+        } finally {
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+    }
 }

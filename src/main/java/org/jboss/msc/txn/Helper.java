@@ -2,6 +2,8 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceRegistry;
 
+import java.security.AccessController;
+
 import static org.jboss.msc._private.MSCLogger.TXN;
 
 /**
@@ -40,6 +42,16 @@ final class Helper {
 
     static void setModified(final UpdateTransaction transaction) {
         ((BasicUpdateTransaction)transaction).setModified();
+    }
+
+    static ClassLoader setTCCL(final ClassLoader newTCCL) {
+        final SecurityManager sm = System.getSecurityManager();
+        final SetTCCLAction setTCCLAction = new SetTCCLAction(newTCCL);
+        if (sm != null) {
+            return AccessController.doPrivileged(setTCCLAction);
+        } else {
+            return setTCCLAction.run();
+        }
     }
 
 }

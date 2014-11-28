@@ -17,6 +17,7 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.setTCCL;
 import static org.jboss.msc.txn.ServiceControllerImpl.STATE_UP;
 import static org.jboss.msc.txn.ServiceControllerImpl.STATE_FAILED;
 
@@ -24,6 +25,7 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContext;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.problem.Problem.Severity;
 
@@ -162,6 +164,23 @@ final class StartServiceTask<T> implements Executable<T> {
                     childContext = new ParentServiceContext(serviceController.getPrimaryRegistration(), transaction);
                 }
                 return childContext;
+            }
+
+            public long getElapsedTime() {
+                return System.nanoTime() - serviceController.lifecycleTime;
+            }
+
+            public ServiceController<?> getController() {
+                return serviceController;
+            }
+
+            public void execute(final Runnable command) {
+                final ClassLoader contextClassLoader = setTCCL(command.getClass().getClassLoader());
+                try {
+                    command.run();
+                } finally {
+                    setTCCL(contextClassLoader);
+                }
             }
 
         });

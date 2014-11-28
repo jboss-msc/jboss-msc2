@@ -18,15 +18,13 @@
 
 package org.jboss.msc.service;
 
-import org.jboss.msc.txn.WorkContext;
-
 /**
  * Service start lifecycle context.
  *
  * @param <T> the service value type
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface StartContext<T> extends WorkContext {
+public interface StartContext<T> extends LifecycleContext {
 
     /**
      * Marking service completion with a value. This method returns without blocking.

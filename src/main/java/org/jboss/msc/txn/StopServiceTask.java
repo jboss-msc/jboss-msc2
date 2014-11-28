@@ -17,9 +17,12 @@
  */
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.Helper.setTCCL;
+
 import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.problem.Problem.Severity;
 
@@ -127,6 +130,24 @@ final class StopServiceTask<T> implements Executable<Void> {
                 }
                 context.addProblem(cause);
             }
+
+            public long getElapsedTime() {
+                return System.nanoTime() - serviceController.lifecycleTime;
+            }
+
+            public ServiceController<?> getController() {
+                return serviceController;
+            }
+
+            public void execute(final Runnable command) {
+                final ClassLoader contextClassLoader = setTCCL(command.getClass().getClassLoader());
+                try {
+                    command.run();
+                } finally {
+                    setTCCL(contextClassLoader);
+                }
+            }
+
         });
     }
 
