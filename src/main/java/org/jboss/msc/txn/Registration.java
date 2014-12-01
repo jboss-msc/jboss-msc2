@@ -18,6 +18,8 @@
 
 package org.jboss.msc.txn;
 
+import static org.jboss.msc.txn.ServiceControllerImpl.STATE_UP;
+
 import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.util.AttachmentKey;
@@ -47,10 +49,6 @@ final class Registration {
      * Indicates if registration is removed (true only when registry is removed).
      */
     private static final int REMOVED = 0x20000000;
-    /**
-     * Indicates this registration is scheduled to start or up.
-     */
-    private static final int UP = 0x8000000;
     /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
@@ -120,10 +118,10 @@ final class Registration {
 
     <T> void addIncomingDependency(final Transaction transaction, final DependencyImpl<T> dependency) {
         installDependenciesValidateTask(transaction);
-        final boolean up;
         synchronized (this) {
             incomingDependencies.add(dependency);
-            up = Bits.anyAreSet(state,  UP);
+            final ServiceControllerImpl<?> controller = holderRef.get();
+            final boolean up = controller != null && controller.getState() == STATE_UP;
             if (up) {
                 dependency.dependencyUp(transaction);
             }
@@ -138,7 +136,6 @@ final class Registration {
 
     void serviceUp(final Transaction transaction) {
         synchronized (this) {
-            state = state | UP;
             for (final DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyUp(transaction);
             }
@@ -147,7 +144,6 @@ final class Registration {
 
     void serviceDown(final Transaction transaction) {
         synchronized (this) {
-            state &= ~UP;
             for (DependencyImpl<?> incomingDependency: incomingDependencies) {
                 incomingDependency.dependencyDown(transaction);
             }
