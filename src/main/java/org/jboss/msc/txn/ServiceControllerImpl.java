@@ -25,6 +25,7 @@ import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.util.Listener;
 
 import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.SERVICE;
@@ -40,7 +41,7 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class ServiceControllerImpl<T> implements ServiceController {
+final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     // controller modes
     static final byte MODE_ACTIVE      = (byte)ServiceMode.ACTIVE.ordinal();
@@ -244,6 +245,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     @Override
+    public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
+    }
+
+    @Override
     public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
@@ -254,6 +260,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
             if (!isRegistryEnabled()) return;
             transition(transaction);
         }
+    }
+
+    @Override
+    public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
     }
 
     private boolean isServiceEnabled() {
@@ -305,6 +316,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
         }
     }
 
+    @Override
+    public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
+    }
+
     /**
      * Removes this service.<p>
      * All dependent services will be automatically stopped as the result of this operation.
@@ -318,6 +334,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
         _remove(transaction);
     }
 
+    @Override
+    public void remove(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
+    }
+
     void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         synchronized (this) {
             if (isServiceRemoved()) return; // idempotent
@@ -327,11 +348,16 @@ final class ServiceControllerImpl<T> implements ServiceController {
     }
 
     @Override
-    public void replace(final UpdateTransaction transaction, final Object newService) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void replace(final UpdateTransaction transaction, final T newService) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
         // TODO implement
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void replace(final UpdateTransaction transaction, final T newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
     }
 
     @Override
@@ -346,6 +372,11 @@ final class ServiceControllerImpl<T> implements ServiceController {
             setState(STATE_RESTARTING);
             transition(transaction);
         }
+    }
+
+    @Override
+    public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
     }
 
     /**

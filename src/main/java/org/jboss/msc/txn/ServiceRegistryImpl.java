@@ -22,6 +22,7 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.util.Listener;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -114,6 +115,11 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
+    public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO
+    }
+
+    @Override
     public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
         synchronized (this) {
@@ -124,6 +130,11 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         setModified(transaction);
         final RemoveTask removeTask = new RemoveTask(transaction);
         getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
+    }
+
+    @Override
+    public void disable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO
     }
 
     @Override
@@ -144,6 +155,11 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             state &= ~DISABLING;
             notifyAll();
         }
+    }
+
+    @Override
+    public void enable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO
     }
 
     @Override

@@ -20,6 +20,7 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.util.Listener;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,4 +61,10 @@ final class ServiceContainerImpl implements ServiceContainer {
             }
         }
     }
+
+    @Override
+    public void shutdown(final UpdateTransaction txn, final Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        throw new UnsupportedOperationException("Implement"); // TODO:
+    }
+
 }

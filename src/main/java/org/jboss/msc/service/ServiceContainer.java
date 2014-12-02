@@ -20,6 +20,7 @@ package org.jboss.msc.service;
 
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.UpdateTransaction;
+import org.jboss.msc.util.Listener;
 
 /**
  * A service container. This class is thread safe.
@@ -47,5 +48,17 @@ public interface ServiceContainer {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
     void shutdown(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
+     * Shuts down the container, removing all registries and their services.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service container.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void shutdown(UpdateTransaction transaction, Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 
 }

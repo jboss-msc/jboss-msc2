@@ -20,6 +20,7 @@ package org.jboss.msc.service;
 
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.UpdateTransaction;
+import org.jboss.msc.util.Listener;
 
 
 /**
@@ -43,6 +44,18 @@ public interface ServiceController<T> {
     void disable(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Disables a service, causing this service to stop if it is {@code UP}.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void disable(UpdateTransaction transaction, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
      * <p> Services are enabled by default.
      *
@@ -55,9 +68,22 @@ public interface ServiceController<T> {
     void enable(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Enables the service, which may start as a result, according to its {@link org.jboss.msc.service.ServiceMode mode} rules.
+     * <p> Services are enabled by default.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void enable(UpdateTransaction transaction, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Removes this service.<p>
      * All dependent services will be automatically stopped as the result of this operation.
-     * 
+     *
      * @param transaction the transaction
      * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
      * or if transaction controller associated with <code>transaction</code>
@@ -65,6 +91,19 @@ public interface ServiceController<T> {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
     void remove(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
+     * Removes this service.<p>
+     * All dependent services will be automatically stopped as the result of this operation.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void remove(UpdateTransaction transaction, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Restarts this service.
@@ -78,6 +117,18 @@ public interface ServiceController<T> {
     void restart(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Restarts this service.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void restart(UpdateTransaction transaction, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Retries a failed service. Does nothing if the state has not failed.
      *
      * @param transaction the transaction
@@ -89,6 +140,18 @@ public interface ServiceController<T> {
     void retry(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Retries a failed service. Does nothing if the state has not failed.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service controller.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void retry(UpdateTransaction transaction, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Replaces {@code service} by a new service.
      *
      * @param transaction the transaction
@@ -97,6 +160,17 @@ public interface ServiceController<T> {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
     void replace(UpdateTransaction transaction, T newService) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
+     * Replaces {@code service} by a new service.
+     *
+     * @param transaction the transaction
+     * @param newService the new service to be published
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void replace(UpdateTransaction transaction, T newService, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Gets associated service.

@@ -20,6 +20,7 @@ package org.jboss.msc.service;
 
 import org.jboss.msc.txn.InvalidTransactionStateException;
 import org.jboss.msc.txn.UpdateTransaction;
+import org.jboss.msc.util.Listener;
 
 /**
  * A service registry.
@@ -60,6 +61,19 @@ public interface ServiceRegistry {
     void disable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Disables this registry and all its services, causing {@code UP} services to stop.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service registry.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws java.lang.IllegalStateException if registry have been removed.
+     */
+    void disable(UpdateTransaction transaction, Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Enables this registry. As a result, its services may start, depending on their
      * {@link org.jboss.msc.service.ServiceMode mode} rules.
      * <p> Registries are enabled by default.
@@ -74,6 +88,21 @@ public interface ServiceRegistry {
     void enable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
 
     /**
+     * Enables this registry. As a result, its services may start, depending on their
+     * {@link org.jboss.msc.service.ServiceMode mode} rules.
+     * <p> Registries are enabled by default.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service registry.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws java.lang.IllegalStateException if registry have been removed.
+     */
+    void enable(UpdateTransaction transaction, Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
      * Removes this registry from the container.
      *
      * @param transaction the transaction
@@ -83,5 +112,17 @@ public interface ServiceRegistry {
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
     void remove(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
+     * Removes this registry from the container.
+     *
+     * @param transaction the transaction
+     * @param completionListener called when operation is finished
+     * @throws java.lang.IllegalArgumentException if <code>transaction</code> is null
+     * or if transaction controller associated with <code>transaction</code>
+     * is not the same as the one associated with this service registry.
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    void remove(UpdateTransaction transaction, Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 
 }
