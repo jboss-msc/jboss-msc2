@@ -53,9 +53,8 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     static final byte STATE_STARTING   = (byte)0b00001000;
     static final byte STATE_UP         = (byte)0b00001100;
     static final byte STATE_FAILED     = (byte)0b00010000;
-    static final byte STATE_RESTARTING = (byte)0b00010100;
-    static final byte STATE_STOPPING   = (byte)0b00011000;
-    static final byte STATE_REMOVED    = (byte)0b00011100;
+    static final byte STATE_STOPPING   = (byte)0b00010100;
+    static final byte STATE_REMOVED    = (byte)0b00011000;
     static final byte STATE_MASK       = (byte)0b00011100;
     // controller flags
     static final byte SERVICE_ENABLED  = (byte)0b00100000;
@@ -311,7 +310,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (getState() != STATE_FAILED) {
                 return;
             }
-            setState(STATE_RESTARTING);
+            state &= ~SERVICE_ENABLED;
             transition(transaction);
         }
     }
@@ -369,7 +368,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (getState() != STATE_UP) {
                 return;
             }
-            setState(STATE_RESTARTING);
+            state &= ~SERVICE_ENABLED;
             transition(transaction);
         }
     }
@@ -536,9 +535,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                     setState(STATE_STOPPING);
                     StopFailedServiceTask.create(this, transaction);
                 }
-                break;
-            case STATE_RESTARTING:
-                StopServiceTask.create(this, transaction);
                 break;
         }
     }
