@@ -251,8 +251,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (!isRegistryEnabled()) break;
                 transition(transaction);
             }
-            if (completionListener == null) return;
-            this.disableObservers = new NotificationEntry<> (this.disableObservers, completionListener);
+            if (completionListener != null) {
+                this.disableObservers = new NotificationEntry<>(this.disableObservers, completionListener);
+            }
             if (getState() != STATE_DOWN && getState() != STATE_REMOVED) {
                 return; // don't call completion listeners
             } else {
@@ -292,8 +293,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (!isRegistryEnabled()) break;
                 transition(transaction);
             }
-            if (completionListener == null) return;
-            this.enableObservers = new NotificationEntry<> (this.enableObservers, completionListener);
+            if (completionListener != null) {
+                this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
+            }
             if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
                 return; // don't call completion listeners
             } else {
@@ -361,8 +363,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 state &= ~SERVICE_ENABLED;
                 transition(transaction);
             }
-            if (completionListener == null) return;
-            this.enableObservers = new NotificationEntry<> (this.enableObservers, completionListener);
+            if (completionListener != null) {
+                this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
+            }
             if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
                 return; // don't call completion listeners
             } else {
@@ -434,8 +437,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 state &= ~SERVICE_ENABLED;
                 transition(transaction);
             }
-            if (completionListener == null) return;
-            this.enableObservers = new NotificationEntry<> (this.enableObservers, completionListener);
+            if (completionListener != null) {
+                this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
+            }
             if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
                 return; // don't call completion listeners
             } else {
