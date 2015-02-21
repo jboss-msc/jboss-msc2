@@ -401,22 +401,37 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void restart(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
-        setModified(transaction);
-        synchronized (this) {
-            if (isServiceRemoved()) return;
-            if (getState() != STATE_UP) {
-                return;
-            }
-            state &= ~SERVICE_ENABLED;
-            transition(transaction);
-        }
+    public void restart(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        restart(transaction, null);
     }
 
     @Override
     public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO:
+        validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
+        NotificationEntry<T> enableObservers;
+        synchronized (this) {
+            while (true) {
+                if (isServiceRemoved()) break;
+                if (getState() != STATE_UP) {
+                    throw MSCLogger.SERVICE.serviceControllerNotInUpState();
+                }
+                state &= ~SERVICE_ENABLED;
+                transition(transaction);
+            }
+            if (completionListener == null) return;
+            this.enableObservers = new NotificationEntry<> (this.enableObservers, completionListener);
+            if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
+                return; // don't call completion listeners
+            } else {
+                enableObservers = this.enableObservers;
+                this.enableObservers = null;
+            }
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
     }
 
     /**

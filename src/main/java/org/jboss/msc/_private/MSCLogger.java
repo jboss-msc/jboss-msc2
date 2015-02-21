@@ -178,6 +178,12 @@ public interface MSCLogger {
     @Message(id = 123, value = "Lifecycle context is no longer valid")
     IllegalStateException lifecycleContextNotValid();
 
+    @Message(id = 124, value = "Service controller not in FAILED state")
+    IllegalStateException serviceControllerNotInFailedState();
+
+    @Message(id = 125, value = "Service controller not in UP state")
+    IllegalStateException serviceControllerNotInUpState();
+
     /*
      * Location nesting types.
      */
