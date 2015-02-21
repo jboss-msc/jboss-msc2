@@ -101,6 +101,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     volatile long lifecycleTime;
 
     private NotificationEntry<T> disableObservers;
+    private NotificationEntry<T> enableObservers;
 
     /**
      * Creates the service controller, thus beginning installation.
@@ -275,20 +276,35 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
-        setModified(transaction);
-        synchronized (this) {
-            if (isServiceRemoved()) return;
-            if (isServiceEnabled()) return;
-            state |= SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return;
-            transition(transaction);
-        }
+        enable(transaction, null);
     }
 
     @Override
     public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO:
+        validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
+        NotificationEntry<T> enableObservers;
+        synchronized (this) {
+            while (true) {
+                if (isServiceRemoved()) break;
+                if (isServiceEnabled()) break;
+                state |= SERVICE_ENABLED;
+                if (!isRegistryEnabled()) break;
+                transition(transaction);
+            }
+            if (completionListener == null) return;
+            this.enableObservers = new NotificationEntry<> (this.enableObservers, completionListener);
+            if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
+                return; // don't call completion listeners
+            } else {
+                enableObservers = this.enableObservers;
+                this.enableObservers = null;
+            }
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
     }
 
     private boolean isServiceEnabled() {
@@ -494,9 +510,16 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     void setServiceUp(T result, final Transaction transaction) {
         setValue(result);
+        NotificationEntry<T> enableObservers;
         synchronized (this) {
             setState(STATE_UP);
             transition(transaction);
+            enableObservers = this.enableObservers;
+            this.enableObservers = null;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
         }
     }
 
@@ -519,7 +542,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         }
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
-            disableObservers = (NotificationEntry<T>)disableObservers.next;
+            disableObservers = disableObservers.next;
         }
     }
 
