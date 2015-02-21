@@ -251,6 +251,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 state &= ~SERVICE_ENABLED;
                 if (!isRegistryEnabled()) break;
                 transition(transaction);
+                break;
             }
             if (completionListener != null) {
                 this.disableObservers = new NotificationEntry<>(this.disableObservers, completionListener);
@@ -293,6 +294,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 state |= SERVICE_ENABLED;
                 if (!isRegistryEnabled()) break;
                 transition(transaction);
+                break;
             }
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
@@ -326,7 +328,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -336,7 +338,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -363,6 +365,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 }
                 state &= ~SERVICE_ENABLED;
                 transition(transaction);
+                break;
             }
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
@@ -407,6 +410,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (isServiceRemoved()) break;
                 state |= SERVICE_REMOVED;
                 transition(transaction);
+                break;
             }
             if (completionListener != null) {
                 this.removeObservers = new NotificationEntry<>(this.removeObservers, completionListener);
@@ -467,6 +471,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 }
                 state &= ~SERVICE_ENABLED;
                 transition(transaction);
+                break;
             }
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
@@ -501,7 +506,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             demandDependencies(transaction);
         }
         synchronized (this) {
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -534,7 +539,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             undemandDependencies(transaction);
         }
         synchronized (this) {
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -558,7 +563,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (--unsatisfiedDependencies > 0) {
                 return;
             }
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -567,7 +572,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (++unsatisfiedDependencies > 1) {
                return;
             }
-            transition(transaction);
+            transition(transaction); // TODO: completion listeners
         }
     }
 
@@ -590,9 +595,16 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     void setServiceFailed(final Transaction transaction) {
         MSCLogger.FAIL.startFailed(getServiceName());
+        NotificationEntry<T> enableObservers;
         synchronized (this) {
             setState(STATE_FAILED);
             transition(transaction);
+            enableObservers = this.enableObservers;
+            this.enableObservers = null;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
         }
     }
 
