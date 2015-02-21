@@ -186,7 +186,7 @@ final class Registration {
             controller = holderRef.get();
         }
         if (controller != null) {
-            controller._remove(transaction);
+            controller._remove(transaction, null);
         }
     }
 

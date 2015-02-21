@@ -102,6 +102,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     private NotificationEntry<T> disableObservers;
     private NotificationEntry<T> enableObservers;
+    private NotificationEntry<T> removeObservers;
 
     /**
      * Creates the service controller, thus beginning installation.
@@ -387,21 +388,51 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      */
     @Override
     public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
-        setModified(transaction);
-        _remove(transaction);
+        remove(transaction, null);
     }
 
     @Override
     public void remove(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO:
+        validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
+        _remove(transaction, completionListener);
     }
 
-    void _remove(final Transaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    void _remove(final Transaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        NotificationEntry<T> disableObservers;
+        NotificationEntry<T> enableObservers;
+        NotificationEntry<T> removeObservers;
         synchronized (this) {
-            if (isServiceRemoved()) return; // idempotent
-            state |= SERVICE_REMOVED;
-            transition(transaction);
+            while (true) {
+                if (isServiceRemoved()) break;
+                state |= SERVICE_REMOVED;
+                transition(transaction);
+            }
+            if (completionListener != null) {
+                this.removeObservers = new NotificationEntry<>(this.removeObservers, completionListener);
+            }
+            if (getState() != STATE_REMOVED) {
+                return; // don't call completion listeners
+            } else {
+                disableObservers = this.disableObservers;
+                this.disableObservers = null;
+                enableObservers = this.enableObservers;
+                this.enableObservers = null;
+                removeObservers = this.removeObservers;
+                this.removeObservers = null;
+            }
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = disableObservers.next;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
+        while (removeObservers != null) {
+            safeCallListener(removeObservers.completionListener);
+            removeObservers = removeObservers.next;
         }
     }
 

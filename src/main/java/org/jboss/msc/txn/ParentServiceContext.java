@@ -93,7 +93,7 @@ class ParentServiceContext extends ServiceContextImpl {
 
         @Override
         public void dependencyDown(Transaction transaction) {
-            dependent._remove(transaction);
+            dependent._remove(transaction, null);
         }
     }
 }
