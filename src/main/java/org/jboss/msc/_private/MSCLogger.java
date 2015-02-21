@@ -103,6 +103,10 @@ public interface MSCLogger {
     @Message(id = 15, value = "Transaction create completion listener failed")
     void transactionCreationCompletionListenerFailed(@Cause Throwable cause);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 16, value = "Service controller completion listener failed")
+    void serviceControllerCompletionListenerFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     @Message(id = 101, value = "Parameter %s is null")

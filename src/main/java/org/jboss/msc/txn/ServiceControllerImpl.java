@@ -100,6 +100,8 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     @SuppressWarnings("VolatileLongOrDoubleField")
     volatile long lifecycleTime;
 
+    private NotificationEntry<T> disableObservers;
+
     /**
      * Creates the service controller, thus beginning installation.
      * 
@@ -232,20 +234,43 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
-        setModified(transaction);
-        synchronized (this) {
-            if (isServiceRemoved()) return;
-            if (!isServiceEnabled()) return;
-            state &= ~SERVICE_ENABLED;
-            if (!isRegistryEnabled()) return;
-            transition(transaction);
-        }
+        disable(transaction, null);
     }
 
     @Override
     public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO:
+        validateTransaction(transaction, primaryRegistration.txnController);
+        setModified(transaction);
+        NotificationEntry<T> disableObservers;
+        synchronized (this) {
+            while (true) {
+                if (isServiceRemoved()) break;
+                if (!isServiceEnabled()) break;
+                state &= ~SERVICE_ENABLED;
+                if (!isRegistryEnabled()) break;
+                transition(transaction);
+            }
+            if (completionListener == null) return;
+            this.disableObservers = new NotificationEntry<> (this.disableObservers, completionListener);
+            if (getState() != STATE_DOWN && getState() != STATE_REMOVED) {
+                return; // don't call completion listeners
+            } else {
+                disableObservers = this.disableObservers;
+                this.disableObservers = null;
+            }
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = disableObservers.next;
+        }
+    }
+
+    void safeCallListener(final Listener<ServiceController<T>> listener) {
+        try {
+            listener.handleEvent(this);
+        } catch (final Throwable t) {
+            MSCLogger.SERVICE.serviceControllerCompletionListenerFailed(t);
+        }
     }
 
     @Override
@@ -485,9 +510,16 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     void setServiceDown(final Transaction transaction) {
         setValue(null);
+        NotificationEntry<T> disableObservers;
         synchronized (this) {
             setState(STATE_DOWN);
             transition(transaction);
+            disableObservers = this.disableObservers;
+            this.disableObservers = null;
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = (NotificationEntry<T>)disableObservers.next;
         }
     }
 
@@ -562,5 +594,17 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     byte getState() {
         return (byte)(state & STATE_MASK);
+    }
+
+    private static final class NotificationEntry<T> {
+
+        private final NotificationEntry next;
+        private final Listener<ServiceController<T>> completionListener;
+
+        private NotificationEntry(final NotificationEntry next, final Listener<ServiceController<T>> listener) {
+            this.next = next;
+            this.completionListener = listener;
+        }
+
     }
 }
