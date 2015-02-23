@@ -54,7 +54,8 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     static final byte STATE_UP         = (byte)0b00001100;
     static final byte STATE_FAILED     = (byte)0b00010000;
     static final byte STATE_STOPPING   = (byte)0b00010100;
-    static final byte STATE_REMOVED    = (byte)0b00011000;
+    static final byte STATE_REMOVING   = (byte)0b00011000;
+    static final byte STATE_REMOVED    = (byte)0b00011100;
     static final byte STATE_MASK       = (byte)0b00011100;
     // controller flags
     static final byte SERVICE_ENABLED  = (byte)0b00100000;
@@ -243,7 +244,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        NotificationEntry<T> disableObservers;
         synchronized (this) {
             while (true) {
                 if (isServiceRemoved()) break;
@@ -253,20 +253,13 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 transition(transaction);
                 break;
             }
-            if (completionListener != null) {
-                this.disableObservers = new NotificationEntry<>(this.disableObservers, completionListener);
-            }
+            if (completionListener == null) return;
             if (getState() != STATE_DOWN && getState() != STATE_REMOVED) {
-                return; // don't call completion listeners
-            } else {
-                disableObservers = this.disableObservers;
-                this.disableObservers = null;
+                this.disableObservers = new NotificationEntry<>(this.disableObservers, completionListener);
+                return; // don't call completion listener
             }
         }
-        while (disableObservers != null) {
-            safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
-        }
+        safeCallListener(completionListener);
     }
 
     void safeCallListener(final Listener<ServiceController<T>> listener) {
@@ -286,7 +279,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        NotificationEntry<T> enableObservers;
         synchronized (this) {
             while (true) {
                 if (isServiceRemoved()) break;
@@ -296,20 +288,13 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 transition(transaction);
                 break;
             }
-            if (completionListener != null) {
-                this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
-            }
+            if (completionListener == null) return;
             if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
-                return; // don't call completion listeners
-            } else {
-                enableObservers = this.enableObservers;
-                this.enableObservers = null;
+                this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
+                return; // don't call completion listener
             }
         }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
-        }
+        safeCallListener(completionListener);
     }
 
     private boolean isServiceEnabled() {
@@ -328,7 +313,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -338,7 +323,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
             if (!isServiceEnabled()) return;
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -356,7 +341,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        NotificationEntry<T> enableObservers;
         synchronized (this) {
             while (true) {
                 if (isServiceRemoved()) break;
@@ -370,16 +354,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
             }
-            if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
-                return; // don't call completion listeners
-            } else {
-                enableObservers = this.enableObservers;
-                this.enableObservers = null;
-            }
-        }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
         }
     }
 
@@ -402,9 +376,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     void _remove(final Transaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        NotificationEntry<T> disableObservers;
-        NotificationEntry<T> enableObservers;
-        NotificationEntry<T> removeObservers;
         synchronized (this) {
             while (true) {
                 if (isServiceRemoved()) break;
@@ -412,32 +383,13 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 transition(transaction);
                 break;
             }
-            if (completionListener != null) {
-                this.removeObservers = new NotificationEntry<>(this.removeObservers, completionListener);
-            }
+            if (completionListener == null) return;
             if (getState() != STATE_REMOVED) {
-                return; // don't call completion listeners
-            } else {
-                disableObservers = this.disableObservers;
-                this.disableObservers = null;
-                enableObservers = this.enableObservers;
-                this.enableObservers = null;
-                removeObservers = this.removeObservers;
-                this.removeObservers = null;
+                this.removeObservers = new NotificationEntry<>(this.removeObservers, completionListener);
+                return; // don't call completion listener
             }
         }
-        while (disableObservers != null) {
-            safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
-        }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
-        }
-        while (removeObservers != null) {
-            safeCallListener(removeObservers.completionListener);
-            removeObservers = removeObservers.next;
-        }
+        safeCallListener(completionListener);
     }
 
     @Override
@@ -462,7 +414,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.txnController);
         setModified(transaction);
-        NotificationEntry<T> enableObservers;
         synchronized (this) {
             while (true) {
                 if (isServiceRemoved()) break;
@@ -476,16 +427,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
             }
-            if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
-                return; // don't call completion listeners
-            } else {
-                enableObservers = this.enableObservers;
-                this.enableObservers = null;
-            }
-        }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
         }
     }
 
@@ -506,7 +447,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             demandDependencies(transaction);
         }
         synchronized (this) {
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -539,7 +480,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             undemandDependencies(transaction);
         }
         synchronized (this) {
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -563,7 +504,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (--unsatisfiedDependencies > 0) {
                 return;
             }
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -572,7 +513,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             if (++unsatisfiedDependencies > 1) {
                return;
             }
-            transition(transaction); // TODO: completion listeners
+            transition(transaction);
         }
     }
 
@@ -625,6 +566,28 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     void setServiceRemoved(final Transaction transaction) {
         clear(transaction);
+        NotificationEntry<T> disableObservers, enableObservers, removeObservers;
+        synchronized (this) {
+            setState(STATE_REMOVED);
+            disableObservers = this.disableObservers;
+            this.disableObservers = null;
+            enableObservers = this.enableObservers;
+            this.enableObservers = null;
+            removeObservers = this.removeObservers;
+            this.removeObservers = null;
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = disableObservers.next;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
+        while (removeObservers != null) {
+            safeCallListener(removeObservers.completionListener);
+            removeObservers = removeObservers.next;
+        }
     }
 
     void notifyServiceUp(final Transaction transaction) {
@@ -650,7 +613,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                     setState(STATE_STARTING);
                     StartServiceTask.create(this, transaction);
                 } else if (removed) {
-                    setState(STATE_REMOVED);
+                    setState(STATE_REMOVING);
                     RemoveServiceTask.create(this, transaction);
                 }
                 break;
