@@ -179,6 +179,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         for (Registration alias: aliasRegistrations) {
             alias.installService(transaction);
         }
+        primaryRegistration.serviceInstalled();
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            aliasRegistration.serviceInstalled();
+        }
         boolean demandDependencies;
         synchronized (this) {
             state |= SERVICE_ENABLED;
@@ -242,7 +246,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
@@ -277,7 +281,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
@@ -339,7 +343,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
@@ -370,7 +374,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void remove(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         _remove(transaction, completionListener);
     }
@@ -399,7 +403,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void replace(final UpdateTransaction transaction, final T newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         // TODO implement
         throw new UnsupportedOperationException("not implemented");
@@ -412,7 +416,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, primaryRegistration.txnController);
+        validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
@@ -532,6 +536,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(enableObservers.completionListener);
             enableObservers = enableObservers.next;
         }
+        primaryRegistration.serviceUp();
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            aliasRegistration.serviceUp();
+        }
     }
 
     void setServiceFailed(final Transaction transaction) {
@@ -547,6 +555,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(enableObservers.completionListener);
             enableObservers = enableObservers.next;
         }
+        primaryRegistration.serviceUp();
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            aliasRegistration.serviceUp();
+        }
     }
 
     void setServiceDown(final Transaction transaction) {
@@ -561,6 +573,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
             disableObservers = disableObservers.next;
+        }
+        primaryRegistration.serviceDown();
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            aliasRegistration.serviceDown();
         }
     }
 
@@ -588,6 +604,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(removeObservers.completionListener);
             removeObservers = removeObservers.next;
         }
+        primaryRegistration.serviceRemoved();
+        for (final Registration aliasRegistration : aliasRegistrations) {
+            aliasRegistration.serviceRemoved();
+        }
     }
 
     void notifyServiceUp(final Transaction transaction) {
@@ -611,6 +631,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             case STATE_DOWN:
                 if (unsatisfiedDependencies == 0 && shouldStart()) {
                     setState(STATE_STARTING);
+                    primaryRegistration.serviceStarting();
+                    for (final Registration aliasRegistration : aliasRegistrations) {
+                        aliasRegistration.serviceStarting();
+                    }
                     StartServiceTask.create(this, transaction);
                 } else if (removed) {
                     setState(STATE_REMOVING);
@@ -621,6 +645,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
                     lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
+                    primaryRegistration.serviceStopping();
+                    for (final Registration aliasRegistration : aliasRegistrations) {
+                        aliasRegistration.serviceStopping();
+                    }
                     StopServiceTask.create(this, transaction);
                 }
                 break;
@@ -628,6 +656,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
                     lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
+                    primaryRegistration.serviceStopping();
+                    for (final Registration aliasRegistration : aliasRegistrations) {
+                        aliasRegistration.serviceStopping();
+                    }
                     StopFailedServiceTask.create(this, transaction);
                 }
                 break;

@@ -18,6 +18,7 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceNotFoundException;
@@ -41,10 +42,15 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  */
 final class ServiceRegistryImpl implements ServiceRegistry {
 
-    private static final byte ENABLED = 1 << 0x00;
-    private static final byte REMOVED  = 1 << 0x01;
-    private static final byte ENABLING = 1 << 0x02;
+    private static final byte ENABLED   = 1 << 0x00;
+    private static final byte REMOVED   = 1 << 0x01;
+    private static final byte ENABLING  = 1 << 0x02;
     private static final byte DISABLING = 1 << 0x03;
+
+    private long downServices, upServices, installedServices;
+    private NotificationEntry disableObservers;
+    private NotificationEntry enableObservers;
+    private NotificationEntry removeObservers;
 
     final TransactionController txnController;
     // map of service registrations
@@ -91,11 +97,11 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         Registration registration = registry.get(name);
         if (registration == null) {
             synchronized (this) { checkRemoved(); }
-            registration = new Registration(name, txnController);
+            registration = new Registration(name, this);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
-            } else if (Bits.anyAreSet(state, ENABLED)){
+            } else if (Bits.anyAreSet(state, ENABLED)) { // TODO: this is bug - state is accessed without lock being held
                 registration.enableRegistry(transaction);
             }
         }
@@ -115,71 +121,81 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
-    public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO
+    public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+        remove(transaction, null);
     }
 
     @Override
-    public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
+        setModified(transaction);
         synchronized (this) {
-            if (Bits.anyAreSet(state, REMOVED)) {
-                return;
+            if (Bits.allAreClear(state, REMOVED)) {
+                final RemoveTask removeTask = new RemoveTask(transaction);
+                getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
+                removeObservers = new NotificationEntry(removeObservers, completionListener);
+                return; // don't call completion listener
             }
         }
-        setModified(transaction);
-        final RemoveTask removeTask = new RemoveTask(transaction);
-        getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
-    }
-
-    @Override
-    public void disable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO
+        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, txnController);
-        setModified(transaction);
-        synchronized (this) {
-            checkRemoved();
-            if (!Bits.anyAreSet(state, ENABLED)) return; // idempotent
-            awaitStateWithoutFlags(ENABLING);
-            state &= ~ENABLED;
-            state |= DISABLING;
-        }
-        for (Registration registration: registry.values()) {
-            registration.disableRegistry(transaction);
-        }
-        synchronized (this) {
-            state &= ~DISABLING;
-            notifyAll();
-        }
+        disable(transaction, null);
     }
 
     @Override
-    public void enable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO
+    public void disable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(transaction, txnController);
+        setModified(transaction);
+        while (true) {
+            synchronized (this) {
+                if (Bits.anyAreSet(state, REMOVED)) break; // simulated goto for callback listener
+                if (Bits.allAreClear(state, ENABLED)) break; // simulated goto for callback listener
+                awaitStateWithoutFlags(ENABLING);
+                state |= DISABLING;
+                disableObservers = new NotificationEntry(disableObservers, completionListener);
+            }
+            for (Registration registration : registry.values()) {
+                registration.disableRegistry(transaction);
+            }
+            synchronized (this) {
+                state &= ~DISABLING;
+                notifyAll();
+            }
+            return;
+        }
+        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+        enable(transaction, null);
+    }
+
+    @Override
+    public void enable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, txnController);
         setModified(transaction);
-        synchronized (this) {
-            checkRemoved();
-            if (Bits.anyAreSet(state, ENABLED)) return; // idempotent
-            awaitStateWithoutFlags(DISABLING);
-            state |= ENABLED;
-            state |= ENABLING;
+        while (true) {
+            synchronized (this) {
+                if (Bits.anyAreSet(state, REMOVED)) break; // simulated goto for callback listener
+                if (Bits.anyAreSet(state, ENABLED)) break; // simulated goto for callback listener
+                awaitStateWithoutFlags(DISABLING);
+                state |= ENABLING;
+                enableObservers = new NotificationEntry(enableObservers, completionListener);
+            }
+            for (Registration registration : registry.values()) {
+                registration.enableRegistry(transaction);
+            }
+            synchronized (this) {
+                state &= ~ENABLING;
+                notifyAll();
+            }
+            return;
         }
-        for (Registration registration: registry.values()) {
-            registration.enableRegistry(transaction);
-        }
-        synchronized (this) {
-            state &= ~ENABLING;
-            notifyAll();
-        }
+        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     private void checkRemoved() throws IllegalStateException {
@@ -235,4 +251,93 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
     }
 
+    void safeCallListener(final Listener<ServiceRegistry> listener) {
+        try {
+            listener.handleEvent(this);
+        } catch (final Throwable t) {
+            MSCLogger.SERVICE.serviceRegistryCompletionListenerFailed(t);
+        }
+    }
+
+    synchronized void serviceInstalled() {
+        ++downServices;
+        ++installedServices;
+    }
+
+    void serviceUp() { // TODO: when call serviceUp if service is LAZY in down state???
+        NotificationEntry enableObservers;
+        synchronized (this) {
+            assert upServices < installedServices;
+            if ((++upServices  + downServices) != installedServices) return;
+            state |= ENABLED;
+            enableObservers = this.enableObservers;
+            this.enableObservers = null;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
+    }
+
+    synchronized void serviceStarting() {
+        --downServices;
+    }
+
+    synchronized void serviceStopping() {
+        --upServices;
+    }
+
+    void serviceDown() {
+        NotificationEntry disableObservers;
+        synchronized (this) {
+            assert downServices < installedServices;
+            if ((++downServices + upServices) != installedServices) return;
+            state &= ~ENABLED;
+            disableObservers = this.disableObservers;
+            this.disableObservers = null;
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = disableObservers.next;
+        }
+    }
+
+    void serviceRemoved() {
+        NotificationEntry disableObservers, enableObservers, removeObservers;
+        synchronized (this) {
+            assert downServices > 0 && installedServices > 0;
+            --downServices;
+            if (--installedServices != 0) return;
+            disableObservers = this.disableObservers;
+            this.disableObservers = null;
+            enableObservers = this.enableObservers;
+            this.enableObservers = null;
+            removeObservers = this.removeObservers;
+            this.removeObservers = null;
+        }
+        while (disableObservers != null) {
+            safeCallListener(disableObservers.completionListener);
+            disableObservers = disableObservers.next;
+        }
+        while (enableObservers != null) {
+            safeCallListener(enableObservers.completionListener);
+            enableObservers = enableObservers.next;
+        }
+        while (removeObservers != null) {
+            safeCallListener(removeObservers.completionListener);
+            removeObservers = removeObservers.next;
+        }
+    }
+
+    private static final class NotificationEntry {
+
+        private final NotificationEntry next;
+        private final Listener<ServiceRegistry> completionListener;
+
+        private NotificationEntry(final NotificationEntry next, final Listener<ServiceRegistry> completionListener) {
+            this.next = next;
+            this.completionListener = completionListener;
+        }
+
+    }
 }

@@ -59,7 +59,7 @@ final class Registration {
     /** The registration name */
     private final ServiceName serviceName;
     /** Associated transaction controller */
-    final TransactionController txnController;
+    final ServiceRegistryImpl registry;
     /** Associated controller */
     final AtomicReference<ServiceControllerImpl<?>> holderRef = new AtomicReference<>();
 
@@ -72,9 +72,9 @@ final class Registration {
      */
     private int state;
 
-    Registration(final ServiceName serviceName, final TransactionController txnController) {
+    Registration(final ServiceName serviceName, final ServiceRegistryImpl registry) {
         this.serviceName = serviceName;
-        this.txnController = txnController;
+        this.registry = registry;
     }
 
     ServiceName getServiceName() {
@@ -226,6 +226,34 @@ final class Registration {
             }
         }
         task.addRegistration(this);
+    }
+
+    void serviceInstalled() {
+        registry.serviceInstalled();
+    }
+
+    void serviceUp() {
+        registry.serviceUp();
+    }
+
+    void serviceStarting() {
+        registry.serviceStarting();
+    }
+
+    void serviceStopping() {
+        registry.serviceStopping();
+    }
+
+    void serviceDown() {
+        registry.serviceDown();
+    }
+
+    void serviceRemoved() {
+        registry.serviceRemoved();
+    }
+
+    TransactionController getTransactionController() {
+        return registry.txnController;
     }
 
     private static final class RequiredDependenciesCheck implements PrepareCompletionListener {
