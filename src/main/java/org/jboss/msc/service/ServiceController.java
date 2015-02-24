@@ -159,7 +159,7 @@ public interface ServiceController<T> {
      * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void replace(UpdateTransaction transaction, T newService) throws IllegalArgumentException, InvalidTransactionStateException;
+    void replace(UpdateTransaction transaction, Service<T> newService) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Replaces {@code service} by a new service.
@@ -170,7 +170,7 @@ public interface ServiceController<T> {
      * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
      */
-    void replace(UpdateTransaction transaction, T newService, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
+    void replace(UpdateTransaction transaction, Service<T> newService, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Gets associated service.

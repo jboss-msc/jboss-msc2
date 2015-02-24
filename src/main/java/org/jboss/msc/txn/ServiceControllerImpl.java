@@ -397,12 +397,12 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void replace(final UpdateTransaction transaction, final T newService) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void replace(final UpdateTransaction transaction, final Service<T> newService) throws IllegalArgumentException, InvalidTransactionStateException {
         replace(transaction, newService, null);
     }
 
     @Override
-    public void replace(final UpdateTransaction transaction, final T newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void replace(final UpdateTransaction transaction, final Service<T> newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         // TODO implement
