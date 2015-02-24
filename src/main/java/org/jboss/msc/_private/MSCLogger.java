@@ -111,6 +111,10 @@ public interface MSCLogger {
     @Message(id = 17, value = "Service registry completion listener failed")
     void serviceRegistryCompletionListenerFailed(@Cause Throwable cause);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 18, value = "Service container completion listener failed")
+    void serviceContainerCompletionListenerFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     @Message(id = 101, value = "Parameter %s is null")
@@ -187,6 +191,9 @@ public interface MSCLogger {
 
     @Message(id = 125, value = "Service controller not in UP state")
     IllegalStateException serviceControllerNotInUpState();
+
+    @Message(id = 126, value = "Cannot create registry if container was shutdown")
+    IllegalStateException cannotCreateRegistryIfContainerWasShutdown();
 
     /*
      * Location nesting types.

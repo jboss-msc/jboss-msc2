@@ -162,7 +162,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (name == null) {
             throw MSCLogger.SERVICE.methodParameterIsNull("name");
         }
-        if (this.registry.txnController != registry.txnController) {
+        if (this.registry.getTransactionController() != registry.getTransactionController()) {
             throw MSCLogger.SERVICE.cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
         }
         final Registration dependencyRegistration = registry.getOrCreateRegistration(transaction, name);

@@ -253,7 +253,7 @@ final class Registration {
     }
 
     TransactionController getTransactionController() {
-        return registry.txnController;
+        return registry.getTransactionController();
     }
 
     private static final class RequiredDependenciesCheck implements PrepareCompletionListener {

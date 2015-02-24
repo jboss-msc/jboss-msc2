@@ -52,14 +52,14 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     private NotificationEntry enableObservers;
     private NotificationEntry removeObservers;
 
-    final TransactionController txnController;
+    final ServiceContainerImpl container;
     // map of service registrations
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
     // service registry state, which could be: enabled, disabled, or removed
     private byte state = ENABLED;
 
-    ServiceRegistryImpl(final TransactionController txnController) {
-        this.txnController = txnController;
+    ServiceRegistryImpl(final ServiceContainerImpl container) {
+        this.container = container;
     }
 
     /**
@@ -108,6 +108,10 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         return registration;
     }
 
+    TransactionController getTransactionController() {
+        return container.getTransactionController();
+    }
+
     Registration getRegistration(ServiceName name) {
         return registry.get(name);
     }
@@ -127,7 +131,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     @Override
     public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             if (Bits.allAreClear(state, REMOVED)) {
@@ -147,7 +151,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     @Override
     public void disable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
         while (true) {
             synchronized (this) {
@@ -176,7 +180,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     @Override
     public void enable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, txnController);
+        validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
         while (true) {
             synchronized (this) {
@@ -327,6 +331,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             safeCallListener(removeObservers.completionListener);
             removeObservers = removeObservers.next;
         }
+        container.registryRemoved();
     }
 
     private static final class NotificationEntry {

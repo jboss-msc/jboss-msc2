@@ -18,6 +18,7 @@
 
 package org.jboss.msc.txn;
 
+import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.util.Listener;
@@ -40,31 +41,86 @@ final class ServiceContainerImpl implements ServiceContainer {
 
     private final TransactionController txnController;
     private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
+    private boolean removing, removed;
+    private int removedRegistries;
+    private NotificationEntry removeObservers;
 
     ServiceContainerImpl(final TransactionController txnController) {
         this.txnController = txnController;
     }
 
     public ServiceRegistry newRegistry() {
-        final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(txnController);
-        registries.add(returnValue);
-        return returnValue;
+        synchronized (this) {
+            if (removing) {
+                throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
+            }
+            final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(this);
+            registries.add(returnValue);
+            return returnValue;
+        }
+    }
+
+    TransactionController getTransactionController() {
+        return txnController;
     }
 
     @Override
     public void shutdown(final UpdateTransaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(txn, txnController);
-        setModified(txn);
-        synchronized(registries) {
-            for (final ServiceRegistryImpl registry : registries) {
-                registry.remove(txn);
-            }
-        }
+        shutdown(txn, null);
     }
 
     @Override
     public void shutdown(final UpdateTransaction txn, final Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        throw new UnsupportedOperationException("Implement"); // TODO:
+        validateTransaction(txn, txnController);
+        setModified(txn);
+        while (true) {
+            synchronized (this) {
+                if (removed) break; // simulated goto for callback listener
+                removeObservers = new NotificationEntry(removeObservers, completionListener);
+                if (removing) return;
+                removing = true;
+            }
+            synchronized (registries) {
+                for (final ServiceRegistryImpl registry : registries) {
+                    registry.remove(txn);
+                }
+            }
+            return;
+        }
+        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
+    void registryRemoved() {
+        NotificationEntry removeObservers;
+        synchronized (this) {
+            if (++removedRegistries != registries.size()) return;
+            removed = true;
+            removeObservers = this.removeObservers;
+            this.removeObservers = null;
+        }
+        while (removeObservers != null) {
+            safeCallListener(removeObservers.completionListener);
+            removeObservers = removeObservers.next;
+        }
+    }
+
+    void safeCallListener(final Listener<ServiceContainer> listener) {
+        try {
+            listener.handleEvent(this);
+        } catch (final Throwable t) {
+            MSCLogger.SERVICE.serviceContainerCompletionListenerFailed(t);
+        }
+    }
+
+    private static final class NotificationEntry {
+
+        private final NotificationEntry next;
+        private final Listener<ServiceContainer> completionListener;
+
+        private NotificationEntry(final NotificationEntry next, final Listener<ServiceContainer> completionListener) {
+            this.next = next;
+            this.completionListener = completionListener;
+        }
+
+    }
 }
