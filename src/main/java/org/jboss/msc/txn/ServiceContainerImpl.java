@@ -76,7 +76,7 @@ final class ServiceContainerImpl implements ServiceContainer {
         while (true) {
             synchronized (this) {
                 if (removed) break; // simulated goto for callback listener
-                removeObservers = new NotificationEntry(removeObservers, completionListener);
+                if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
                 if (removing) return;
                 removing = true;
             }

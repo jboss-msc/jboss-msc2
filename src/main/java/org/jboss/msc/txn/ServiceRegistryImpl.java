@@ -47,9 +47,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     private static final byte ENABLING  = 1 << 0x02;
     private static final byte DISABLING = 1 << 0x03;
 
-    private long downServices, upServices, installedServices;
-    private NotificationEntry disableObservers;
-    private NotificationEntry enableObservers;
+    private long installedServices;
     private NotificationEntry removeObservers;
 
     final ServiceContainerImpl container;
@@ -101,7 +99,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
-            } else if (Bits.anyAreSet(state, ENABLED)) { // TODO: this is bug - state is accessed without lock being held
+            } else if (Bits.anyAreSet(state, ENABLING | ENABLED)) { // TODO: this is bug - state is accessed without lock being held
                 registration.enableRegistry(transaction);
             }
         }
@@ -137,7 +135,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             if (Bits.allAreClear(state, REMOVED)) {
                 final RemoveTask removeTask = new RemoveTask(transaction);
                 getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
-                removeObservers = new NotificationEntry(removeObservers, completionListener);
+                if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
                 return; // don't call completion listener
             }
         }
@@ -159,18 +157,22 @@ final class ServiceRegistryImpl implements ServiceRegistry {
                 if (Bits.allAreClear(state, ENABLED)) break; // simulated goto for callback listener
                 awaitStateWithoutFlags(ENABLING);
                 state |= DISABLING;
-                disableObservers = new NotificationEntry(disableObservers, completionListener);
             }
-            for (Registration registration : registry.values()) {
+            for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
                 registration.disableRegistry(transaction);
             }
             synchronized (this) {
                 state &= ~DISABLING;
+                state &= ~ENABLED;
                 notifyAll();
             }
-            return;
+            break;
         }
         if (completionListener != null) safeCallListener(completionListener); // open call
+    }
+
+    synchronized boolean isEnabled() {
+        return Bits.anyAreSet(state, ENABLING | ENABLED);
     }
 
     @Override
@@ -188,16 +190,16 @@ final class ServiceRegistryImpl implements ServiceRegistry {
                 if (Bits.anyAreSet(state, ENABLED)) break; // simulated goto for callback listener
                 awaitStateWithoutFlags(DISABLING);
                 state |= ENABLING;
-                enableObservers = new NotificationEntry(enableObservers, completionListener);
             }
-            for (Registration registration : registry.values()) {
+            for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
                 registration.enableRegistry(transaction);
             }
             synchronized (this) {
                 state &= ~ENABLING;
+                state |= ENABLED;
                 notifyAll();
             }
-            return;
+            break;
         }
         if (completionListener != null) safeCallListener(completionListener); // open call
     }
@@ -264,68 +266,15 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     synchronized void serviceInstalled() {
-        ++downServices;
         ++installedServices;
-    }
-
-    void serviceUp() { // TODO: when call serviceUp if service is LAZY in down state???
-        NotificationEntry enableObservers;
-        synchronized (this) {
-            assert upServices < installedServices;
-            if ((++upServices  + downServices) != installedServices) return;
-            state |= ENABLED;
-            enableObservers = this.enableObservers;
-            this.enableObservers = null;
-        }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
-        }
-    }
-
-    synchronized void serviceStarting() {
-        --downServices;
-    }
-
-    synchronized void serviceStopping() {
-        --upServices;
-    }
-
-    void serviceDown() {
-        NotificationEntry disableObservers;
-        synchronized (this) {
-            assert downServices < installedServices;
-            if ((++downServices + upServices) != installedServices) return;
-            state &= ~ENABLED;
-            disableObservers = this.disableObservers;
-            this.disableObservers = null;
-        }
-        while (disableObservers != null) {
-            safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
-        }
     }
 
     void serviceRemoved() {
         NotificationEntry disableObservers, enableObservers, removeObservers;
         synchronized (this) {
-            assert downServices > 0 && installedServices > 0;
-            --downServices;
             if (--installedServices != 0) return;
-            disableObservers = this.disableObservers;
-            this.disableObservers = null;
-            enableObservers = this.enableObservers;
-            this.enableObservers = null;
             removeObservers = this.removeObservers;
             this.removeObservers = null;
-        }
-        while (disableObservers != null) {
-            safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
-        }
-        while (enableObservers != null) {
-            safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
         }
         while (removeObservers != null) {
             safeCallListener(removeObservers.completionListener);

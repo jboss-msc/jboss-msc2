@@ -85,7 +85,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     /**
      * The controller state.
      */
-    private volatile byte state = (byte)(STATE_DOWN | MODE_ACTIVE);
+    private volatile byte state = (byte)(STATE_DOWN | MODE_ACTIVE | SERVICE_ENABLED | REGISTRY_ENABLED);
     /**
      * The number of dependencies that are not satisfied.
      */
@@ -180,12 +180,12 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             alias.installService(transaction);
         }
         primaryRegistration.serviceInstalled();
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            aliasRegistration.serviceInstalled();
-        }
         boolean demandDependencies;
         synchronized (this) {
-            state |= SERVICE_ENABLED;
+            if (!primaryRegistration.registry.isEnabled()) {
+                state &= ~REGISTRY_ENABLED;
+                //return;
+            }
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
@@ -536,10 +536,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(enableObservers.completionListener);
             enableObservers = enableObservers.next;
         }
-        primaryRegistration.serviceUp();
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            aliasRegistration.serviceUp();
-        }
     }
 
     void setServiceFailed(final Transaction transaction) {
@@ -555,10 +551,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(enableObservers.completionListener);
             enableObservers = enableObservers.next;
         }
-        primaryRegistration.serviceUp();
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            aliasRegistration.serviceUp();
-        }
     }
 
     void setServiceDown(final Transaction transaction) {
@@ -573,10 +565,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
             disableObservers = disableObservers.next;
-        }
-        primaryRegistration.serviceDown();
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            aliasRegistration.serviceDown();
         }
     }
 
@@ -605,9 +593,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             removeObservers = removeObservers.next;
         }
         primaryRegistration.serviceRemoved();
-        for (final Registration aliasRegistration : aliasRegistrations) {
-            aliasRegistration.serviceRemoved();
-        }
     }
 
     void notifyServiceUp(final Transaction transaction) {
@@ -631,10 +616,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             case STATE_DOWN:
                 if (unsatisfiedDependencies == 0 && shouldStart()) {
                     setState(STATE_STARTING);
-                    primaryRegistration.serviceStarting();
-                    for (final Registration aliasRegistration : aliasRegistrations) {
-                        aliasRegistration.serviceStarting();
-                    }
                     StartServiceTask.create(this, transaction);
                 } else if (removed) {
                     setState(STATE_REMOVING);
@@ -645,10 +626,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
                     lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
-                    primaryRegistration.serviceStopping();
-                    for (final Registration aliasRegistration : aliasRegistrations) {
-                        aliasRegistration.serviceStopping();
-                    }
                     StopServiceTask.create(this, transaction);
                 }
                 break;
@@ -656,10 +633,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (unsatisfiedDependencies > 0 || shouldStop()) {
                     lifecycleTime = System.nanoTime();
                     setState(STATE_STOPPING);
-                    primaryRegistration.serviceStopping();
-                    for (final Registration aliasRegistration : aliasRegistrations) {
-                        aliasRegistration.serviceStopping();
-                    }
                     StopFailedServiceTask.create(this, transaction);
                 }
                 break;

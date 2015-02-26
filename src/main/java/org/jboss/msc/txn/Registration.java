@@ -232,22 +232,6 @@ final class Registration {
         registry.serviceInstalled();
     }
 
-    void serviceUp() {
-        registry.serviceUp();
-    }
-
-    void serviceStarting() {
-        registry.serviceStarting();
-    }
-
-    void serviceStopping() {
-        registry.serviceStopping();
-    }
-
-    void serviceDown() {
-        registry.serviceDown();
-    }
-
     void serviceRemoved() {
         registry.serviceRemoved();
     }
