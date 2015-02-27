@@ -42,10 +42,8 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  */
 final class ServiceRegistryImpl implements ServiceRegistry {
 
-    private static final byte ENABLED   = 1 << 0x00;
-    private static final byte REMOVED   = 1 << 0x01;
-    private static final byte ENABLING  = 1 << 0x02;
-    private static final byte DISABLING = 1 << 0x03;
+    private static final byte ENABLED = 1;
+    private static final byte REMOVED = 2;
 
     private long installedServices;
     private NotificationEntry removeObservers;
@@ -99,7 +97,8 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
-            } else if (Bits.anyAreSet(state, ENABLING | ENABLED)) { // TODO: this is bug - state is accessed without lock being held
+            }
+            if (Bits.anyAreSet(state, ENABLED)) { // TODO: this is bug - state is accessed without lock being held
                 registration.enableRegistry(transaction);
             }
         }
@@ -108,10 +107,6 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     TransactionController getTransactionController() {
         return container.getTransactionController();
-    }
-
-    Registration getRegistration(ServiceName name) {
-        return registry.get(name);
     }
 
     ServiceControllerImpl<?> getRequiredServiceController(ServiceName serviceName) throws ServiceNotFoundException {
@@ -149,21 +144,15 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.allAreClear(state, ENABLED)) return;
-            awaitStateWithoutFlags(ENABLING);
-            state |= DISABLING;
-        }
-        for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
-            registration.disableRegistry(transaction);
-        }
-        synchronized (this) {
-            state &= ~DISABLING;
             state &= ~ENABLED;
-            notifyAll();
+            for (Registration registration : registry.values()) {
+                registration.disableRegistry(transaction);
+            }
         }
     }
 
     synchronized boolean isEnabled() {
-        return Bits.anyAreSet(state, ENABLING | ENABLED);
+        return Bits.anyAreSet(state, ENABLED);
     }
 
     @Override
@@ -173,16 +162,10 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.anyAreSet(state, ENABLED)) return;
-            awaitStateWithoutFlags(DISABLING);
-            state |= ENABLING;
-        }
-        for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
-            registration.enableRegistry(transaction);
-        }
-        synchronized (this) {
-            state &= ~ENABLING;
             state |= ENABLED;
-            notifyAll();
+            for (Registration registration : registry.values()) {
+                registration.enableRegistry(transaction);
+            }
         }
     }
 
@@ -209,7 +192,6 @@ final class ServiceRegistryImpl implements ServiceRegistry {
                         return;
                     }
                     state = (byte) (state | REMOVED);
-                    awaitStateWithoutFlags(ENABLING | DISABLING);
                 }
                 for (Registration registration : registry.values()) {
                     registration.remove(transaction);
@@ -217,24 +199,6 @@ final class ServiceRegistryImpl implements ServiceRegistry {
                 registry.clear();
             } finally {
                 context.complete();
-            }
-        }
-    }
-
-    private void awaitStateWithoutFlags(final int flags) {
-        assert holdsLock(this);
-        boolean interrupted = false;
-        try {
-            while (Bits.anyAreSet(state, flags)) {
-                try {
-                    wait();
-                } catch (final InterruptedException e) {
-                    interrupted = true;
-                }
-            }
-        } finally {
-            if (interrupted) {
-                Thread.currentThread().interrupt();
             }
         }
     }
@@ -252,7 +216,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     void serviceRemoved() {
-        NotificationEntry disableObservers, enableObservers, removeObservers;
+        NotificationEntry removeObservers;
         synchronized (this) {
             if (--installedServices != 0) return;
             removeObservers = this.removeObservers;
@@ -276,4 +240,5 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
 
     }
+
 }
