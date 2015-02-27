@@ -35,32 +35,21 @@ import static org.jboss.msc.txn.Helper.getAbstractTransaction;
  * 
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 final class Registration {
 
     private static final AttachmentKey<RequiredDependenciesCheck> REQUIRED_DEPENDENCIES_CHECK_TASK = AttachmentKey.create();
 
-    /**
-     * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
-     * propagate a demand to the instance, if any.
-     */
-    private static final int DEMANDED_MASK = 0x3ffffff;
-
-
-    /** The registration name */
+    /** Registration name */
     private final ServiceName serviceName;
-    /** Associated transaction controller */
+    /** Associated registry */
     final ServiceRegistryImpl registry;
     /** Associated controller */
     final AtomicReference<ServiceControllerImpl<?>> holderRef = new AtomicReference<>();
-
-    /**
-     * Incoming dependencies, i.e., dependent services.
-     */
+    /** Incoming dependencies */
     final Set<DependencyImpl<?>> incomingDependencies = new HashSet<>();
-    /**
-     * State.
-     */
+    /** State */
     private int state;
 
     Registration(final ServiceName serviceName, final ServiceRegistryImpl registry) {
@@ -120,7 +109,7 @@ final class Registration {
     void addDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (((++ state) & DEMANDED_MASK) > 1) return;
+            if (++ state > 1) return;
             controller = holderRef.get();
         }
         if (controller != null) {
@@ -131,7 +120,7 @@ final class Registration {
     void removeDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (((--state) & DEMANDED_MASK) > 0) return;
+            if (--state > 0) return;
             controller = holderRef.get();
         }
         if (controller != null) {
