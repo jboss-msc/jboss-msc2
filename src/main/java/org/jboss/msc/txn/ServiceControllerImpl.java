@@ -201,6 +201,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             }
             dependency.clearDependent(transaction);
         }
+        primaryRegistration.serviceRemoved();
     }
 
     /**
@@ -562,7 +563,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     void setServiceRemoved(final Transaction transaction) {
-        clear(transaction);
         NotificationEntry<T> disableObservers, enableObservers, removeObservers;
         synchronized (this) {
             setState(STATE_REMOVED);
@@ -573,6 +573,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             removeObservers = this.removeObservers;
             this.removeObservers = null;
         }
+        clear(transaction);
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
             disableObservers = disableObservers.next;
@@ -585,7 +586,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             safeCallListener(removeObservers.completionListener);
             removeObservers = removeObservers.next;
         }
-        primaryRegistration.serviceRemoved();
     }
 
     void notifyServiceUp(final Transaction transaction) {
