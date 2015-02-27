@@ -165,7 +165,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (this.registry.getTransactionController() != registry.getTransactionController()) {
             throw MSCLogger.SERVICE.cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
         }
-        final Registration dependencyRegistration = registry.getOrCreateRegistration(transaction, name);
+        final Registration dependencyRegistration = registry.getOrCreateRegistration(name);
         final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
         dependencies.add(dependency);
         return dependency;
@@ -202,14 +202,14 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         installed = true;
 
         // create primary registration
-        final Registration registration = registry.getOrCreateRegistration(transaction, name);
+        final Registration registration = registry.getOrCreateRegistration(name);
 
         // create alias registrations
         final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
         if (aliasRegistrations.length > 0) {
             int i = 0;
             for (final ServiceName alias: aliases) {
-                aliasRegistrations[i++] = registry.getOrCreateRegistration(transaction, alias);
+                aliasRegistrations[i++] = registry.getOrCreateRegistration(alias);
             }
         }
 

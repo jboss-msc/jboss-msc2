@@ -89,7 +89,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         return registration.getController();
     }
 
-    Registration getOrCreateRegistration(Transaction transaction, ServiceName name) {
+    Registration getOrCreateRegistration(ServiceName name) {
         Registration registration = registry.get(name);
         if (registration == null) {
             synchronized (this) { checkRemoved(); }
@@ -97,9 +97,6 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
                 registration = appearing;
-            }
-            if (Bits.anyAreSet(state, ENABLED)) { // TODO: this is bug - state is accessed without lock being held
-                registration.enableRegistry(transaction);
             }
         }
         return registration;

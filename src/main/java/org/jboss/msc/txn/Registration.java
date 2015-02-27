@@ -42,10 +42,6 @@ final class Registration {
     private static final AttachmentKey<RequiredDependenciesCheck> REQUIRED_DEPENDENCIES_CHECK_TASK = AttachmentKey.create();
 
     /**
-     * Indicates if registry is enabled
-     */
-    private static final int REGISTRY_ENABLED = 0x40000000;
-    /**
      * Indicates if registration is removed (true only when registry is removed).
      */
     private static final int REMOVED = 0x20000000;
@@ -91,21 +87,10 @@ final class Registration {
      * @param transaction       the active transaction
      */
     void installService(final Transaction transaction) {
-        final ServiceControllerImpl<?> serviceController;
-        boolean registryEnabled = false;
         synchronized (this) {
             if (Bits.anyAreSet(state, REMOVED)) {
                 throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
             }
-            serviceController = holderRef.get();
-            if (Bits.anyAreSet(state, REGISTRY_ENABLED)) {
-                registryEnabled = true;
-            }
-        }
-        if (registryEnabled) {
-            serviceController.enableRegistry(transaction);
-        } else {
-            serviceController.disableRegistry(transaction);
         }
     }
 
@@ -193,8 +178,6 @@ final class Registration {
     void disableRegistry(Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (Bits.allAreClear(state,  REGISTRY_ENABLED)) return;
-            state = state & ~REGISTRY_ENABLED;
             controller = holderRef.get();
         }
         if (controller != null) {
@@ -205,8 +188,6 @@ final class Registration {
     void enableRegistry(Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (Bits.allAreSet(state, REGISTRY_ENABLED)) return;
-            state = state | REGISTRY_ENABLED;
             controller = holderRef.get();
         }
         if (controller != null) {

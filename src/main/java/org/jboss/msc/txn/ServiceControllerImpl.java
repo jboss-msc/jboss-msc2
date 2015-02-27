@@ -182,10 +182,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         primaryRegistration.serviceInstalled();
         boolean demandDependencies;
         synchronized (this) {
-            if (!primaryRegistration.registry.isEnabled()) {
-                state &= ~REGISTRY_ENABLED;
-                //return;
-            }
+            if (!primaryRegistration.registry.isEnabled()) state &= ~REGISTRY_ENABLED;
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
