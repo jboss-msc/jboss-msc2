@@ -144,31 +144,22 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     @Override
     public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        disable(transaction, null);
-    }
-
-    @Override
-    public void disable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
-        while (true) {
-            synchronized (this) {
-                if (Bits.anyAreSet(state, REMOVED)) break; // simulated goto for callback listener
-                if (Bits.allAreClear(state, ENABLED)) break; // simulated goto for callback listener
-                awaitStateWithoutFlags(ENABLING);
-                state |= DISABLING;
-            }
-            for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
-                registration.disableRegistry(transaction);
-            }
-            synchronized (this) {
-                state &= ~DISABLING;
-                state &= ~ENABLED;
-                notifyAll();
-            }
-            break;
+        synchronized (this) {
+            if (Bits.anyAreSet(state, REMOVED)) return;
+            if (Bits.allAreClear(state, ENABLED)) return;
+            awaitStateWithoutFlags(ENABLING);
+            state |= DISABLING;
         }
-        if (completionListener != null) safeCallListener(completionListener); // open call
+        for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
+            registration.disableRegistry(transaction);
+        }
+        synchronized (this) {
+            state &= ~DISABLING;
+            state &= ~ENABLED;
+            notifyAll();
+        }
     }
 
     synchronized boolean isEnabled() {
@@ -177,31 +168,22 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
-        enable(transaction, null);
-    }
-
-    @Override
-    public void enable(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
-        while (true) {
-            synchronized (this) {
-                if (Bits.anyAreSet(state, REMOVED)) break; // simulated goto for callback listener
-                if (Bits.anyAreSet(state, ENABLED)) break; // simulated goto for callback listener
-                awaitStateWithoutFlags(DISABLING);
-                state |= ENABLING;
-            }
-            for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
-                registration.enableRegistry(transaction);
-            }
-            synchronized (this) {
-                state &= ~ENABLING;
-                state |= ENABLED;
-                notifyAll();
-            }
-            break;
+        synchronized (this) {
+            if (Bits.anyAreSet(state, REMOVED)) return;
+            if (Bits.anyAreSet(state, ENABLED)) return;
+            awaitStateWithoutFlags(DISABLING);
+            state |= ENABLING;
         }
-        if (completionListener != null) safeCallListener(completionListener); // open call
+        for (Registration registration : registry.values()) { // TODO: this can be moved under lock - no deadlock possibility
+            registration.enableRegistry(transaction);
+        }
+        synchronized (this) {
+            state &= ~ENABLING;
+            state |= ENABLED;
+            notifyAll();
+        }
     }
 
     private void checkRemoved() throws IllegalStateException {
