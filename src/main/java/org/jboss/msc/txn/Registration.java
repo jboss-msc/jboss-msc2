@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.jboss.msc._private.MSCLogger.TXN;
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**
@@ -41,10 +40,6 @@ final class Registration {
 
     private static final AttachmentKey<RequiredDependenciesCheck> REQUIRED_DEPENDENCIES_CHECK_TASK = AttachmentKey.create();
 
-    /**
-     * Indicates if registration is removed (true only when registry is removed).
-     */
-    private static final int REMOVED = 0x20000000;
     /**
      * The number of dependent instances which place a demand-to-start on this registration.  If this value is > 0,
      * propagate a demand to the instance, if any.
@@ -79,19 +74,6 @@ final class Registration {
 
     ServiceControllerImpl<?> getController() {
         return holderRef.get();
-    }
-
-    /**
-     * Installs a service,
-     *
-     * @param transaction       the active transaction
-     */
-    void installService(final Transaction transaction) {
-        synchronized (this) {
-            if (Bits.anyAreSet(state, REMOVED)) {
-                throw TXN.removedServiceRegistry(); // display registry removed message to user, as this scenario only occurs when registry has been removed
-            }
-        }
     }
 
     void clearController(final Transaction transaction) {
@@ -138,10 +120,7 @@ final class Registration {
     void addDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (Bits.anyAreSet(state, REMOVED)) return;
-            if (((++ state) & DEMANDED_MASK) > 1) {
-                return;
-            }
+            if (((++ state) & DEMANDED_MASK) > 1) return;
             controller = holderRef.get();
         }
         if (controller != null) {
@@ -152,10 +131,7 @@ final class Registration {
     void removeDemand(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (Bits.anyAreSet(state, REMOVED)) return;
-            if (((--state) & DEMANDED_MASK) > 0) {
-                return;
-            }
+            if (((--state) & DEMANDED_MASK) > 0) return;
             controller = holderRef.get();
         }
         if (controller != null) {
@@ -166,8 +142,6 @@ final class Registration {
     void remove(final Transaction transaction) {
         final ServiceControllerImpl<?> controller;
         synchronized (this) {
-            if (Bits.anyAreSet(state, REMOVED)) return;
-            state = state | REMOVED;
             controller = holderRef.get();
         }
         if (controller != null) {

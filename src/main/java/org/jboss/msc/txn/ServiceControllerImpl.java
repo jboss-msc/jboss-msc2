@@ -175,10 +175,6 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      * @param transaction the active transaction
      */
     void completeInstallation(final Transaction transaction) {
-        primaryRegistration.installService(transaction);
-        for (Registration alias: aliasRegistrations) {
-            alias.installService(transaction);
-        }
         primaryRegistration.serviceInstalled();
         boolean demandDependencies;
         synchronized (this) {
