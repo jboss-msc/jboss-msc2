@@ -27,6 +27,7 @@ import org.jboss.msc.util.Listener;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
@@ -45,7 +46,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     private static final byte ENABLED = 1;
     private static final byte REMOVED = 2;
 
-    private long installedServices;
+    private AtomicLong installedServices = new AtomicLong();
     private NotificationEntry removeObservers;
 
     final ServiceContainerImpl container;
@@ -208,14 +209,14 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
     }
 
-    synchronized void serviceInstalled() {
-        ++installedServices;
+    void serviceInstalled() {
+        installedServices.incrementAndGet();
     }
 
     void serviceRemoved() {
+        if (installedServices.decrementAndGet() > 0) return;
         NotificationEntry removeObservers;
         synchronized (this) {
-            if (--installedServices != 0) return;
             removeObservers = this.removeObservers;
             this.removeObservers = null;
         }
