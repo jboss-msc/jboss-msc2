@@ -40,7 +40,7 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
 final class ServiceContainerImpl implements ServiceContainer {
 
     private final TransactionController txnController;
-    private final Set<ServiceRegistryImpl> registries = Collections.synchronizedSet(new HashSet<ServiceRegistryImpl>());
+    private final Set<ServiceRegistryImpl> registries = new HashSet<>();
     private boolean removing, removed;
     private int removedRegistries;
     private NotificationEntry removeObservers;
@@ -80,10 +80,8 @@ final class ServiceContainerImpl implements ServiceContainer {
                 if (removing) return;
                 removing = true;
             }
-            synchronized (registries) {
-                for (final ServiceRegistryImpl registry : registries) {
-                    registry.remove(txn);
-                }
+            for (final ServiceRegistryImpl registry : registries) {
+                registry.remove(txn);
             }
             return;
         }
