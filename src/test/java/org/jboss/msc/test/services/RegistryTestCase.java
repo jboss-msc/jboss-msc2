@@ -24,6 +24,7 @@ import org.jboss.msc.service.ServiceNotFoundException;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.txn.AbstractServiceTest;
 import org.jboss.msc.txn.DependencyInfo;
+import org.jboss.msc.txn.TestControllerListener;
 import org.jboss.msc.txn.TestService;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.junit.Before;
@@ -94,15 +95,17 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableServiceA() {
+        final TestControllerListener listener = new TestControllerListener();
         final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry1.getRequiredService(serviceAName);
-            controller.disable(transaction);
+            controller.disable(transaction, listener);
         } finally {
             prepare(transaction);
             commit(transaction);
         }
         assertFalse(serviceA.isUp());
+        assertTrue(listener.wasCalled());
         // all other services remain UP:
         assertTrue(serviceB.isUp());
         assertTrue(serviceC.isUp());
@@ -156,12 +159,15 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableServiceC() throws Exception {
+        final TestControllerListener listener1 = new TestControllerListener();
+        final TestControllerListener listener2 = new TestControllerListener();
+        final TestControllerListener listener3 = new TestControllerListener();
         final UpdateTransaction transaction = newUpdateTransaction();
         try {
             final ServiceController controller = registry1.getRequiredService(serviceCName);
-            controller.enable(transaction);
-            controller.disable(transaction);
-            controller.enable(transaction);
+            controller.enable(transaction, listener1);
+            controller.disable(transaction, listener2);
+            controller.enable(transaction, listener3);
         } finally {
             prepare(transaction);
             commit(transaction);
@@ -174,16 +180,20 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceF.isUp());
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
+        assertTrue(listener1.wasCalled());
+        assertTrue(listener2.wasCalled());
+        assertTrue(listener3.wasCalled());
     }
 
     @Test
     public void enableServiceCInTwoSteps() throws Exception {
+        final TestControllerListener listener1 = new TestControllerListener();
         final ServiceController controller = registry1.getRequiredService(serviceCName);
         // operation that will be ignored, services are already enabled
         UpdateTransaction transaction = newUpdateTransaction();
         try {
 
-            controller.enable(transaction);
+            controller.enable(transaction, listener1);
         } finally {
             prepare(transaction);
             commit(transaction);
@@ -196,11 +206,13 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceF.isUp());
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
+        assertTrue(listener1.wasCalled());
 
         // disable service C
+        final TestControllerListener listener2 = new TestControllerListener();
         transaction = newUpdateTransaction();
         try {
-            controller.disable(transaction);
+            controller.disable(transaction, listener2);
         } finally {
             prepare(transaction);
             commit(transaction);
@@ -213,11 +225,13 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceF.isUp());
         assertFalse(serviceG.isUp());
         assertFalse(serviceH.isUp());
+        assertTrue(listener2.wasCalled());
 
         // enable service C
+        final TestControllerListener listener3 = new TestControllerListener();
         transaction = newUpdateTransaction();
         try {
-            controller.enable(transaction);
+            controller.enable(transaction, listener3);
         } finally {
             prepare(transaction);
             commit(transaction);
@@ -230,6 +244,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(serviceF.isUp());
         assertTrue(serviceG.isUp());
         assertTrue(serviceH.isUp());
+        listener3.wasCalled();
     }
 
     @Test
