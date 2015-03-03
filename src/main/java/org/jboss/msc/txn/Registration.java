@@ -135,6 +135,8 @@ final class Registration {
         }
         if (controller != null) {
             controller._remove(transaction, null);
+        } else {
+            serviceRemoved();
         }
     }
 

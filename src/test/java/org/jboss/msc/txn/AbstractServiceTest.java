@@ -20,18 +20,17 @@ package org.jboss.msc.txn;
 
 import org.jboss.msc.service.DependencyFlag;
 import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
-import org.jboss.msc.util.CompletionListener;
 import org.junit.After;
 import org.junit.Before;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test base used for service test cases.
@@ -106,12 +105,14 @@ public class AbstractServiceTest extends AbstractTransactionTest {
 
     protected final void shutdownContainer(final ServiceContainer serviceContainer) {
         final UpdateTransaction txn = newUpdateTransaction();
+        final TestContainerListener listener = new TestContainerListener();
         try {
-            serviceContainer.shutdown(txn);
+            serviceContainer.shutdown(txn, listener);
         } finally {
             prepare(txn);
             commit(txn);
         }
+        assertTrue(listener.wasCalled());
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
