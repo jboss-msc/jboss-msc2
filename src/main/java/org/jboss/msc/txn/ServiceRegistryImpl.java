@@ -90,10 +90,10 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         return registration.getController();
     }
 
-    Registration getOrCreateRegistration(ServiceName name) {
+    synchronized Registration getOrCreateRegistration(final ServiceName name) {
+        checkRemoved();
         Registration registration = registry.get(name);
         if (registration == null) {
-            synchronized (this) { checkRemoved(); }
             registration = new Registration(name, this);
             Registration appearing = registry.putIfAbsent(name, registration);
             if (appearing != null) {
@@ -107,12 +107,15 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         return container.getTransactionController();
     }
 
-    ServiceControllerImpl<?> getRequiredServiceController(ServiceName serviceName) throws ServiceNotFoundException {
-        final ServiceControllerImpl<?> controller = registry.containsKey(serviceName)? registry.get(serviceName).getController(): null;
-        if (controller == null) {
+    ServiceControllerImpl<?> getRequiredServiceController(final ServiceName serviceName) throws ServiceNotFoundException {
+        final Registration r;
+        synchronized (this) {
+            r = registry.get(serviceName);
+        }
+        if (r == null || r.getController() == null) {
             throw new ServiceNotFoundException("Service " + serviceName + " not found");
         }
-        return controller;
+        return r.getController();
     }
 
     @Override
@@ -126,10 +129,16 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         setModified(transaction);
         synchronized (this) {
             if (Bits.allAreClear(state, REMOVED)) {
-                final RemoveTask removeTask = new RemoveTask(transaction);
-                getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
-                if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
-                return; // don't call completion listener
+                state = (byte) (state | REMOVED);
+                if (registry.size() > 0) {
+                    final RemoveTask removeTask = new RemoveTask(transaction);
+                    getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
+                    if (completionListener != null) {
+                        removeObservers = new NotificationEntry(removeObservers, completionListener);
+                    }
+                    return; // don't call completion listener
+                }
+                container.registryRemoved();
             }
         }
         if (completionListener != null) safeCallListener(completionListener); // open call
@@ -143,7 +152,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.allAreClear(state, ENABLED)) return;
             state &= ~ENABLED;
-            for (Registration registration : registry.values()) {
+            for (final Registration registration : registry.values()) {
                 registration.disableRegistry(transaction);
             }
         }
@@ -161,7 +170,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.anyAreSet(state, ENABLED)) return;
             state |= ENABLED;
-            for (Registration registration : registry.values()) {
+            for (final Registration registration : registry.values()) {
                 registration.enableRegistry(transaction);
             }
         }
@@ -183,18 +192,14 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
 
         @Override
-        public synchronized void execute(ExecuteContext<Void> context) {
+        public void execute(final ExecuteContext<Void> context) {
             try {
                 synchronized (ServiceRegistryImpl.this) {
-                    if (Bits.anyAreSet(state, REMOVED)) {
-                        return;
+                    for (final Registration registration : registry.values()) {
+                        registration.remove(transaction);
                     }
-                    state = (byte) (state | REMOVED);
+                    registry.clear();
                 }
-                for (Registration registration : registry.values()) {
-                    registration.remove(transaction);
-                }
-                registry.clear();
             } finally {
                 context.complete();
             }
