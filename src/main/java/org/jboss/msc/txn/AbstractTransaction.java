@@ -415,6 +415,30 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
+    public final <T extends UpdateTransaction> void addPostPrepareListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    public final <T extends UpdateTransaction> void removePostPrepareListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    public final <T extends UpdateTransaction> void addPostRestartListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    public final <T extends UpdateTransaction> void removePostRestartListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    public final <T extends ReadTransaction> void addPostCommitListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    public final <T extends ReadTransaction> void removePostCommitListener(final Action<T> completionListener) {
+        throw new UnsupportedOperationException();
+    }
+
     final TaskFactory getTaskFactory() {
         return taskFactory;
     }

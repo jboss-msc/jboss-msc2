@@ -13,12 +13,24 @@ package org.jboss.msc.txn;
  * @see org.jboss.msc.txn.ReadTransaction
  * @see org.jboss.msc.txn.TransactionController
  */
-public interface UpdateTransaction extends ReadTransaction {
+public interface UpdateTransaction<T extends UpdateTransaction<T>> extends ReadTransaction<T> {
 
     /**
      * Indicates whether this transaction have been prepared.
      * @return {@code true} if already prepared, {@code false} otherwise
      */
     boolean isPrepared();
+
+    void addPostPrepare(Action<T> completionListener);
+
+    void removePostPrepare(Action<T> completionListener);
+
+    void addPostRestart(Action<T> completionListener);
+
+    void removePostRestart(Action<T> completionListener);
+
+    void addPostCommit(Action<T> completionListener);
+
+    void removePostCommit(Action<T> completionListener);
 
 }
