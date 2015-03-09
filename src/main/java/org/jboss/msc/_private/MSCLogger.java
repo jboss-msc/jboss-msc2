@@ -115,6 +115,18 @@ public interface MSCLogger {
     @Message(id = 18, value = "Service container completion listener failed")
     void serviceContainerCompletionListenerFailed(@Cause Throwable cause);
 
+    @LogMessage(level = FATAL)
+    @Message(id = 19, value = "Transaction post prepare completion listener failed")
+    void postPrepareCompletionListenerFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 20, value = "Transaction post restart completion listener failed")
+    void postRestartCompletionListenerFailed(@Cause Throwable cause);
+
+    @LogMessage(level = FATAL)
+    @Message(id = 21, value = "Transaction post commit completion listener failed")
+    void postCommitCompletionListenerFailed(@Cause Throwable cause);
+
     // jump to 100...
 
     @Message(id = 101, value = "Parameter %s is null")
@@ -194,6 +206,15 @@ public interface MSCLogger {
 
     @Message(id = 126, value = "Cannot create registry if container was shutdown")
     IllegalStateException cannotCreateRegistryIfContainerWasShutdown();
+
+    @Message(id = 127, value = "Post prepare completion listener can be registered iff transaction is in ACTIVE state")
+    IllegalStateException cannotRegisterPostPrepareListener();
+
+    @Message(id = 128, value = "Post restart completion listener can be registered iff transaction is not in COMMITTING or COMMITTED state")
+    IllegalStateException cannotRegisterPostRestartListener();
+
+    @Message(id = 129, value = "Post commit completion listener can be registered iff transaction is not in COMMITTED state")
+    IllegalStateException cannotRegisterPostCommitListener();
 
     /*
      * Location nesting types.

@@ -32,29 +32,29 @@ final class BasicReadTransaction<T extends ReadTransaction<T>> extends AbstractT
     }
 
     public final <T extends UpdateTransaction> void addPostPrepare(final Action<T> completionListener) {
-        super.addPostPrepareListener(completionListener);
+        super.addPostPrepareListener((Action<UpdateTransaction>)completionListener);
     }
 
     public final <T extends UpdateTransaction> void removePostPrepare(final Action<T> completionListener) {
-        super.removePostPrepareListener(completionListener);
+        super.removePostPrepareListener((Action<UpdateTransaction>)completionListener);
     }
 
     public final <T extends UpdateTransaction> void addPostRestart(final Action<T> completionListener) {
-        super.addPostRestartListener(completionListener);
+        super.addPostRestartListener((Action<UpdateTransaction>)completionListener);
     }
 
     public final <T extends UpdateTransaction> void removePostRestart(final Action<T> completionListener) {
-        super.removePostRestartListener(completionListener);
+        super.removePostRestartListener((Action<UpdateTransaction>)completionListener);
     }
 
     @Override
     public final void addPostCommit(final Action<T> completionListener) {
-        super.addPostCommitListener(completionListener);
+        super.addPostCommitListener((Action<ReadTransaction>)(Object)completionListener);
     }
 
     @Override
     public final void removePostCommit(final Action<T> completionListener) {
-        super.removePostCommitListener(completionListener);
+        super.removePostCommitListener((Action<ReadTransaction>)(Object)completionListener);
     }
 
 }
