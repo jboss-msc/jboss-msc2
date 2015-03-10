@@ -47,17 +47,17 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         MSCLogger.ROOT.greeting(Version.getVersionString());
     }
 
-    private static final int FLAG_PREPARE_REQ = 1 << 3;
-    private static final int FLAG_RESTART_REQ = 1 << 4;
-    private static final int FLAG_COMMIT_REQ  = 1 << 5;
-    private static final int FLAG_DO_POST_PREPARE = 1 << 6; // TODO: rename
-    private static final int FLAG_DO_PREPARE  = 1 << 7;
-    private static final int FLAG_DO_POST_RESTART = 1 << 8; // TODO: rename
-    private static final int FLAG_DO_RESTART   = 1 << 9;
-    private static final int FLAG_DO_POST_COMMIT   = 1 << 10; // TODO: rename
-    private static final int FLAG_DO_COMMIT   = 1 << 11;
-    private static final int FLAG_DO_CLEAN_UP = 1 << 12;
-    private static final int FLAG_USER_THREAD = 1 << 31;
+    private static final int FLAG_PREPARE_REQ     = 1 << 3;
+    private static final int FLAG_RESTART_REQ     = 1 << 4;
+    private static final int FLAG_COMMIT_REQ      = 1 << 5;
+    private static final int FLAG_DO_POST_PREPARE = 1 << 6;
+    private static final int FLAG_DO_PREPARE      = 1 << 7;
+    private static final int FLAG_DO_POST_RESTART = 1 << 8;
+    private static final int FLAG_DO_RESTART      = 1 << 9;
+    private static final int FLAG_DO_POST_COMMIT  = 1 << 10;
+    private static final int FLAG_DO_COMMIT       = 1 << 11;
+    private static final int FLAG_DO_CLEAN_UP     = 1 << 12;
+    private static final int FLAG_USER_THREAD     = 1 << 31;
 
     private static final int STATE_ACTIVE     = 0x0;
     private static final int STATE_PREPARING  = 0x1;
@@ -73,7 +73,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int T_ACTIVE_to_PREPARING     = 1;
     private static final int T_PREPARING_to_PREPARED   = 2;
     private static final int T_PREPARED_to_RESTARTING  = 3;
-    private static final int T_RESTARTING_to_ACTIVE    = 4;
+    private static final int T_RESTARTING_to_COMMITTED = 4;
     private static final int T_PREPARED_to_COMMITTING  = 5;
     private static final int T_COMMITTING_to_COMMITTED = 6;
     final TransactionController txnController;
@@ -187,7 +187,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             }
             case STATE_RESTARTING: {
                 if (uncompletedPostRestartListeners.get() == 0) {
-                    return T_RESTARTING_to_ACTIVE;
+                    return T_RESTARTING_to_COMMITTED;
                 } else {
                     return T_NONE;
                 }
@@ -244,8 +244,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     }
                     continue;
                 }
-                case T_RESTARTING_to_ACTIVE: {
-                    state = newState(STATE_ACTIVE, state | FLAG_DO_RESTART);
+                case T_RESTARTING_to_COMMITTED: {
+                    state = newState(STATE_COMMITTED, state | FLAG_DO_RESTART);
                     continue;
                 }
                 case T_PREPARED_to_COMMITTING: {
@@ -427,7 +427,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         assert ! holdsLock(this);
         int state;
         synchronized (this) {
-            this.state &= ~FLAG_PREPARE_REQ;
             state = this.state | FLAG_USER_THREAD;
             if (Bits.allAreSet(state, FLAG_RESTART_REQ)) {
                 throw MSCLogger.TXN.cannotRestartRestartedTxn();
@@ -530,7 +529,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         synchronized (this) {
             restartListener = this.restartListener;
             this.restartListener = null;
-            this.state &= ~FLAG_RESTART_REQ;
         }
         callListeners(null, restartListener, null);
     }

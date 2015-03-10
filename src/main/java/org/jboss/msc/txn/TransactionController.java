@@ -368,7 +368,17 @@ public final class TransactionController extends SimpleAttachable {
      */
     public void restart(final UpdateTransaction transaction, final Listener<? super UpdateTransaction> completionListener) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
         validateTransaction(transaction);
-        getAbstractTransaction(transaction).restart(completionListener);
+        final Listener<UpdateTransaction> restartObserver = new Listener<UpdateTransaction>() {
+            @Override
+            public void handleEvent(final UpdateTransaction result) {
+                final BasicUpdateTransaction retVal;
+                synchronized (txnLock) {
+                    retVal = new BasicUpdateTransaction(new BasicReadTransaction(TransactionController.this, transaction.getExecutor()));
+                }
+                completionListener.handleEvent(retVal);
+            }
+        };
+        getAbstractTransaction(transaction).restart(restartObserver);
     }
 
     /**

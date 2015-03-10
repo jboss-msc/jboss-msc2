@@ -146,7 +146,7 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         prepare(updateTxn);
         service.waitStart();
         assertTrue(service.isUp());
-        restart(updateTxn);
+        updateTxn = restart(updateTxn);
         serviceController.remove(updateTxn);
         prepare(updateTxn);
         service.waitStop();
