@@ -52,25 +52,30 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final int FLAG_COMMIT_REQ  = 1 << 5;
     private static final int FLAG_DO_POST_PREPARE = 1 << 6; // TODO: rename
     private static final int FLAG_DO_PREPARE  = 1 << 7;
-    private static final int FLAG_DO_POST_COMMIT   = 1 << 8; // TODO: rename
-    private static final int FLAG_DO_COMMIT   = 1 << 9;
-    private static final int FLAG_DO_CLEAN_UP = 1 << 10;
+    private static final int FLAG_DO_POST_RESTART = 1 << 8; // TODO: rename
+    private static final int FLAG_DO_RESTART   = 1 << 9;
+    private static final int FLAG_DO_POST_COMMIT   = 1 << 10; // TODO: rename
+    private static final int FLAG_DO_COMMIT   = 1 << 11;
+    private static final int FLAG_DO_CLEAN_UP = 1 << 12;
     private static final int FLAG_USER_THREAD = 1 << 31;
 
     private static final int STATE_ACTIVE     = 0x0;
     private static final int STATE_PREPARING  = 0x1;
     private static final int STATE_PREPARED   = 0x2;
-    private static final int STATE_COMMITTING = 0x3;
-    private static final int STATE_COMMITTED  = 0x4;
+    private static final int STATE_RESTARTING = 0x3;
+    private static final int STATE_COMMITTING = 0x4;
+    private static final int STATE_COMMITTED  = 0x5;
     private static final int STATE_MASK       = 0x7;
-    private static final int LISTENERS_MASK = FLAG_DO_POST_PREPARE | FLAG_DO_PREPARE | FLAG_DO_POST_COMMIT | FLAG_DO_COMMIT;
+    private static final int LISTENERS_MASK = FLAG_DO_POST_PREPARE | FLAG_DO_PREPARE | FLAG_DO_POST_RESTART | FLAG_DO_RESTART | FLAG_DO_POST_COMMIT | FLAG_DO_COMMIT;
     private static final int PERSISTENT_STATE = STATE_MASK | FLAG_PREPARE_REQ | FLAG_COMMIT_REQ | FLAG_RESTART_REQ;
 
     private static final int T_NONE                    = 0;
     private static final int T_ACTIVE_to_PREPARING     = 1;
     private static final int T_PREPARING_to_PREPARED   = 2;
-    private static final int T_PREPARED_to_COMMITTING  = 3;
-    private static final int T_COMMITTING_to_COMMITTED = 4;
+    private static final int T_PREPARED_to_RESTARTING  = 3;
+    private static final int T_RESTARTING_to_ACTIVE    = 4;
+    private static final int T_PREPARED_to_COMMITTING  = 5;
+    private static final int T_COMMITTING_to_COMMITTED = 6;
     final TransactionController txnController;
     final Executor taskExecutor;
     private final Problem.Severity maxSeverity = Problem.Severity.WARNING;
@@ -85,6 +90,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private int state;
     private final AtomicInteger unexecutedTasks = new AtomicInteger();
     private Listener<? super UpdateTransaction> prepareListener;
+    private Listener<? super UpdateTransaction> restartListener;
     private Listener<Transaction> commitListener;
     private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
@@ -173,6 +179,15 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             case STATE_PREPARED: {
                 if (Bits.allAreSet(state, FLAG_COMMIT_REQ)) {
                     return T_PREPARED_to_COMMITTING;
+                } else if (Bits.allAreSet(state, FLAG_RESTART_REQ)) {
+                    return T_PREPARED_to_RESTARTING;
+                } else {
+                    return T_NONE;
+                }
+            }
+            case STATE_RESTARTING: {
+                if (uncompletedPostRestartListeners.get() == 0) {
+                    return T_RESTARTING_to_ACTIVE;
                 } else {
                     return T_NONE;
                 }
@@ -218,11 +233,26 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                     state = newState(STATE_PREPARED, state | FLAG_DO_PREPARE);
                     continue;
                 }
+                case T_PREPARED_to_RESTARTING: {
+                    if (postRestartListeners.size() > 0) {
+                        cachedPostRestartListeners.set(postRestartListeners);
+                        uncompletedPostRestartListeners.set(postRestartListeners.size());
+                        postRestartListeners = new IdentityHashSet<>();
+                        state = newState(STATE_RESTARTING, state | FLAG_DO_POST_RESTART);
+                    } else {
+                        state = newState(STATE_RESTARTING, state);
+                    }
+                    continue;
+                }
+                case T_RESTARTING_to_ACTIVE: {
+                    state = newState(STATE_ACTIVE, state | FLAG_DO_RESTART);
+                    continue;
+                }
                 case T_PREPARED_to_COMMITTING: {
                     if (postCommitListeners.size() > 0) {
                         cachedPostCommitListeners.set(postCommitListeners);
-                        uncompletedPostPrepareListeners.set(postPrepareListeners.size());
-                        postPrepareListeners = new IdentityHashSet<>();
+                        uncompletedPostCommitListeners.set(postCommitListeners.size());
+                        postCommitListeners = new IdentityHashSet<>();
                         state = newState(STATE_COMMITTING, state | FLAG_DO_POST_COMMIT);
                     } else {
                         state = newState(STATE_COMMITTING, state);
@@ -248,6 +278,18 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         public void run() {
             callPrepareCompletionListeners();
             callPrepareListener();
+        }
+    };
+
+    private final Runnable postRestartTask = new Runnable() {
+        public void run() {
+            callPostRestartListeners();
+        }
+    };
+
+    private final Runnable restartTask = new Runnable() {
+        public void run() {
+            callRestartListener();
         }
     };
 
@@ -281,6 +323,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             }
             if (Bits.allAreSet(state, FLAG_DO_POST_COMMIT)) {
                 ThreadLocalExecutor.addTask(postCommitTask);
+            }
+            if (Bits.allAreSet(state, FLAG_DO_RESTART)) {
+                ThreadLocalExecutor.addTask(restartTask);
+            }
+            if (Bits.allAreSet(state, FLAG_DO_POST_RESTART)) {
+                ThreadLocalExecutor.addTask(postRestartTask);
             }
             if (Bits.allAreSet(state, FLAG_DO_PREPARE)) {
                 ThreadLocalExecutor.addTask(prepareTask);
@@ -375,19 +423,24 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    final void restart() throws InvalidTransactionStateException {
-        // TODO: call post restart completion listeners - provide completion listener parameter - will be needed, because this operation is not sync. anymore
+    final void restart(final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
+        int state;
         synchronized (this) {
+            this.state &= ~FLAG_PREPARE_REQ;
+            state = this.state | FLAG_USER_THREAD;
             if (Bits.allAreSet(state, FLAG_RESTART_REQ)) {
                 throw MSCLogger.TXN.cannotRestartRestartedTxn();
             }
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotRestartUnpreparedTxn();
             }
-            endTime = System.nanoTime();
-            state = STATE_COMMITTED | FLAG_RESTART_REQ;
+            state |= FLAG_RESTART_REQ;
+            restartListener = completionListener;
+            state = transition(state);
+            this.state = state & PERSISTENT_STATE;
         }
+        executeTasks(state);
     }
 
     final boolean canCommit() throws InvalidTransactionStateException {
@@ -469,7 +522,17 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             prepareListener = this.prepareListener;
             this.prepareListener = null;
         }
-        callListeners(prepareListener, null);
+        callListeners(prepareListener, null, null);
+    }
+
+    private void callRestartListener() {
+        final Listener<? super UpdateTransaction> restartListener;
+        synchronized (this) {
+            restartListener = this.restartListener;
+            this.restartListener = null;
+            this.state &= ~FLAG_RESTART_REQ;
+        }
+        callListeners(null, restartListener, null);
     }
 
     private void callCommitListener() {
@@ -479,15 +542,25 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
             commitListener = this.commitListener;
             this.commitListener = null;
         }
-        callListeners(null, commitListener);
+        callListeners(null, null, commitListener);
     }
 
-    private void callListeners(final Listener<? super UpdateTransaction> prepareListener, final Listener<Transaction> commitListener) {
+    private void callListeners(
+        final Listener<? super UpdateTransaction> prepareListener,
+        final Listener<? super UpdateTransaction> restartListener,
+        final Listener<Transaction> commitListener) {
         if (prepareListener != null) {
             try {
                 prepareListener.handleEvent((UpdateTransaction)wrappingTxn);
             } catch (final Throwable ignored) {
                 MSCLogger.ROOT.listenerFailed(ignored, prepareListener);
+            }
+        }
+        if (restartListener != null) {
+            try {
+                restartListener.handleEvent((UpdateTransaction)wrappingTxn);
+            } catch (final Throwable ignored) {
+                MSCLogger.ROOT.listenerFailed(ignored, restartListener);
             }
         }
         if (commitListener != null) {

@@ -131,7 +131,7 @@ public abstract class AbstractTransactionTest {
         } catch (InvalidTransactionStateException expected) {
         }
         try {
-            txnController.restart(transaction);
+            txnController.restart(transaction, null);
             fail("Cannot call restart() on restarted transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
@@ -156,7 +156,7 @@ public abstract class AbstractTransactionTest {
             } catch (final InvalidTransactionStateException expected) {
             }
             try {
-                txnController.restart((UpdateTransaction)transaction);
+                txnController.restart((UpdateTransaction)transaction, null);
                 fail("Cannot call commit() on committed transaction");
             } catch (final InvalidTransactionStateException expected) {
             }
@@ -177,11 +177,12 @@ public abstract class AbstractTransactionTest {
         assertPrepared(transaction);
     }
 
-    protected static UpdateTransaction restart(final UpdateTransaction transaction) {
+    protected static void restart(final UpdateTransaction transaction) {
         assertNotNull(transaction);
-        final UpdateTransaction retVal = txnController.restart(transaction);
+        final CompletionListener<Transaction> restartListener = new CompletionListener<>();
+        txnController.restart(transaction, restartListener);
+        restartListener.awaitCompletionUninterruptibly();
         assertRestarted(transaction);
-        return retVal;
     }
 
     protected static void commit(final Transaction transaction) {
