@@ -220,9 +220,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 case T_NONE: return state;
                 case T_ACTIVE_to_PREPARING: {
                     if (postPrepareListeners.size() > 0) {
-                        cachedPostPrepareListeners.set(postPrepareListeners);
                         uncompletedPostPrepareListeners.set(postPrepareListeners.size());
-                        postPrepareListeners = new IdentityHashSet<>();
                         state = newState(STATE_PREPARING, state | FLAG_DO_POST_PREPARE);
                     } else {
                         state = newState(STATE_PREPARING, state);
@@ -235,9 +233,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 }
                 case T_PREPARED_to_RESTARTING: {
                     if (postRestartListeners.size() > 0) {
-                        cachedPostRestartListeners.set(postRestartListeners);
                         uncompletedPostRestartListeners.set(postRestartListeners.size());
-                        postRestartListeners = new IdentityHashSet<>();
                         state = newState(STATE_RESTARTING, state | FLAG_DO_POST_RESTART);
                     } else {
                         state = newState(STATE_RESTARTING, state);
@@ -250,9 +246,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 }
                 case T_PREPARED_to_COMMITTING: {
                     if (postCommitListeners.size() > 0) {
-                        cachedPostCommitListeners.set(postCommitListeners);
                         uncompletedPostCommitListeners.set(postCommitListeners.size());
-                        postCommitListeners = new IdentityHashSet<>();
                         state = newState(STATE_COMMITTING, state | FLAG_DO_POST_COMMIT);
                     } else {
                         state = newState(STATE_COMMITTING, state);
@@ -570,15 +564,12 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private final ThreadLocal<Set<Action<UpdateTransaction>>> cachedPostPrepareListeners = new ThreadLocal<>();
-    public Set<Action<UpdateTransaction>> postPrepareListeners = new IdentityHashSet<>();
-    public AtomicInteger uncompletedPostPrepareListeners = new AtomicInteger();
-    private final ThreadLocal<Set<Action<UpdateTransaction>>> cachedPostRestartListeners = new ThreadLocal<>();
-    public Set<Action<UpdateTransaction>> postRestartListeners = new IdentityHashSet<>();
-    public AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
-    private final ThreadLocal<Set<Action<ReadTransaction>>> cachedPostCommitListeners = new ThreadLocal<>();
-    public Set<Action<ReadTransaction>> postCommitListeners = new IdentityHashSet<>();
-    public AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
+    public final Set<Action<UpdateTransaction>> postPrepareListeners = new IdentityHashSet<>();
+    public final AtomicInteger uncompletedPostPrepareListeners = new AtomicInteger();
+    public final Set<Action<UpdateTransaction>> postRestartListeners = new IdentityHashSet<>();
+    public final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
+    public final Set<Action<ReadTransaction>> postCommitListeners = new IdentityHashSet<>();
+    public final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
 
     final synchronized void addPostPrepareListener(final Action<UpdateTransaction> completionListener) {
         if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRegisterPostPrepareListener();
@@ -611,8 +602,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPostPrepareListeners() {
-        final Set<Action<UpdateTransaction>> postPrepareListeners = cachedPostPrepareListeners.get();
-        cachedPostPrepareListeners.remove();
         for (final Action<UpdateTransaction> action : postPrepareListeners ) {
             safeCallPostPrepareListener(action);
         }
@@ -629,8 +618,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPostRestartListeners() {
-        final Set<Action<UpdateTransaction>> postRestartListeners = cachedPostRestartListeners.get();
-        cachedPostRestartListeners.remove();
         for (final Action<UpdateTransaction> action : postRestartListeners ) {
             safeCallPostRestartListener(action);
         }
@@ -647,8 +634,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPostCommitListeners() {
-        final Set<Action<ReadTransaction>> postCommitListeners = cachedPostCommitListeners.get();
-        cachedPostCommitListeners.remove();
         for (final Action<ReadTransaction> action : postCommitListeners ) {
             safeCallPostCommitListener(action);
         }
