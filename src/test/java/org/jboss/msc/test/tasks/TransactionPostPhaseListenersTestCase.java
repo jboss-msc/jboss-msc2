@@ -54,7 +54,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         final ServiceContainer container = txnController.createServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service = new TestService<>(testLog);
         final ServiceController serviceController = sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         final PostPrepareAction postPrepareAction1 = new PostPrepareAction(testLog, updateTxn);
