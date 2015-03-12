@@ -25,16 +25,15 @@ package org.jboss.msc.txn;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
- * @see org.jboss.msc.txn.Action
- * @param <T> transaction
+ * @see Action
  */
-public interface ActionContext<T extends ReadTransaction> {
+public interface ActionContext {
 
     /**
      * Returns transaction.
      * @return T transaction
      */
-    T getTransaction();
+    Transaction getTransaction();
 
     /**
      * Notifies action processing code completed.

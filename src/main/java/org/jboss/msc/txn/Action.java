@@ -28,10 +28,9 @@ import org.jboss.msc.util.Listener;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @see ActionContext
- * @param <T> transaction
  */
-public interface Action<T extends ReadTransaction> extends Listener<ActionContext<T>> {
+public interface Action extends Listener<ActionContext> {
 
-    void handleEvent(ActionContext<T> ctx);
+    void handleEvent(ActionContext ctx);
 
 }

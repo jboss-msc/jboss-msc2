@@ -55,11 +55,11 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
         final ServiceBuilder sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
-        final TestService service = new TestService(testLog);
+        final TestService<Void> service = new TestService<>(testLog);
         final ServiceController serviceController = sb.setService(service).setMode(ServiceMode.ACTIVE).install();
-        final PostPrepareAction<UpdateTransaction> postPrepareAction1 = new PostPrepareAction<>(testLog, updateTxn);
+        final PostPrepareAction postPrepareAction1 = new PostPrepareAction(testLog, updateTxn);
         updateTxn.addPostPrepare(postPrepareAction1);
-        final PostRestartAction<UpdateTransaction> postRestartAction = new PostRestartAction<>(testLog, updateTxn);
+        final PostRestartAction postRestartAction = new PostRestartAction(testLog, updateTxn);
         updateTxn.addPostRestart(postRestartAction);
         final PrepareCompletionListener<UpdateTransaction> prepareListener1 = new PrepareCompletionListener<>(testLog, updateTxn);
         txnController.prepare(updateTxn, prepareListener1);
@@ -68,9 +68,9 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         txnController.restart(updateTxn, restartListener);
         updateTxn = restartListener.awaitCompletion();
         serviceController.remove(updateTxn);
-        final PostPrepareAction<UpdateTransaction> postPrepareAction2 = new PostPrepareAction<>(testLog, updateTxn);
+        final PostPrepareAction postPrepareAction2 = new PostPrepareAction(testLog, updateTxn);
         updateTxn.addPostPrepare(postPrepareAction2);
-        final PostCommitAction<UpdateTransaction> postCommitAction = new PostCommitAction<>(testLog, updateTxn);
+        final PostCommitAction postCommitAction = new PostCommitAction(testLog, updateTxn);
         updateTxn.addPostCommit(postCommitAction);
         final PrepareCompletionListener<UpdateTransaction> prepareListener2 = new PrepareCompletionListener<>(testLog, updateTxn);
         txnController.prepare(updateTxn, prepareListener2);
@@ -81,7 +81,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         assertEquals(testLog.toString(), "[TestService STARTED][PostPrepareAction PASSED][PrepareCompletionListener PASSED][PostRestartAction PASSED][RestartCompletionListener PASSED][TestService STOPPED][PostPrepareAction PASSED][PrepareCompletionListener PASSED][PostCommitAction PASSED][CommitCompletionListener PASSED]");
     }
 
-    private static final class TestService implements Service<Void> {
+    private static final class TestService<T> implements Service<T> {
 
         private final StringBuffer sb;
 
@@ -90,7 +90,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
 
         @Override
-        public void start(final StartContext<Void> startContext) {
+        public void start(final StartContext<T> startContext) {
             sb.append("[TestService STARTED]");
             startContext.complete();
         }
@@ -103,7 +103,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
 
     }
 
-    private static final class PostPrepareAction<T extends UpdateTransaction> implements Action<T> {
+    private static final class PostPrepareAction implements Action {
 
         private final StringBuffer sb;
         private final UpdateTransaction txn;
@@ -114,7 +114,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
 
         @Override
-        public void handleEvent(final ActionContext<T> ctx) {
+        public void handleEvent(final ActionContext ctx) {
             if (ctx.getTransaction() == txn) {
                 sb.append("[PostPrepareAction PASSED]");
             } else {
@@ -124,7 +124,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
     }
 
-    private static final class PostRestartAction<T extends UpdateTransaction> implements Action<T> {
+    private static final class PostRestartAction implements Action {
 
         private final StringBuffer sb;
         private final UpdateTransaction txn;
@@ -135,7 +135,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
 
         @Override
-        public void handleEvent(final ActionContext<T> ctx) {
+        public void handleEvent(final ActionContext ctx) {
             if (ctx.getTransaction() == txn) {
                 sb.append("[PostRestartAction PASSED]");
             } else {
@@ -145,7 +145,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
     }
 
-    private static final class PostCommitAction<T extends UpdateTransaction> implements Action<T> {
+    private static final class PostCommitAction implements Action {
 
         private final StringBuffer sb;
         private final UpdateTransaction txn;
@@ -156,7 +156,7 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
         }
 
         @Override
-        public void handleEvent(final ActionContext<T> ctx) {
+        public void handleEvent(final ActionContext ctx) {
             if (ctx.getTransaction() == txn) {
                 sb.append("[PostCommitAction PASSED]");
             } else {

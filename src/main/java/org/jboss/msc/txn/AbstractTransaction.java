@@ -353,7 +353,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    void safeCallPostPrepareListener(final Action<UpdateTransaction> listener) {
+    void safeCallPostPrepareListener(final Action listener) {
         try {
             listener.handleEvent(new PrepareActionContext(this));
         } catch (final Throwable t) {
@@ -361,7 +361,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    void safeCallPostRestartListener(final Action<UpdateTransaction> listener) {
+    void safeCallPostRestartListener(final Action listener) {
         try {
             listener.handleEvent(new RestartActionContext(this));
         } catch (final Throwable t) {
@@ -369,7 +369,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    void safeCallPostCommitListener(final Action<ReadTransaction> listener) {
+    void safeCallPostCommitListener(final Action listener) {
         try {
             listener.handleEvent(new CommitActionContext(this));
         } catch (final Throwable t) {
@@ -579,45 +579,45 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         holdHandles.remove(txnHoldHandle);
     }
 
-    public final Set<Action<UpdateTransaction>> postPrepareListeners = new IdentityHashSet<>();
+    public final Set<Action> postPrepareListeners = new IdentityHashSet<>();
     public final AtomicInteger uncompletedPostPrepareListeners = new AtomicInteger();
-    public final Set<Action<UpdateTransaction>> postRestartListeners = new IdentityHashSet<>();
+    public final Set<Action> postRestartListeners = new IdentityHashSet<>();
     public final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
-    public final Set<Action<ReadTransaction>> postCommitListeners = new IdentityHashSet<>();
+    public final Set<Action> postCommitListeners = new IdentityHashSet<>();
     public final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
 
-    final synchronized void addPostPrepareListener(final Action<UpdateTransaction> completionListener) {
+    public final synchronized void addPostPrepare(final Action completionListener) {
         if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRegisterPostPrepareListener();
         if (completionListener != null) postPrepareListeners.add(completionListener);
     }
 
-    final synchronized void removePostPrepareListener(final Action<UpdateTransaction> completionListener) {
+    public final synchronized void removePostPrepare(final Action completionListener) {
         if (stateOf(state) != STATE_ACTIVE) return;
         if (completionListener != null) postPrepareListeners.remove(completionListener);
     }
 
-    final synchronized void addPostRestartListener(final Action<UpdateTransaction> completionListener) {
+    public final synchronized void addPostRestart(final Action completionListener) {
         if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotRegisterPostRestartListener();
         if (completionListener != null) postRestartListeners.add(completionListener);
     }
 
-    final synchronized void removePostRestartListener(final Action<UpdateTransaction> completionListener) {
+    public final synchronized void removePostRestart(final Action completionListener) {
         if (stateOf(state) > STATE_PREPARED) return;
         if (completionListener != null) postRestartListeners.remove(completionListener);
     }
 
-    final synchronized void addPostCommitListener(final Action<ReadTransaction> completionListener) {
+    public final synchronized void addPostCommit(final Action completionListener) {
         if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotRegisterPostCommitListener();
         if (completionListener != null) postCommitListeners.add(completionListener);
     }
 
-    final synchronized void removePostCommitListener(final Action<ReadTransaction> completionListener) {
+    public final synchronized void removePostCommit(final Action completionListener) {
         if (stateOf(state) == STATE_COMMITTED) return;
         if (completionListener != null) postCommitListeners.remove(completionListener);
     }
 
     private void callPostPrepareListeners() {
-        for (final Action<UpdateTransaction> action : postPrepareListeners ) {
+        for (final Action action : postPrepareListeners ) {
             safeCallPostPrepareListener(action);
         }
     }
@@ -633,7 +633,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPostRestartListeners() {
-        for (final Action<UpdateTransaction> action : postRestartListeners ) {
+        for (final Action action : postRestartListeners ) {
             safeCallPostRestartListener(action);
         }
     }
@@ -649,7 +649,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     private void callPostCommitListeners() {
-        for (final Action<ReadTransaction> action : postCommitListeners ) {
+        for (final Action action : postCommitListeners ) {
             safeCallPostCommitListener(action);
         }
     }
@@ -664,7 +664,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
-    private static final class PrepareActionContext implements ActionContext<UpdateTransaction> {
+    private static final class PrepareActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
         private boolean completed;
@@ -674,8 +674,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
 
         @Override
-        public UpdateTransaction getTransaction() {
-            return (UpdateTransaction) txn.wrappingTxn;
+        public Transaction getTransaction() {
+            return txn.wrappingTxn;
         }
 
         @Override
@@ -688,7 +688,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private static final class RestartActionContext implements ActionContext<UpdateTransaction> {
+    private static final class RestartActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
         private boolean completed;
@@ -698,8 +698,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
 
         @Override
-        public UpdateTransaction getTransaction() {
-            return (UpdateTransaction) txn.wrappingTxn;
+        public Transaction getTransaction() {
+            return txn.wrappingTxn;
         }
 
         @Override
@@ -712,7 +712,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private static final class CommitActionContext implements ActionContext<ReadTransaction> {
+    private static final class CommitActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
         private boolean completed;
@@ -722,8 +722,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
 
         @Override
-        public ReadTransaction getTransaction() {
-            return (ReadTransaction) txn.wrappingTxn;
+        public Transaction getTransaction() {
+            return txn.wrappingTxn;
         }
 
         @Override

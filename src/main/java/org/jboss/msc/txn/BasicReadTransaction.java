@@ -24,37 +24,11 @@ import java.util.concurrent.Executor;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class BasicReadTransaction<T extends ReadTransaction<T>> extends AbstractTransaction implements ReadTransaction<T> {
+final class BasicReadTransaction extends AbstractTransaction implements ReadTransaction {
 
     BasicReadTransaction(final TransactionController controller, final Executor taskExecutor) {
         super(controller, taskExecutor);
         setWrappingTransaction(this);
-    }
-
-    public final <T extends UpdateTransaction> void addPostPrepare(final Action<T> completionListener) {
-        super.addPostPrepareListener((Action<UpdateTransaction>)completionListener);
-    }
-
-    public final <T extends UpdateTransaction> void removePostPrepare(final Action<T> completionListener) {
-        super.removePostPrepareListener((Action<UpdateTransaction>)completionListener);
-    }
-
-    public final <T extends UpdateTransaction> void addPostRestart(final Action<T> completionListener) {
-        super.addPostRestartListener((Action<UpdateTransaction>)completionListener);
-    }
-
-    public final <T extends UpdateTransaction> void removePostRestart(final Action<T> completionListener) {
-        super.removePostRestartListener((Action<UpdateTransaction>)completionListener);
-    }
-
-    @Override
-    public final void addPostCommit(final Action<T> completionListener) {
-        super.addPostCommitListener((Action<ReadTransaction>)(Object)completionListener);
-    }
-
-    @Override
-    public final void removePostCommit(final Action<T> completionListener) {
-        super.removePostCommitListener((Action<ReadTransaction>)(Object)completionListener);
     }
 
 }

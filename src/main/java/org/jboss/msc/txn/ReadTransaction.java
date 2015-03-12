@@ -12,10 +12,10 @@ package org.jboss.msc.txn;
  * @see org.jboss.msc.txn.TransactionController
  * @see org.jboss.msc.txn.UpdateTransaction
  */
-public interface ReadTransaction<T extends ReadTransaction<T>> extends Transaction {
+public interface ReadTransaction extends Transaction {
 
-    void addPostCommit(Action<T> completionListener);
+    void addPostCommit(Action completionListener);
 
-    void removePostCommit(Action<T> completionListener);
+    void removePostCommit(Action completionListener);
 
 }

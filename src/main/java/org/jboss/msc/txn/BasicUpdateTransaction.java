@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class BasicUpdateTransaction<T extends UpdateTransaction<T>> implements UpdateTransaction<T> {
+final class BasicUpdateTransaction implements UpdateTransaction {
 
     private final BasicReadTransaction delegate;
     private boolean updated;
@@ -158,37 +158,37 @@ final class BasicUpdateTransaction<T extends UpdateTransaction<T>> implements Up
     }
 
     @Override
-    public final void addPostPrepare(final Action<T> completionListener) {
+    public final void addPostPrepare(final Action completionListener) {
         assertState();
         delegate.addPostPrepare(completionListener);
     }
 
     @Override
-    public final void removePostPrepare(final Action<T> completionListener) {
+    public final void removePostPrepare(final Action completionListener) {
         assertState();
         delegate.removePostPrepare(completionListener);
     }
 
     @Override
-    public final void addPostRestart(final Action<T> completionListener) {
+    public final void addPostRestart(final Action completionListener) {
         assertState();
         delegate.addPostRestart(completionListener);
     }
 
     @Override
-    public final void removePostRestart(final Action<T> completionListener) {
+    public final void removePostRestart(final Action completionListener) {
         assertState();
         delegate.removePostRestart(completionListener);
     }
 
     @Override
-    public final void addPostCommit(final Action<T> completionListener) {
+    public final void addPostCommit(final Action completionListener) {
         assertState();
         delegate.addPostCommit(completionListener);
     }
 
     @Override
-    public final void removePostCommit(final Action<T> completionListener) {
+    public final void removePostCommit(final Action completionListener) {
         assertState();
         delegate.removePostCommit(completionListener);
     }

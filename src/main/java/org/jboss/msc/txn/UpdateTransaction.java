@@ -13,7 +13,7 @@ package org.jboss.msc.txn;
  * @see org.jboss.msc.txn.ReadTransaction
  * @see org.jboss.msc.txn.TransactionController
  */
-public interface UpdateTransaction<T extends UpdateTransaction<T>> extends ReadTransaction<T> {
+public interface UpdateTransaction extends ReadTransaction {
 
     /**
      * Indicates whether this transaction have been prepared.
@@ -21,17 +21,17 @@ public interface UpdateTransaction<T extends UpdateTransaction<T>> extends ReadT
      */
     boolean isPrepared();
 
-    void addPostPrepare(Action<T> completionListener);
+    void addPostPrepare(Action completionListener);
 
-    void removePostPrepare(Action<T> completionListener);
+    void removePostPrepare(Action completionListener);
 
-    void addPostRestart(Action<T> completionListener);
+    void addPostRestart(Action completionListener);
 
-    void removePostRestart(Action<T> completionListener);
+    void removePostRestart(Action completionListener);
 
-    void addPostCommit(Action<T> completionListener);
+    void addPostCommit(Action completionListener);
 
-    void removePostCommit(Action<T> completionListener);
+    void removePostCommit(Action completionListener);
 
     /**
      * Returns transaction hold handle.
