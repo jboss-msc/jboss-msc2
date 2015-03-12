@@ -575,8 +575,14 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         return retVal;
     }
 
-    public final synchronized void release(final TransactionHoldHandle txnHoldHandle) {
-        holdHandles.remove(txnHoldHandle);
+    public final void release(final TransactionHoldHandle txnHoldHandle) {
+        int state;
+        synchronized (this) {
+            holdHandles.remove(txnHoldHandle);
+            state = transition(this.state);
+            this.state = state & PERSISTENT_STATE;
+        }
+        executeTasks(state);
     }
 
     public final Set<Action> postPrepareListeners = new IdentityHashSet<>();
