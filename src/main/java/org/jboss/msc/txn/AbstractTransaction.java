@@ -587,32 +587,32 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     public final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
 
     public final synchronized void addPostPrepare(final Action completionListener) {
-        if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRegisterPostPrepareListener();
+        if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotAddPostPrepareListener();
         if (completionListener != null) postPrepareListeners.add(completionListener);
     }
 
     public final synchronized void removePostPrepare(final Action completionListener) {
-        if (stateOf(state) != STATE_ACTIVE) return;
+        if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRemovePostPrepareListener();
         if (completionListener != null) postPrepareListeners.remove(completionListener);
     }
 
     public final synchronized void addPostRestart(final Action completionListener) {
-        if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotRegisterPostRestartListener();
+        if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotAddPostRestartListener();
         if (completionListener != null) postRestartListeners.add(completionListener);
     }
 
     public final synchronized void removePostRestart(final Action completionListener) {
-        if (stateOf(state) > STATE_PREPARED) return;
+        if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotRemovePostRestartListener();
         if (completionListener != null) postRestartListeners.remove(completionListener);
     }
 
     public final synchronized void addPostCommit(final Action completionListener) {
-        if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotRegisterPostCommitListener();
+        if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotAddPostCommitListener();
         if (completionListener != null) postCommitListeners.add(completionListener);
     }
 
     public final synchronized void removePostCommit(final Action completionListener) {
-        if (stateOf(state) == STATE_COMMITTED) return;
+        if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotRemovePostCommitListener();
         if (completionListener != null) postCommitListeners.remove(completionListener);
     }
 

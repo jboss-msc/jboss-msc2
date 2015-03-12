@@ -14,8 +14,18 @@ package org.jboss.msc.txn;
  */
 public interface ReadTransaction extends Transaction {
 
-    void addPostCommit(Action completionListener);
+    /**
+     * Register <B>post-commit</B> phase completion listener for notifications
+     * @param completionListener to be registered for notifications
+     * @throws IllegalStateException if attempting to register new listener for committed transaction
+     */
+    void addPostCommit(Action completionListener) throws IllegalStateException;
 
-    void removePostCommit(Action completionListener);
+    /**
+     * Unregister <B>post-commit</B> phase completion listener from notifications
+     * @param completionListener to be unregistered from notifications
+     * @throws IllegalStateException if attempting to unregister listener from committed transaction
+     */
+    void removePostCommit(Action completionListener) throws IllegalStateException;
 
 }

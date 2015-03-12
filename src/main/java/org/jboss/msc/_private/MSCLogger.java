@@ -207,16 +207,25 @@ public interface MSCLogger {
     @Message(id = 126, value = "Cannot create registry if container was shutdown")
     IllegalStateException cannotCreateRegistryIfContainerWasShutdown();
 
-    @Message(id = 127, value = "Post prepare completion listener can be registered iff transaction is in ACTIVE state")
-    IllegalStateException cannotRegisterPostPrepareListener();
+    @Message(id = 127, value = "Post prepare listener can be registered only if transaction is active")
+    IllegalStateException cannotAddPostPrepareListener();
 
-    @Message(id = 128, value = "Post restart completion listener can be registered iff transaction is not in COMMITTING or COMMITTED state")
-    IllegalStateException cannotRegisterPostRestartListener();
+    @Message(id = 128, value = "Post restart completion listener can be registered only if transaction is neither committed nor restarted")
+    IllegalStateException cannotAddPostRestartListener();
 
-    @Message(id = 129, value = "Post commit completion listener can be registered iff transaction is not in COMMITTED state")
-    IllegalStateException cannotRegisterPostCommitListener();
+    @Message(id = 129, value = "Post commit completion listener can be registered only if transaction is not committed")
+    IllegalStateException cannotAddPostCommitListener();
 
-    @Message(id = 130, value = "Cannot create transaction hold handle for inactive transation")
+    @Message(id = 130, value = "Post prepare listener can be removed only if transaction is active")
+    IllegalStateException cannotRemovePostPrepareListener();
+
+    @Message(id = 131, value = "Post restart completion listener can be removed only if transaction is neither committed nor restarted")
+    IllegalStateException cannotRemovePostRestartListener();
+
+    @Message(id = 132, value = "Post commit completion listener can be removed only if transaction is not committed")
+    IllegalStateException cannotRemovePostCommitListener();
+
+    @Message(id = 133, value = "Cannot create transaction hold handle for inactive transation")
     IllegalStateException cannotCreateHoldHandle();
 
     /*

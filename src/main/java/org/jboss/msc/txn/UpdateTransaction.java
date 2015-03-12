@@ -21,22 +21,39 @@ public interface UpdateTransaction extends ReadTransaction {
      */
     boolean isPrepared();
 
-    void addPostPrepare(Action completionListener);
+    /**
+     * Register <B>post-prepare</B> phase completion listener for notifications
+     * @param completionListener to be registered for notifications
+     * @throws IllegalStateException if attempting to register new listener for non active transaction
+     */
+    void addPostPrepare(Action completionListener) throws IllegalStateException;
 
-    void removePostPrepare(Action completionListener);
+    /**
+     * Unregister <B>post-prepare</B> phase completion listener from notifications
+     * @param completionListener to be unregistered from notifications
+     * @throws IllegalStateException if attempting to unregister listener from non active transaction
+     */
+    void removePostPrepare(Action completionListener) throws IllegalStateException;
 
-    void addPostRestart(Action completionListener);
+    /**
+     * Register <B>post-restart</B> phase completion listener for notifications
+     * @param completionListener to be registered for notifications
+     * @throws IllegalStateException if attempting to register new listener for committed or restarted transaction
+     */
+    void addPostRestart(Action completionListener) throws IllegalStateException;
 
-    void removePostRestart(Action completionListener);
-
-    void addPostCommit(Action completionListener);
-
-    void removePostCommit(Action completionListener);
+    /**
+     * Unregister <B>post-restart</B> phase completion listener from notifications
+     * @param completionListener to be unregistered from notifications
+     * @throws IllegalStateException if attempting to unregister listener from committed or restarted transaction
+     */
+    void removePostRestart(Action completionListener) throws IllegalStateException;
 
     /**
      * Returns transaction hold handle.
      * @return transaction hold handle
+     * @throws IllegalStateException if lock handle was requested for non active transaction
      */
-    TransactionHoldHandle acquireHoldHandle();
+    TransactionHoldHandle acquireHoldHandle() throws IllegalStateException;
 
 }
