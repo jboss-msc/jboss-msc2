@@ -163,7 +163,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0) {
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0 && holdHandles.isEmpty()) {
                     return T_ACTIVE_to_PREPARING;
                 } else {
                     return T_NONE;
@@ -562,6 +562,21 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
                 MSCLogger.ROOT.listenerFailed(ignored, commitListener);
             }
         }
+    }
+
+    private final Set<TransactionHoldHandle> holdHandles = new IdentityHashSet<>();
+
+    public final synchronized TransactionHoldHandle acquireHoldHandle() {
+        if (stateOf(state) != STATE_ACTIVE) {
+            throw MSCLogger.TXN.cannotCreateHoldHandle();
+        }
+        final TransactionHoldHandle retVal = new TransactionHoldHandle(this);
+        holdHandles.add(retVal);
+        return retVal;
+    }
+
+    public final synchronized void release(final TransactionHoldHandle txnHoldHandle) {
+        holdHandles.remove(txnHoldHandle);
     }
 
     public final Set<Action<UpdateTransaction>> postPrepareListeners = new IdentityHashSet<>();

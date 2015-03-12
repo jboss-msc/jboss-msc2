@@ -192,4 +192,12 @@ final class BasicUpdateTransaction<T extends UpdateTransaction<T>> implements Up
         assertState();
         delegate.removePostCommit(completionListener);
     }
+
+    @Override
+    public final TransactionHoldHandle acquireHoldHandle() {
+        assertState();
+        return delegate.acquireHoldHandle();
+    }
+
 }
+    

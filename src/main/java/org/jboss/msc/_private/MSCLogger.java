@@ -216,6 +216,9 @@ public interface MSCLogger {
     @Message(id = 129, value = "Post commit completion listener can be registered iff transaction is not in COMMITTED state")
     IllegalStateException cannotRegisterPostCommitListener();
 
+    @Message(id = 130, value = "Cannot create transaction hold handle for inactive transation")
+    IllegalStateException cannotCreateHoldHandle();
+
     /*
      * Location nesting types.
      */

@@ -33,4 +33,10 @@ public interface UpdateTransaction<T extends UpdateTransaction<T>> extends ReadT
 
     void removePostCommit(Action<T> completionListener);
 
+    /**
+     * Returns transaction hold handle.
+     * @return transaction hold handle
+     */
+    TransactionHoldHandle acquireHoldHandle();
+
 }
