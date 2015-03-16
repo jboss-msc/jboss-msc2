@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.msc.test.services;
+package org.jboss.msc.test;
 
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.txn.AbstractServiceTest;
@@ -32,53 +32,59 @@ import static org.junit.Assert.assertTrue;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class OneService_NoDeps_TestCase extends AbstractServiceTest {
+public class OneFailingService_NoDeps_TestCase extends AbstractServiceTest {
 
     private static final ServiceName firstSN = ServiceName.of("first");
 
     /**
      * Usecase:
      * <UL>
-     * <LI>first service (ON_DEMAND mode), no dependencies</LI>
+     * <LI>first failing service (ON_DEMAND mode), no dependencies</LI>
      * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
     public void usecase1() {
-        final TestService firstService = addService(firstSN, ON_DEMAND);
+        final TestService firstService = addService(firstSN, true, ON_DEMAND);
         assertFalse(firstService.isUp());
+        assertFalse(firstService.isFailed());
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
+        assertFalse(firstService.isFailed());
     }
 
     /**
      * Usecase:
      * <UL>
-     * <LI>first service (LAZY mode), no dependencies</LI>
+     * <LI>first failing service (LAZY mode), no dependencies</LI>
      * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
     public void usecase2() {
-        final TestService firstService = addService(firstSN, LAZY);
+        final TestService firstService = addService(firstSN, true, LAZY);
         assertFalse(firstService.isUp());
+        assertFalse(firstService.isFailed());
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
+        assertFalse(firstService.isFailed());
     }
 
     /**
      * Usecase:
      * <UL>
-     * <LI>first service (ACTIVE mode), no dependencies</LI>
+     * <LI>first failing service (ACTIVE mode), no dependencies</LI>
      * <LI>service removed before container is shut down</LI>
      * </UL>
      */
     @Test
     public void usecase3() {
-        final TestService firstService = addService(firstSN, ACTIVE);
-        assertTrue(firstService.isUp());
+        final TestService firstService = addService(firstSN, true, ACTIVE);
+        assertFalse(firstService.isUp());
+        assertTrue(firstService.isFailed());
         assertTrue(removeService(firstSN));
         assertFalse(firstService.isUp());
+        assertTrue(firstService.isFailed());
     }
 
 }

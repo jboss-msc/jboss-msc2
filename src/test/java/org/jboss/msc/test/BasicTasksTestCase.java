@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.test.tasks;
+package org.jboss.msc.test;
 
 import org.jboss.msc.txn.AbstractTransactionTest;
 import org.jboss.msc.txn.UpdateTransaction;
