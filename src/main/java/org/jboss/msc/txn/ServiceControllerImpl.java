@@ -122,10 +122,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         this.primaryRegistration = primaryRegistration;
         this.aliasRegistrations = aliasRegistrations;
         this.dependencies = dependencies;
-        unsatisfiedDependencies = dependencies.length;
-        for (DependencyImpl<?> dependency: dependencies) {
-            dependency.setDependent(this, transaction); // TODO: this escapes contructor!!!
-        }
+        this.unsatisfiedDependencies = dependencies.length;
     }
 
     private void setMode(final ServiceMode mode) {
@@ -175,6 +172,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      * @param transaction the active transaction
      */
     void completeInstallation(final Transaction transaction) {
+        for (final DependencyImpl<?> dependency: dependencies) {
+            dependency.setDependent(this, transaction);
+        }
         primaryRegistration.serviceInstalled();
         boolean demandDependencies;
         synchronized (this) {
