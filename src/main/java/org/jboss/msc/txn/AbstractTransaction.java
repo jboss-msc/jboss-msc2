@@ -458,18 +458,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         return report.getMaxSeverity().compareTo(maxSeverity) <= 0;
     }
 
-    protected void finalize() {
-        // TODO: this method is broken, fix it!
-        try {
-            commit(null);
-        } finally {
-            try {
-                super.finalize();
-            } catch (Throwable ignored) {
-            }
-        }
-    }
-
     void taskExecuted() {
         assert ! holdsLock(this);
         if (unexecutedTasks.decrementAndGet() > 0) return;
