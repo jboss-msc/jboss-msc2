@@ -19,24 +19,23 @@
 package org.jboss.msc.txn;
 
 /**
- * Action context.
- *
- * TODO: javadoc
+ * Allows action processing code to communicate asynchronously with transaction.
+ * All implementations of this interface are thread safe.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
- * @see Action
  */
 public interface ActionContext {
 
     /**
      * Returns transaction.
-     * @return T transaction
+     * @return Transaction transaction
      */
     Transaction getTransaction();
 
     /**
      * Notifies action processing code completed.
+     * Transaction will block until this method is not called.
      */
     void complete();
 
