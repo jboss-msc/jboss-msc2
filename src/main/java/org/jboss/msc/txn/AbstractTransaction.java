@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.holdsLock;
@@ -673,7 +674,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final class PrepareActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
-        private boolean completed;
+        private final AtomicBoolean completed = new AtomicBoolean();
 
         private PrepareActionContext(final AbstractTransaction txn) {
             this.txn = txn;
@@ -686,10 +687,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
         @Override
         public void complete() {
-            synchronized (this) {
-                if (completed) return;
-                completed = true;
-            }
+            if (!completed.compareAndSet(false, true)) return;
             txn.postPrepareListenerCompleted();
         }
     }
@@ -697,7 +695,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final class RestartActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
-        private boolean completed;
+        private final AtomicBoolean completed = new AtomicBoolean();
 
         private RestartActionContext(final AbstractTransaction txn) {
             this.txn = txn;
@@ -710,10 +708,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
         @Override
         public void complete() {
-            synchronized (this) {
-                if (completed) return;
-                completed = true;
-            }
+            if (!completed.compareAndSet(false, true)) return;
             txn.postRestartListenerCompleted();
         }
     }
@@ -721,7 +716,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private static final class CommitActionContext implements ActionContext {
 
         private final AbstractTransaction txn;
-        private boolean completed;
+        private final AtomicBoolean completed = new AtomicBoolean();
 
         private CommitActionContext(final AbstractTransaction txn) {
             this.txn = txn;
@@ -734,10 +729,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
         @Override
         public void complete() {
-            synchronized (this) {
-                if (completed) return;
-                completed = true;
-            }
+            if (!completed.compareAndSet(false, true)) return;
             txn.postCommitListenerCompleted();
         }
     }
