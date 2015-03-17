@@ -95,6 +95,13 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private Listener<Transaction> commitListener;
     private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
+    private final Set<Action> postPrepareListeners = new IdentityHashSet<>();
+    private final AtomicInteger uncompletedPostPrepareListeners = new AtomicInteger();
+    private final Set<Action> postRestartListeners = new IdentityHashSet<>();
+    private final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
+    private final Set<Action> postCommitListeners = new IdentityHashSet<>();
+    private final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
+    private final Set<TransactionHoldHandle> holdHandles = new IdentityHashSet<>();
     volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor) {
@@ -565,8 +572,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    private final Set<TransactionHoldHandle> holdHandles = new IdentityHashSet<>();
-
     public final synchronized TransactionHoldHandle acquireHoldHandle() {
         if (stateOf(state) != STATE_ACTIVE) {
             throw MSCLogger.TXN.cannotCreateHoldHandle();
@@ -585,13 +590,6 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
         executeTasks(state);
     }
-
-    public final Set<Action> postPrepareListeners = new IdentityHashSet<>();
-    public final AtomicInteger uncompletedPostPrepareListeners = new AtomicInteger();
-    public final Set<Action> postRestartListeners = new IdentityHashSet<>();
-    public final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
-    public final Set<Action> postCommitListeners = new IdentityHashSet<>();
-    public final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
 
     public final synchronized void addPostPrepare(final Action completionListener) {
         if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotAddPostPrepareListener();
