@@ -220,7 +220,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         }
 
         // create and install service controller
-        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray, transaction);
+        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray);
         serviceController.beginInstallation();
         try {
             serviceController.completeInstallation(transaction);

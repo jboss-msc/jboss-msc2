@@ -113,10 +113,9 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      * @param service             the service itself
      * @param mode                the service mode
      * @param dependencies        the service dependencies
-     * @param transaction         the active transaction
      */
-    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations, final Service<T> service,
-            final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies, final Transaction transaction) {
+    ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations,
+            final Service<T> service, final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies) {
         this.service = service;
         setMode(mode);
         this.primaryRegistration = primaryRegistration;
