@@ -25,6 +25,8 @@ import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.StartContext;
+import org.jboss.msc.service.StopContext;
 import org.jboss.msc.util.Listener;
 
 import static java.lang.Thread.holdsLock;
@@ -62,10 +64,19 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     static final byte SERVICE_REMOVED  = (byte)0b01000000;
     static final byte REGISTRY_ENABLED = (byte)0b10000000;
 
+    static final Service<Void> VOID_SERVICE = new Service<Void>() {
+        @Override public void start(StartContext<Void> startContext) {}
+        @Override public void stop(StopContext stopContext) {}
+    };
+
     /**
      * The service itself.
      */
-    private final Service<T> service;
+    private Service<T> service;
+    /**
+     * The service that will replace current service.
+     */
+    private Service<T> replaceService;
     /**
      * The primary registration of this service.
      */
@@ -104,6 +115,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     private NotificationEntry<T> disableObservers;
     private NotificationEntry<T> enableObservers;
     private NotificationEntry<T> removeObservers;
+    private NotificationEntry<T> replaceObservers;
 
     /**
      * Creates the service controller, thus beginning installation.
@@ -116,7 +128,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      */
     ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations,
             final Service<T> service, final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies) {
-        this.service = service;
+        this.service = service != null ? service : (Service<T>)VOID_SERVICE;
         setMode(mode);
         this.primaryRegistration = primaryRegistration;
         this.aliasRegistrations = aliasRegistrations;
@@ -220,8 +232,8 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     /**
      * Gets the service.
      */
-    public Service<T> getService() {
-        return service;
+    public synchronized Service<T> getService() {
+        return service == VOID_SERVICE ? null : service;
     }
 
     T getValue() {
@@ -398,8 +410,27 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void replace(final UpdateTransaction transaction, final Service<T> newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        // TODO implement
-        throw new UnsupportedOperationException("not implemented");
+        synchronized (this) {
+            if (isServiceRemoved())
+                return; // TODO: throw exception if service is being removed - same for other than replace() operations
+            if (replaceService != null) {
+                // TODO: throw exception replacement in progress - only one replacement can happen at a time
+            }
+            if (getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                // TODO: throw exception - service is being removed
+            }
+            if (getState() == STATE_DOWN) {
+                service = newService != null ? newService : (Service<T>)VOID_SERVICE;
+            } else {
+                replaceService = newService != null ? newService : (Service<T>)VOID_SERVICE;
+                if (completionListener != null) {
+                    this.replaceObservers = new NotificationEntry<>(this.replaceObservers, completionListener);
+                }
+                transition(transaction);
+                return;
+            }
+        }
+        if (completionListener != null) safeCallListener(completionListener);
     }
 
     @Override
@@ -548,12 +579,21 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     void setServiceDown(final Transaction transaction) {
         setValue(null);
-        NotificationEntry<T> disableObservers;
+        NotificationEntry<T> disableObservers, replaceObservers = null;
         synchronized (this) {
             setState(STATE_DOWN);
             transition(transaction);
+            if (replaceService != null) {
+                service = replaceService;
+                replaceService = null;
+                replaceObservers = this.replaceObservers;
+            }
             disableObservers = this.disableObservers;
             this.disableObservers = null;
+        }
+        while (replaceObservers != null) {
+            safeCallListener(replaceObservers.completionListener);
+            replaceObservers = replaceObservers.next;
         }
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
@@ -636,7 +676,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     private boolean shouldStop() {
-        return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED);
+        return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED) || replaceService != null;
     }
 
     private synchronized void setMode(final byte mid) {
