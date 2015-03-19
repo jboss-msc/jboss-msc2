@@ -228,6 +228,21 @@ public interface MSCLogger {
     @Message(id = 133, value = "Cannot create transaction hold handle for inactive transation")
     IllegalStateException cannotCreateHoldHandle();
 
+    @Message(id = 134, value = "Cannot replace removed service")
+    IllegalStateException cannotReplaceRemovedService();
+
+    @Message(id = 135, value = "Cannot retry removed service")
+    IllegalStateException cannotRetryRemovedService();
+
+    @Message(id = 136, value = "Cannot enable removed service")
+    IllegalStateException cannotEnableRemovedService();
+
+    @Message(id = 137, value = "Cannot disable removed service")
+    IllegalStateException cannotDisableRemovedService();
+
+    @Message(id = 138, value = "Cannot restart removed service")
+    IllegalStateException cannotRestartRemovedService();
+
     /*
      * Location nesting types.
      */

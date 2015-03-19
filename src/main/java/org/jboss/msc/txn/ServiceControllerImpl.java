@@ -245,17 +245,19 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         disable(transaction, null);
     }
 
     @Override
-    public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
-                if (isServiceRemoved()) break;
+                if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                    throw MSCLogger.SERVICE.cannotDisableRemovedService();
+                }
                 if (!isServiceEnabled()) break;
                 state &= ~SERVICE_ENABLED;
                 if (!isRegistryEnabled()) break;
@@ -263,7 +265,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 break;
             }
             if (completionListener == null) return;
-            if (getState() != STATE_DOWN && getState() != STATE_REMOVED) {
+            if (getState() != STATE_DOWN) {
                 this.disableObservers = new NotificationEntry<>(this.disableObservers, completionListener);
                 return; // don't call completion listener
             }
@@ -280,17 +282,19 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         enable(transaction, null);
     }
 
     @Override
-    public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
             while (true) {
-                if (isServiceRemoved()) break;
+                if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                    throw MSCLogger.SERVICE.cannotEnableRemovedService();
+                }
                 if (isServiceEnabled()) break;
                 state |= SERVICE_ENABLED;
                 if (!isRegistryEnabled()) break;
@@ -298,7 +302,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 break;
             }
             if (completionListener == null) return;
-            if (getState() != STATE_UP && getState() != STATE_FAILED && getState() != STATE_REMOVED) {
+            if (getState() != STATE_UP && getState() != STATE_FAILED) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
                 return; // don't call completion listener
             }
@@ -342,27 +346,26 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void retry(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void retry(final UpdateTransaction transaction) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         retry(transaction, null);
     }
 
     @Override
-    public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
-            while (true) {
-                if (isServiceRemoved()) break;
-                if (getState() != STATE_FAILED) {
-                    throw MSCLogger.SERVICE.serviceControllerNotInFailedState();
-                }
-                state &= ~SERVICE_ENABLED;
-                transition(transaction);
-                break;
+            if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                throw MSCLogger.SERVICE.cannotRetryRemovedService();
             }
+            if (getState() != STATE_FAILED) {
+                throw MSCLogger.SERVICE.serviceControllerNotInFailedState();
+            }
+            state &= ~SERVICE_ENABLED;
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
             }
+            transition(transaction);
         }
     }
 
@@ -402,22 +405,18 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void replace(final UpdateTransaction transaction, final Service<T> newService) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void replace(final UpdateTransaction transaction, final Service<T> newService) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         replace(transaction, newService, null);
     }
 
     @Override
-    public void replace(final UpdateTransaction transaction, final Service<T> newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void replace(final UpdateTransaction transaction, final Service<T> newService, final Listener<ServiceController<T>> completionListener)
+            throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
-            if (isServiceRemoved())
-                return; // TODO: throw exception if service is being removed - same for other than replace() operations
-            if (replaceService != null) {
-                // TODO: throw exception replacement in progress - only one replacement can happen at a time
-            }
-            if (getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
-                // TODO: throw exception - service is being removed
+            if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                throw MSCLogger.SERVICE.cannotReplaceRemovedService();
             }
             if (getState() == STATE_DOWN) {
                 service = newService != null ? newService : (Service<T>)VOID_SERVICE;
@@ -434,27 +433,26 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
-    public void restart(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void restart(final UpdateTransaction transaction) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         restart(transaction, null);
     }
 
     @Override
-    public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+    public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
         synchronized (this) {
-            while (true) {
-                if (isServiceRemoved()) break;
-                if (getState() != STATE_UP) {
-                    throw MSCLogger.SERVICE.serviceControllerNotInUpState();
-                }
-                state &= ~SERVICE_ENABLED;
-                transition(transaction);
-                break;
+            if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
+                throw MSCLogger.SERVICE.cannotRestartRemovedService();
             }
+            if (getState() != STATE_UP) {
+                throw MSCLogger.SERVICE.serviceControllerNotInUpState();
+            }
+            state &= ~SERVICE_ENABLED;
             if (completionListener != null) {
                 this.enableObservers = new NotificationEntry<>(this.enableObservers, completionListener);
             }
+            transition(transaction);
         }
     }
 
@@ -587,6 +585,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 service = replaceService;
                 replaceService = null;
                 replaceObservers = this.replaceObservers;
+                this.replaceObservers = null;
             }
             disableObservers = this.disableObservers;
             this.disableObservers = null;
