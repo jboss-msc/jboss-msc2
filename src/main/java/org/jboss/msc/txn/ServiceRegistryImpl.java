@@ -46,14 +46,14 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     private static final byte ENABLED = 1;
     private static final byte REMOVED = 2;
 
-    private AtomicLong installedServices = new AtomicLong();
+    // service registry state, which could be: enabled, disabled, or removed
+    private byte state = ENABLED;
+    private long installedServices;
     private NotificationEntry removeObservers;
 
     final ServiceContainerImpl container;
     // map of service registrations
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
-    // service registry state, which could be: enabled, disabled, or removed
-    private byte state = ENABLED;
 
     ServiceRegistryImpl(final ServiceContainerImpl container) {
         this.container = container;
@@ -130,7 +130,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         synchronized (this) {
             if (Bits.allAreClear(state, REMOVED)) {
                 state = (byte) (state | REMOVED);
-                if (registry.size() > 0) {
+                if (installedServices > 0) {
                     final RemoveTask removeTask = new RemoveTask(transaction);
                     getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
                     if (completionListener != null) {
@@ -214,14 +214,14 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
     }
 
-    void serviceInstalled() {
-        installedServices.incrementAndGet();
+    synchronized void serviceInstalled() {
+        ++installedServices;
     }
 
     void serviceRemoved() {
-        if (installedServices.decrementAndGet() > 0) return;
         NotificationEntry removeObservers;
         synchronized (this) {
+            if (--installedServices > 0) return;
             removeObservers = this.removeObservers;
             this.removeObservers = null;
         }
