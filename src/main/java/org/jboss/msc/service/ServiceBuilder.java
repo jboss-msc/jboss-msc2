@@ -120,6 +120,6 @@ public interface ServiceBuilder<T> {
      * @throws DuplicateServiceException if installation collides with some already existing service
      * @throws org.jboss.msc.service.CircularDependencyException if dependencies cycle is detected
      */
-    ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
+    ServiceController<T> install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
 
 }

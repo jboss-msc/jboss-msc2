@@ -132,6 +132,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
+    @SuppressWarnings("unchecked")
     public boolean downgradeTransaction(final UpdateTransaction updateTxn, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
         final BasicUpdateTransaction basicUpdateTxn = validateTransaction(updateTxn);
         if (listener == null) {
@@ -205,6 +206,7 @@ public final class TransactionController extends SimpleAttachable {
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
+    @SuppressWarnings("unchecked")
     public boolean upgradeTransaction(final ReadTransaction readTxn, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
         final BasicReadTransaction basicReadTxn = validateTransaction(readTxn);
         if (listener == null) {
@@ -246,6 +248,7 @@ public final class TransactionController extends SimpleAttachable {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void registerUpdateTransaction(final UpdateTransaction updateTxn, final Listener<? super UpdateTransaction> listener) {
         synchronized (txnLock) {
             if (runningTxns == 0) {
@@ -259,6 +262,7 @@ public final class TransactionController extends SimpleAttachable {
         safeCallListener((Listener<Object>)listener, updateTxn);
     }
 
+    @SuppressWarnings("unchecked")
     private void registerReadTransaction(final ReadTransaction readTxn, final Listener<? super ReadTransaction> listener) {
         synchronized (txnLock) {
             if (runningTxns == 0) {

@@ -126,6 +126,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      * @param mode                the service mode
      * @param dependencies        the service dependencies
      */
+    @SuppressWarnings("unchecked")
     ServiceControllerImpl(final Registration primaryRegistration, final Registration[] aliasRegistrations,
             final Service<T> service, final org.jboss.msc.service.ServiceMode mode, final DependencyImpl<?>[] dependencies) {
         this.service = service != null ? service : (Service<T>)VOID_SERVICE;
@@ -410,6 +411,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void replace(final UpdateTransaction transaction, final Service<T> newService, final Listener<ServiceController<T>> completionListener)
             throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
@@ -544,7 +546,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     /* Transition related methods */
-
+    @SuppressWarnings("unchecked")
     void setServiceUp(T result, final Transaction transaction) {
         setValue(result);
         NotificationEntry<T> enableObservers;
@@ -556,10 +558,11 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         }
         while (enableObservers != null) {
             safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
+            enableObservers = (NotificationEntry<T>) enableObservers.next;
         }
     }
 
+    @SuppressWarnings("unchecked")
     void setServiceFailed(final Transaction transaction) {
         MSCLogger.FAIL.startFailed(getServiceName());
         NotificationEntry<T> enableObservers;
@@ -571,10 +574,11 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         }
         while (enableObservers != null) {
             safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
+            enableObservers = (NotificationEntry<T>) enableObservers.next;
         }
     }
 
+    @SuppressWarnings("unchecked")
     void setServiceDown(final Transaction transaction) {
         setValue(null);
         NotificationEntry<T> disableObservers, replaceObservers = null;
@@ -592,14 +596,15 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         }
         while (replaceObservers != null) {
             safeCallListener(replaceObservers.completionListener);
-            replaceObservers = replaceObservers.next;
+            replaceObservers = (NotificationEntry<T>) replaceObservers.next;
         }
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
+            disableObservers = (NotificationEntry<T>) disableObservers.next;
         }
     }
 
+    @SuppressWarnings("unchecked")
     void setServiceRemoved(final Transaction transaction) {
         NotificationEntry<T> disableObservers, enableObservers, removeObservers;
         synchronized (this) {
@@ -614,15 +619,15 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         clear(transaction);
         while (disableObservers != null) {
             safeCallListener(disableObservers.completionListener);
-            disableObservers = disableObservers.next;
+            disableObservers = (NotificationEntry<T>) disableObservers.next;
         }
         while (enableObservers != null) {
             safeCallListener(enableObservers.completionListener);
-            enableObservers = enableObservers.next;
+            enableObservers = (NotificationEntry<T>) enableObservers.next;
         }
         while (removeObservers != null) {
             safeCallListener(removeObservers.completionListener);
-            removeObservers = removeObservers.next;
+            removeObservers = (NotificationEntry<T>) removeObservers.next;
         }
     }
 

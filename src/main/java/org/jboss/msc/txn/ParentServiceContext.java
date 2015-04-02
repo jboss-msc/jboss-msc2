@@ -44,6 +44,7 @@ class ParentServiceContext extends ServiceContextImpl {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <S> ServiceBuilder<S> addService(final ServiceRegistry registry, final ServiceName name) {
         validateParentUp();
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(registry, name);

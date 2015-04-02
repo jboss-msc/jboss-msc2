@@ -66,11 +66,12 @@ final class ServiceRegistryImpl implements ServiceRegistry {
      * @return the service corresponding to {@code serviceName}
      * @throws ServiceNotFoundException if the service is not present in the registry
      */
-    public ServiceController getRequiredService(final ServiceName serviceName) throws ServiceNotFoundException {
+    @SuppressWarnings("unchecked")
+    public <T> ServiceController<T> getRequiredService(final ServiceName serviceName) throws ServiceNotFoundException {
         if (serviceName == null) {
             throw TXN.methodParameterIsNull("serviceName");
         }
-        return getRequiredServiceController(serviceName);
+        return (ServiceController<T>) getRequiredServiceController(serviceName);
     }
 
     /**
@@ -79,7 +80,8 @@ final class ServiceRegistryImpl implements ServiceRegistry {
      * @param serviceName the service name
      * @return the service corresponding to {@code serviceName}, or {@code null} if it is not found
      */
-    public ServiceController getService(final ServiceName serviceName) {
+    @SuppressWarnings("unchecked")
+    public <T> ServiceController<T> getService(final ServiceName serviceName) {
         if (serviceName == null) {
             throw TXN.methodParameterIsNull("serviceName");
         }
@@ -87,7 +89,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         if (registration == null) {
             return null;
         }
-        return registration.getController();
+        return (ServiceController<T>) registration.getController();
     }
 
     synchronized Registration getOrCreateRegistration(final ServiceName name) {

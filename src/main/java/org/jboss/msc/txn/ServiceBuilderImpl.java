@@ -193,7 +193,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * {@inheritDoc}
      */
     @Override
-    public ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException {
+    public ServiceController<T> install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException {
         assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
         if (installed) {

@@ -35,18 +35,20 @@ public interface ServiceRegistry {
      * Gets a service controller, throwing an exception if it is not found.
      *
      * @param serviceName the service name
+     * @param <T> service controller value type
      * @return the service controller corresponding to {@code serviceName}
      * @throws ServiceNotFoundException if the service is not present in the registry
      */
-    ServiceController getRequiredService(ServiceName serviceName) throws ServiceNotFoundException;
+    <T> ServiceController<T> getRequiredService(ServiceName serviceName) throws ServiceNotFoundException;
 
     /**
      * Gets a service controller, returning {@code null} if it is not found.
      *
      * @param serviceName the service name
+     * @param <T> service controller value type
      * @return the service controller corresponding to {@code serviceName}, or {@code null} if it is not found
      */
-    ServiceController getService(ServiceName serviceName);
+    <T> ServiceController<T> getService(ServiceName serviceName);
 
     /**
      * Disables this registry and all its services, causing {@code UP} services to stop.

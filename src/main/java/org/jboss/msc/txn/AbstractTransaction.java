@@ -404,6 +404,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
+    @SuppressWarnings("unchecked")
     final void commit(final Listener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
         assert ! holdsLock(this);
         int state;
