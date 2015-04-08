@@ -27,9 +27,7 @@ import org.jboss.msc.util.Listener;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
-import static java.lang.Thread.holdsLock;
 import static org.jboss.msc._private.MSCLogger.TXN;
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 import static org.jboss.msc.txn.Helper.setModified;
@@ -52,6 +50,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     private NotificationEntry removeObservers;
 
     final ServiceContainerImpl container;
+    private final Object lock = new Object();
     // map of service registrations
     private final ConcurrentMap<ServiceName, Registration> registry = new ConcurrentHashMap<>();
 
@@ -92,17 +91,21 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         return (ServiceController<T>) registration.getController();
     }
 
-    synchronized Registration getOrCreateRegistration(final ServiceName name) {
-        checkRemoved();
-        Registration registration = registry.get(name);
-        if (registration == null) {
-            registration = new Registration(name, this);
-            Registration appearing = registry.putIfAbsent(name, registration);
-            if (appearing != null) {
-                registration = appearing;
+    Registration getOrCreateRegistration(final ServiceName name) {
+        synchronized (lock) {
+            if (Bits.anyAreSet(state, REMOVED)) {
+                throw TXN.removedServiceRegistry();
             }
+            Registration registration = registry.get(name);
+            if (registration == null) {
+                registration = new Registration(name, this);
+                Registration appearing = registry.putIfAbsent(name, registration);
+                if (appearing != null) {
+                    registration = appearing;
+                }
+            }
+            return registration;
         }
-        return registration;
     }
 
     TransactionController getTransactionController() {
@@ -111,7 +114,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
 
     ServiceControllerImpl<?> getRequiredServiceController(final ServiceName serviceName) throws ServiceNotFoundException {
         final Registration r;
-        synchronized (this) {
+        synchronized (lock) {
             r = registry.get(serviceName);
         }
         if (r == null || r.getController() == null) {
@@ -129,7 +132,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (Bits.allAreClear(state, REMOVED)) {
                 state = (byte) (state | REMOVED);
                 if (installedServices > 0) {
@@ -150,7 +153,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.allAreClear(state, ENABLED)) return;
             state &= ~ENABLED;
@@ -160,28 +163,23 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
     }
 
-    synchronized boolean isEnabled() {
-        return Bits.anyAreSet(state, ENABLED);
+    boolean isEnabled() {
+        synchronized (lock) {
+            return Bits.anyAreSet(state, ENABLED);
+        }
     }
 
     @Override
     public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (Bits.anyAreSet(state, REMOVED)) return;
             if (Bits.anyAreSet(state, ENABLED)) return;
             state |= ENABLED;
             for (final Registration registration : registry.values()) {
                 registration.enableRegistry(transaction);
             }
-        }
-    }
-
-    private void checkRemoved() throws IllegalStateException {
-        assert holdsLock(this);
-        if (Bits.anyAreSet(state, REMOVED)) {
-            throw TXN.removedServiceRegistry();
         }
     }
 
@@ -196,7 +194,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         @Override
         public void execute(final ExecuteContext<Void> context) {
             try {
-                synchronized (ServiceRegistryImpl.this) {
+                synchronized (ServiceRegistryImpl.this.lock) {
                     for (final Registration registration : registry.values()) {
                         registration.remove(transaction);
                     }
@@ -216,13 +214,15 @@ final class ServiceRegistryImpl implements ServiceRegistry {
         }
     }
 
-    synchronized void serviceInstalled() {
-        ++installedServices;
+    void serviceInstalled() {
+        synchronized (lock) {
+            ++installedServices;
+        }
     }
 
     void serviceRemoved() {
         NotificationEntry removeObservers;
-        synchronized (this) {
+        synchronized (lock) {
             if (--installedServices > 0) return;
             removeObservers = this.removeObservers;
             this.removeObservers = null;

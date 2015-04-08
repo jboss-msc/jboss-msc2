@@ -41,6 +41,7 @@ final class ServiceContainerImpl implements ServiceContainer {
 
     private final TransactionController txnController;
     private final Set<ServiceRegistryImpl> registries = new HashSet<>();
+    private final Object lock = new Object();
     private boolean removing, removed;
     private int removedRegistries;
     private NotificationEntry removeObservers;
@@ -50,7 +51,7 @@ final class ServiceContainerImpl implements ServiceContainer {
     }
 
     public ServiceRegistry newRegistry() {
-        synchronized (this) {
+        synchronized (lock) {
             if (removing) {
                 throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
             }
@@ -74,7 +75,7 @@ final class ServiceContainerImpl implements ServiceContainer {
         validateTransaction(txn, txnController);
         setModified(txn);
         while (true) {
-            synchronized (this) {
+            synchronized (lock) {
                 if (removed) break; // simulated goto for callback listener
                 if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
                 if (removing) return;
@@ -90,7 +91,7 @@ final class ServiceContainerImpl implements ServiceContainer {
 
     void registryRemoved() {
         NotificationEntry removeObservers;
-        synchronized (this) {
+        synchronized (lock) {
             if (++removedRegistries != registries.size()) return;
             removed = true;
             removeObservers = this.removeObservers;

@@ -145,7 +145,7 @@ public final class TransactionController extends SimpleAttachable {
         }
         // if basicUpdateTxn didn't modify anything, convert it
         BasicReadTransaction basicReadTxn;
-        synchronized (basicUpdateTxn) {
+        synchronized (basicUpdateTxn.getLock()) {
             if (basicUpdateTxn.isModified()) {
                 // if transaction modified anything we cannot downgrade
                 return false;
