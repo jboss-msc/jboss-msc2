@@ -58,7 +58,7 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * The incoming dependency.
      */
-    protected ServiceControllerImpl<?> dependent;
+    protected volatile ServiceControllerImpl<?> dependent;
 
     /**
      * Creates a simple dependency to {@code dependencyRegistration}.
@@ -113,13 +113,11 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param dependent    dependent associated with this dependency
      * @param transaction  the active transaction
      */
-    void setDependent(ServiceControllerImpl<?> dependent, Transaction transaction) {
-        synchronized (this) {
-            this.dependent = dependent;
-            dependencyRegistration.addIncomingDependency(transaction, this);
-            if (!propagateDemand && hasDemandedFlag()) {
-                dependencyRegistration.addDemand(transaction);
-            }
+    void setDependent(final ServiceControllerImpl<?> dependent, final Transaction transaction) {
+        this.dependent = dependent;
+        dependencyRegistration.addIncomingDependency(transaction, this);
+        if (!propagateDemand && hasDemandedFlag()) {
+            dependencyRegistration.addDemand(transaction);
         }
     }
 
@@ -128,11 +126,12 @@ class DependencyImpl<T> implements Dependency<T> {
      * 
      * @param transaction   the active transaction
      */
-    void clearDependent(Transaction transaction) {
+    void clearDependent(final Transaction transaction) {
         dependencyRegistration.removeIncomingDependency(this);
         if (!propagateDemand && hasDemandedFlag()) {
             dependencyRegistration.removeDemand(transaction);
         }
+        this.dependent = null;
     }
 
     /**
@@ -180,7 +179,7 @@ class DependencyImpl<T> implements Dependency<T> {
      *  
      * @param transaction    the active transaction
      */
-    void dependencyDown(Transaction transaction) {
+    void dependencyDown(final Transaction transaction) {
         dependent.dependencyUnsatisfied(transaction);
     }
 
