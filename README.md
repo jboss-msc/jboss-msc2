@@ -28,7 +28,12 @@ Build project
 Build documentation
 
 > mvn javadoc:javadoc
+
 > mvn site
+
+Read documentation
+
+> target/site/index.html
 
 License
 -------

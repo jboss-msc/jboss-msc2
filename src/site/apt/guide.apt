@@ -1,0 +1,130 @@
+MSC 2 User Guide
+
+ * {{{#Preface} Preface}}
+   
+   * {{{#Key Abstractions} Key Abstractions}}
+
+   * {{{#TransactionController} TransactionController}}
+
+   * {{{#Transaction} Transaction}}
+
+   * {{{#ServiceContainer} ServiceContainer}}
+
+   * {{{#ServiceRegistry} ServiceRegistry}}
+
+   * {{{#ServiceContext} ServiceContext}}
+
+   * {{{#ServiceController} ServiceController}}
+
+   * {{{#Service} Service}}
+
+   * {{{#Dependency} Dependency}}
+
+[]
+
+* {Preface}
+
+  MSC 2 comes with revolutionary idea that every MSC 2 runtime operation
+  must be part of some transaction. But do not get confused. MSC 2 transactions
+  have nothing to do with traditional transactional systems satisfying ACID properties.
+  
+
+* {Key Abstractions}
+
+  MSC 2 comes with these key abstractions:
+
+  * {{{./apidocs/org/jboss/msc/txn/TransactionController.html} TransactionController}}
+
+  * {{{./apidocs/org/jboss/msc/txn/Transaction.html} Transaction}}
+
+  * {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} ServiceContainer}}
+
+  * {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} ServiceRegistry}}
+
+  * {{{./apidocs/org/jboss/msc/service/ServiceContext.html} ServiceContext}}
+
+  * {{{./apidocs/org/jboss/msc/service/ServiceController.html} ServiceController}}
+
+  * {{{./apidocs/org/jboss/msc/service/Service.html} Service}}
+
+  * {{{./apidocs/org/jboss/msc/service/Dependency.html} Dependency}}
+
+  []
+
+* {TransactionController}
+
+  Everything starts from <<transaction controller>> in MSC2.
+  It is the key class for creating MSC 2 transactions and for modelling MSC 2 runtime.
+  To create new containers.
+  There are two types of transactions: READ and UPDATE.
+  handles their lifecycle (prepare -> commit) or (prepare -> restart) (restarted -> commit)
+Manipulates Transactions
+prepare( UpdateTransaction )
+restart( UpdateTransaction )
+commit( Transaction )
+
+Transforms Transactions
+downgradeTransaction( UpdateTransaction )
+upgradeTransaction( ReadTransaction )
+
+Creates ServiceContainers
+Provides access to ServiceContext
+
+* {Transaction}
+
+No ACID properties guarantee
+Every MSC2 internals inspection/modification requires Transaction
+Two kinds of Transactions: READ and UPDATE
+Can be in ACTIVE, PREPARED, RESTARTING or COMMITTED state
+Post-Commit “atomic” actions support
+Executed after commit decision but before transaction is released
+“Transaction Hold-Handle” support
+Users acquire/release THH to let MSC2 know when non-service code is working on behalf of a transaction
+Transaction is released iff all tasks and Post-Commit actions are executed and all THH are released
+Improved problem reporting with location information
+Compensating transaction used for emulating transactional behaviour:
+prepare -> restart -> commit
+
+* {ServiceContainer}
+
+Creates and removes ServiceRegistry(ies)
+
+* {ServiceRegistry}
+
+Contains ServiceController(s) accessible via ServiceName(s)
+Can be in ENABLED, DISABLED or REMOVED state
+
+* {ServiceContext}
+
+Adds service(s) to MSC 2 runtime
+
+* {ServiceController}
+
+Allows service retrieval
+Provides management methods:
+enable
+disable
+remove
+restart
+retry
+replace
+
+* {Service}
+
+Possible states: UP, DOWN, FAILED, RESTARTING or REMOVED
+Mode types: ACTIVE, LAZY or ON_DEMAND
+May have dependencies
+Constructed at install time
+Dependencies are set via Service constructor
+Same guarantees as MSC 1
+Stop happens-after start completion
+Subsequent restart happens-after stop completion
+Start happens-after dependency(ies) start is complete
+Stop happens-after dependent(s) stop is complete
+Dependencies are always available while service is up
+
+* {Dependency}
+
+Possible flags: (UN)REQUIRED, (UN)DEMANDED
+No more OPTIONAL dependency types
+

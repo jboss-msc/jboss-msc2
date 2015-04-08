@@ -1,0 +1,42 @@
+Overview
+
+  When MSC 1 was implemented it was designed with a <<JBoss AS 5/6>> server type in mind.
+  The initial idea behind MSC 1 was <everything is a deployment>.
+  Later when <<JBoss AS 7>> and <<Wildfly>> were implemented on top of MSC 1
+  it became obvious it does not play nicely with management
+  operations which typically need to know when particular operation is
+  complete, whether any part of the operation failed and if it failed what
+  the failures were (ideally in human-readable language).
+
+  The main <<JBoss AS 7>> and <<Wildfly>> problem from MSC point of view is they cannot deterministically decide when a management
+  operation is done. The MSC 1 state machine makes it impossible.
+  Therefore there were many time-based hacks implemented in <<JBoss AS 7>> and <<Wildfly>> code bases to workaround this limitation.
+  All these hacks were implemented using MSC 1 <<service listeners>> and later little
+  bit optimized with <<Stability monitors>> which have been introduced in MSC 1.1. But both approaches exposed the same
+  problem - they significantly degrade the MSC 1 performance.
+
+  The origin MSC team analyzed MSC 1 and its usage in <<Wildfly>> and it came with these conclusions:
+
+  * MSC 1 had great performance until service listeners and stability monitors were introduced
+
+  * Wildfly management layer tries to emulate transactional behavior on top of MSC 1
+
+  * MSC 1 API is difficult to use (e.g. its complex injection/value framework)
+
+  []
+
+  The outcome of this analysis was obvious - the need to create new <<MSC 2>> with goals:
+
+  * it will be much more faster than MSC 1
+
+  * it will consume much less memory than MSC 1
+
+  * it will come with built-in support for transactions
+
+  * its API will be radically simplified
+
+  * its runtime model will be enhanced (no more one container for everything)
+
+  []
+
+  Dear users, welcome to the new era - {{{./guide.html}the MSC 2 world}}.
