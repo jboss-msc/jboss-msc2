@@ -44,7 +44,7 @@ public final class TransactionController extends SimpleAttachable {
     private static final RuntimePermission TXN_CONTROLLER_CREATE_PERM = new RuntimePermission("canCreateTransactionController");
 
     // TXN administration lock
-    private final Object txnLock = new Object();
+    private final Object lock = new Object();
     // whether currently running TXNs are read-only or updating. There can be only single updating TXN at a time.
     private static boolean updatingTxnRunning;
     // count of running TXNs in this round
@@ -155,7 +155,7 @@ public final class TransactionController extends SimpleAttachable {
             basicReadTxn.setWrappingTransaction(basicReadTxn);
         }
         Deque<PendingTxnEntry> notifications = null;
-        synchronized (txnLock) {
+        synchronized (lock) {
             assert runningTxns == 1;
             updatingTxnRunning = false;
             if (pendingTxns.size() > 0) {
@@ -221,7 +221,7 @@ public final class TransactionController extends SimpleAttachable {
             safeCallListener((Listener<Object>)listener, readTxn);
             return true;
         }
-        synchronized (txnLock) {
+        synchronized (lock) {
             assert runningTxns > 0;
             if (!pendingTxns.isEmpty()) {
                 // cannot be upgraded because there are some pending updating txns registered already
@@ -255,7 +255,7 @@ public final class TransactionController extends SimpleAttachable {
 
     @SuppressWarnings("unchecked")
     private void registerUpdateTransaction(final UpdateTransaction updateTxn, final Listener<? super UpdateTransaction> listener) {
-        synchronized (txnLock) {
+        synchronized (lock) {
             if (runningTxns == 0) {
                 updatingTxnRunning = true;
                 runningTxns++;
@@ -269,7 +269,7 @@ public final class TransactionController extends SimpleAttachable {
 
     @SuppressWarnings("unchecked")
     private void registerReadTransaction(final ReadTransaction readTxn, final Listener<? super ReadTransaction> listener) {
-        synchronized (txnLock) {
+        synchronized (lock) {
             if (runningTxns == 0) {
                 runningTxns++;
             } else if (!updatingTxnRunning && pendingTxns.isEmpty()) {
@@ -284,7 +284,7 @@ public final class TransactionController extends SimpleAttachable {
 
     void unregister() {
         Deque<PendingTxnEntry> notifications = null;
-        synchronized (txnLock) {
+        synchronized (lock) {
             assert runningTxns > 0;
             runningTxns--;
             if (runningTxns == 0) {
@@ -299,7 +299,7 @@ public final class TransactionController extends SimpleAttachable {
     }
 
     private Deque<PendingTxnEntry> getNotifications() {
-        assert Thread.holdsLock(txnLock);
+        assert Thread.holdsLock(lock);
         final Deque<PendingTxnEntry> notifications = new ArrayDeque<>();
         PendingTxnEntry entry = pendingTxns.removeFirst();
         notifications.add(entry);
@@ -381,7 +381,7 @@ public final class TransactionController extends SimpleAttachable {
             @Override
             public void handleEvent(final UpdateTransaction result) {
                 final BasicUpdateTransaction retVal;
-                synchronized (txnLock) {
+                synchronized (lock) {
                     retVal = new BasicUpdateTransaction(new BasicReadTransaction(TransactionController.this, transaction.getExecutor()));
                 }
                 completionListener.handleEvent(retVal);
