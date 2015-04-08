@@ -64,6 +64,8 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     static final byte SERVICE_REMOVED  = (byte)0b01000000;
     static final byte REGISTRY_ENABLED = (byte)0b10000000;
 
+    private final Object lock = new Object();
+
     static final Service<Void> VOID_SERVICE = new Service<Void>() {
         @Override public void start(StartContext<Void> startContext) {}
         @Override public void stop(StopContext stopContext) {}
@@ -189,14 +191,14 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         }
         primaryRegistration.serviceInstalled();
         boolean demandDependencies;
-        synchronized (this) {
+        synchronized (lock) {
             if (!primaryRegistration.registry.isEnabled()) state &= ~REGISTRY_ENABLED;
             demandDependencies = isMode(MODE_ACTIVE);
         }
         if (demandDependencies) {
             demandDependencies(transaction);
         }
-        synchronized (this) {
+        synchronized (lock) {
             transition(transaction);
         }
     }
@@ -233,8 +235,10 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     /**
      * Gets the service.
      */
-    public synchronized Service<T> getService() {
-        return service == VOID_SERVICE ? null : service;
+    public Service<T> getService() {
+        synchronized (lock) {
+            return service == VOID_SERVICE ? null : service;
+        }
     }
 
     T getValue() {
@@ -254,7 +258,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void disable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             while (true) {
                 if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                     throw MSCLogger.SERVICE.cannotDisableRemovedService();
@@ -291,7 +295,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void enable(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             while (true) {
                 if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                     throw MSCLogger.SERVICE.cannotEnableRemovedService();
@@ -312,17 +316,17 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     private boolean isServiceEnabled() {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         return Bits.allAreSet(state, SERVICE_ENABLED);
     }
 
     private boolean isServiceRemoved() {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         return Bits.allAreSet(state, SERVICE_REMOVED);
     }
 
     void disableRegistry(final Transaction transaction) {
-        synchronized (this) {
+        synchronized (lock) {
             if (isServiceRemoved()) return;
             if (!isRegistryEnabled()) return;
             state &= ~REGISTRY_ENABLED;
@@ -332,7 +336,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     void enableRegistry(final Transaction transaction) {
-        synchronized (this) {
+        synchronized (lock) {
             if (isServiceRemoved()) return;
             if (isRegistryEnabled()) return;
             state |= REGISTRY_ENABLED;
@@ -342,7 +346,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     private boolean isRegistryEnabled() {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         return Bits.allAreSet(state, REGISTRY_ENABLED);
     }
 
@@ -355,7 +359,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void retry(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                 throw MSCLogger.SERVICE.cannotRetryRemovedService();
             }
@@ -389,7 +393,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     void _remove(final Transaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        synchronized (this) {
+        synchronized (lock) {
             while (true) {
                 if (isServiceRemoved()) break;
                 state |= SERVICE_REMOVED;
@@ -416,7 +420,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
             throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                 throw MSCLogger.SERVICE.cannotReplaceRemovedService();
             }
@@ -443,7 +447,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     public void restart(final UpdateTransaction transaction, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(transaction, primaryRegistration.getTransactionController());
         setModified(transaction);
-        synchronized (this) {
+        synchronized (lock) {
             if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                 throw MSCLogger.SERVICE.cannotRestartRemovedService();
             }
@@ -465,7 +469,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      */
     void demand(final Transaction transaction) {
         final boolean propagate;
-        synchronized (this) {
+        synchronized (lock) {
             if (demandedByCount++ > 0) {
                 return;
             }
@@ -474,7 +478,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         if (propagate) {
             demandDependencies(transaction);
         }
-        synchronized (this) {
+        synchronized (lock) {
             transition(transaction);
         }
     }
@@ -498,7 +502,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
      */
     void undemand(final Transaction transaction) {
         final boolean propagate;
-        synchronized (this) {
+        synchronized (lock) {
             if (--demandedByCount > 0) {
                 return;
             }
@@ -507,7 +511,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         if (propagate) {
             undemandDependencies(transaction);
         }
-        synchronized (this) {
+        synchronized (lock) {
             transition(transaction);
         }
     }
@@ -528,7 +532,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     void dependencySatisfied(final Transaction transaction) {
-        synchronized (this) {
+        synchronized (lock) {
             if (--unsatisfiedDependencies > 0) {
                 return;
             }
@@ -537,7 +541,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     public void dependencyUnsatisfied(final Transaction transaction) {
-        synchronized (this) {
+        synchronized (lock) {
             if (++unsatisfiedDependencies > 1) {
                return;
             }
@@ -550,7 +554,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     void setServiceUp(T result, final Transaction transaction) {
         setValue(result);
         NotificationEntry<T> enableObservers;
-        synchronized (this) {
+        synchronized (lock) {
             setState(STATE_UP);
             transition(transaction);
             enableObservers = this.enableObservers;
@@ -566,7 +570,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     void setServiceFailed(final Transaction transaction) {
         MSCLogger.FAIL.startFailed(getServiceName());
         NotificationEntry<T> enableObservers;
-        synchronized (this) {
+        synchronized (lock) {
             setState(STATE_FAILED);
             transition(transaction);
             enableObservers = this.enableObservers;
@@ -582,7 +586,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     void setServiceDown(final Transaction transaction) {
         setValue(null);
         NotificationEntry<T> disableObservers, replaceObservers = null;
-        synchronized (this) {
+        synchronized (lock) {
             setState(STATE_DOWN);
             transition(transaction);
             if (replaceService != null) {
@@ -607,7 +611,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     @SuppressWarnings("unchecked")
     void setServiceRemoved(final Transaction transaction) {
         NotificationEntry<T> disableObservers, enableObservers, removeObservers;
-        synchronized (this) {
+        synchronized (lock) {
             setState(STATE_REMOVED);
             disableObservers = this.disableObservers;
             this.disableObservers = null;
@@ -646,7 +650,7 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
     }
 
     private void transition(final Transaction transaction) {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         final boolean removed = isServiceRemoved();
         switch (getState()) {
             case STATE_DOWN:
@@ -683,16 +687,20 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
         return (isMode(MODE_ON_DEMAND) && demandedByCount == 0) || !Bits.allAreSet(state, SERVICE_ENABLED | REGISTRY_ENABLED) || Bits.allAreSet(state, SERVICE_REMOVED) || replaceService != null;
     }
 
-    private synchronized void setMode(final byte mid) {
-        state = (byte) (mid & MODE_MASK | state & ~MODE_MASK);
+    private void setMode(final byte mid) {
+        synchronized (lock) {
+            state = (byte) (mid & MODE_MASK | state & ~MODE_MASK);
+        }
     }
 
-    private synchronized boolean isMode(final byte mode) {
-        return (state & MODE_MASK) == mode;
+    private boolean isMode(final byte mode) {
+        synchronized (lock) {
+            return (state & MODE_MASK) == mode;
+        }
     }
 
     private void setState(final byte newState) {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         state = (byte) (newState & STATE_MASK | state & ~STATE_MASK);
     }
 
