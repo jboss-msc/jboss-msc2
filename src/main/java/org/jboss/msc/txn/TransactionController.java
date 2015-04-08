@@ -18,6 +18,7 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
+import org.jboss.msc._private.Version;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.util.Listener;
@@ -50,6 +51,10 @@ public final class TransactionController extends SimpleAttachable {
     private static int runningTxns;
     // TXNs that are pending execution, each item is either single updating TXN or set of reading TXNs
     private static final Deque<PendingTxnEntry> pendingTxns = new ArrayDeque<>();
+
+    static {
+        MSCLogger.ROOT.greeting(Version.getVersionString());
+    }
 
     private TransactionController() {}
 

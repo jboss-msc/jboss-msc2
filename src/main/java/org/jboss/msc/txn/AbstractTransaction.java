@@ -19,7 +19,6 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
-import org.jboss.msc._private.Version;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.util.Listener;
@@ -43,10 +42,6 @@ import static java.lang.Thread.holdsLock;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 abstract class AbstractTransaction extends SimpleAttachable implements Transaction {
-
-    static {
-        MSCLogger.ROOT.greeting(Version.getVersionString());
-    }
 
     private static final int FLAG_PREPARE_REQ     = 1 << 3;
     private static final int FLAG_RESTART_REQ     = 1 << 4;
