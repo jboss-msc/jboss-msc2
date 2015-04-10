@@ -161,7 +161,7 @@ final class Registration {
     }
 
     void installDependenciesValidateTask(final Transaction transaction) {
-        RequiredDependenciesCheck task = transaction.getAttachmentIfPresent(REQUIRED_DEPENDENCIES_CHECK_TASK);
+        RequiredDependenciesCheck task = transaction.getAttachment(REQUIRED_DEPENDENCIES_CHECK_TASK);
         if (task == null) {
             task = new RequiredDependenciesCheck(transaction.getReport());
             final RequiredDependenciesCheck appearing = transaction.putAttachmentIfAbsent(REQUIRED_DEPENDENCIES_CHECK_TASK, task);

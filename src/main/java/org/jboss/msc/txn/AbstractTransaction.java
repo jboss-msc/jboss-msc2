@@ -22,7 +22,6 @@ import org.jboss.msc._private.MSCLogger;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.util.Listener;
-import org.jboss.msc.util.SimpleAttachable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

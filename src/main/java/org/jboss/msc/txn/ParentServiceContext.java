@@ -22,11 +22,8 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.util.AttachmentKey;
-import org.jboss.msc.util.Factory;
 
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * Parent service context: behaves just like service context super class except that newly created services are
@@ -35,6 +32,8 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 class ParentServiceContext extends ServiceContextImpl {
+
+    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> PARENT_DEPENDENCIES= AttachmentKey.create();
 
     private final Registration parentRegistration;
 
@@ -62,17 +61,12 @@ class ParentServiceContext extends ServiceContextImpl {
         }
     }
 
-    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> PARENT_DEPENDENCIES= AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceName, DependencyImpl<?>>>() {
-
-        @Override
-        public ConcurrentHashMap<ServiceName, DependencyImpl<?>> create() {
-            return new ConcurrentHashMap<>();
-        }
-
-    });
-
     private <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration) {
-        final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
+        ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
+        if (parentDependencies == null) {
+            getTransaction().putAttachmentIfAbsent(PARENT_DEPENDENCIES, new ConcurrentHashMap<ServiceName, DependencyImpl<?>>());
+            parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
+        }
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {

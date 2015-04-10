@@ -120,12 +120,6 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     }
 
     @Override
-    public <T> T getAttachmentIfPresent(final AttachmentKey<T> key) {
-        assertState();
-        return delegate.getAttachmentIfPresent(key);
-    }
-
-    @Override
     public <T> T putAttachment(final AttachmentKey<T> key, final T newValue) {
         assertState();
         return delegate.putAttachment(key, newValue);

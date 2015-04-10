@@ -16,7 +16,10 @@
  * limitations under the License.
  */
 
-package org.jboss.msc.util;
+package org.jboss.msc.txn;
+
+import org.jboss.msc.util.Attachable;
+import org.jboss.msc.util.AttachmentKey;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,25 +28,10 @@ import java.util.concurrent.ConcurrentMap;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
 @SuppressWarnings("unchecked")
-public class SimpleAttachable implements Attachable {
+class SimpleAttachable implements Attachable {
     private final ConcurrentMap<AttachmentKey<?>, Object> attachments = new ConcurrentHashMap<>();
 
     public SimpleAttachable() {
-    }
-
-    public <T> T getAttachment(final AttachmentKey<T> key) {
-        if (key == null) {
-            throw new IllegalArgumentException("key is null");
-        }
-        Object value;
-        final ConcurrentMap<AttachmentKey<?>, Object> map = attachments;
-        value = map.get(key);
-        if (value != null) {
-            return (T) value;
-        }
-        final T newValue = key.createValue();
-        final Object appearing = map.putIfAbsent(key, newValue);
-        return appearing != null ? (T) appearing : newValue;
     }
 
     public boolean hasAttachment(final AttachmentKey<?> key) {
@@ -67,7 +55,7 @@ public class SimpleAttachable implements Attachable {
         }
     }
 
-    public <T> T getAttachmentIfPresent(final AttachmentKey<T> key) {
+    public <T> T getAttachment(final AttachmentKey<T> key) {
         return key == null ? null : (T) attachments.get(key);
     }
 

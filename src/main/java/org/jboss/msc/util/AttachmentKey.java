@@ -19,31 +19,19 @@
 package org.jboss.msc.util;
 
 /**
- * A key for a transaction attachment.
+ * A key for an attachment.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-@SuppressWarnings("unused")
 public final class AttachmentKey<T> {
-    private final Factory<T> defaultFactory;
-
-    private AttachmentKey(final Factory<T> factory) {
-        defaultFactory = factory;
-    }
 
     private AttachmentKey() {
-        defaultFactory = null;
+        // forbidden instantiation
     }
 
     public static <T> AttachmentKey<T> create() {
         return new AttachmentKey<>();
     }
 
-    public static <T> AttachmentKey<T> create(Factory<T> factory) {
-        return new AttachmentKey<>(factory);
-    }
-
-    T createValue() {
-        return defaultFactory == null ? null : defaultFactory.create();
-    }
 }

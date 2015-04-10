@@ -22,7 +22,6 @@ import org.jboss.msc._private.Version;
 import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceContext;
 import org.jboss.msc.util.Listener;
-import org.jboss.msc.util.SimpleAttachable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -39,7 +38,7 @@ import static org.jboss.msc.txn.Helper.getAbstractTransaction;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public final class TransactionController extends SimpleAttachable {
+public final class TransactionController {
 
     private static final RuntimePermission TXN_CONTROLLER_CREATE_PERM = new RuntimePermission("canCreateTransactionController");
 
