@@ -66,10 +66,4 @@ public interface Transaction extends Attachable {
      */
     ProblemReport getReport();
 
-    /**
-     * Returns transaction executor.
-     * @return transaction executor
-     */
-    Executor getExecutor();
-
 }

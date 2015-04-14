@@ -101,8 +101,7 @@ final class BasicUpdateTransaction implements UpdateTransaction {
         return delegate.isTerminated();
     }
 
-    @Override
-    public Executor getExecutor() {
+    Executor getExecutor() {
         assertState();
         return delegate.getExecutor();
     }

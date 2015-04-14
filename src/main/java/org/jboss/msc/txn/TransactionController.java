@@ -385,13 +385,13 @@ public final class TransactionController {
      * @throws InvalidTransactionStateException if transaction is not in prepared state
      */
     public void restart(final UpdateTransaction transaction, final Listener<? super UpdateTransaction> completionListener) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
-        validateTransaction(transaction);
+        final BasicUpdateTransaction transactionImpl = validateTransaction(transaction);
         final Listener<UpdateTransaction> restartObserver = new Listener<UpdateTransaction>() {
             @Override
             public void handleEvent(final UpdateTransaction result) {
                 final BasicUpdateTransaction retVal;
                 synchronized (lock) {
-                    retVal = new BasicUpdateTransaction(new BasicReadTransaction(TransactionController.this, transaction.getExecutor()));
+                    retVal = new BasicUpdateTransaction(new BasicReadTransaction(TransactionController.this, transactionImpl.getExecutor()));
                 }
                 completionListener.handleEvent(retVal);
             }
