@@ -48,13 +48,13 @@ public class TransactionPostPhaseListenersTestCase extends AbstractTransactionTe
     public void restartTransaction() throws Exception {
         final StringBuffer testLog = new StringBuffer();
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service = new TestService<>(testLog);
         final ServiceController serviceController = sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         final PostPrepareAction postPrepareAction1 = new PostPrepareAction(testLog, updateTxn);

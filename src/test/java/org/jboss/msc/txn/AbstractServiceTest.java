@@ -54,7 +54,7 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     @Before
     public void setUp() {
         super.setUp();
-        serviceContainer = txnController.createServiceContainer();
+        serviceContainer = txnController.newServiceContainer();
         serviceRegistry = serviceContainer.newRegistry();
         TestServiceBuilder.setDefaultServiceRegistry(serviceRegistry);
     }

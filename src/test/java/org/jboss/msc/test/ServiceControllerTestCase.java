@@ -49,13 +49,13 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
     @Test
     public void replaceStartedServiceWithNewService() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service1 = new TestService<>(serviceName);
         final ServiceController<Void> serviceController = sb.setService(service1).setMode(ServiceMode.ACTIVE).install();
         // assert first service is up and running
@@ -86,13 +86,13 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
     @Test
     public void replaceStartedServiceWithNullService() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service1 = new TestService<>(serviceName);
         final ServiceController<Void> serviceController = sb.setService(service1).setMode(ServiceMode.ACTIVE).install();
         // assert first service is up and running
@@ -119,13 +119,13 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
     @Test
     public void replaceDownServiceWithNewService() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service1 = new TestService<>(serviceName);
         final ServiceController<Void> serviceController = sb.setService(service1).setMode(ServiceMode.LAZY).install();
         // assert first service is up and running
@@ -153,13 +153,13 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
     @Test
     public void replaceDownServiceWithNullService() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder<Void> sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService<Void> service1 = new TestService<>(serviceName);
         final ServiceController<Void> serviceController = sb.setService(service1).setMode(ServiceMode.LAZY).install();
         // assert first service is up and running

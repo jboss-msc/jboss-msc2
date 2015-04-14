@@ -48,10 +48,10 @@ public class TransactionHoldHandleTestCase extends AbstractTransactionTest {
     public void blockTxnHoldHandleUntillAllServicesAreUp() throws Exception {
         final StringBuffer testLog = new StringBuffer();
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
+        final ServiceContainer container = txnController.newServiceContainer();
         final ServiceRegistry registry = container.newRegistry();
         final TransactionHoldHandle handle = updateTxn.acquireHoldHandle();
         final PrepareCompletionListener<UpdateTransaction> prepareCallback = new PrepareCompletionListener<>(testLog, updateTxn);
@@ -62,7 +62,7 @@ public class TransactionHoldHandleTestCase extends AbstractTransactionTest {
         // install first service
         final TestService<Void> service1 = new TestService<>("1", testLog);
         final ServiceName service1Name = ServiceName.of("test1");
-        final ServiceBuilder<Void> sb1 = txnController.getServiceContext(updateTxn).addService(registry, service1Name);
+        final ServiceBuilder<Void> sb1 = txnController.newServiceContext(updateTxn).addService(registry, service1Name);
         sb1.setService(service1).setMode(ServiceMode.ACTIVE).install();
         // assert transaction is active
         assertFalse(updateTxn.isPrepared());
@@ -70,7 +70,7 @@ public class TransactionHoldHandleTestCase extends AbstractTransactionTest {
         // install second service
         final TestService<Void> service2 = new TestService<>("2", testLog);
         final ServiceName service2Name = ServiceName.of("test2");
-        final ServiceBuilder<Void> sb2 = txnController.getServiceContext(updateTxn).addService(registry, service2Name);
+        final ServiceBuilder<Void> sb2 = txnController.newServiceContext(updateTxn).addService(registry, service2Name);
         sb2.setService(service2).addDependency(service1Name);
         sb2.setMode(ServiceMode.ACTIVE).install();
         // wait for all services to start
