@@ -23,7 +23,7 @@ import org.jboss.msc.txn.UpdateTransaction;
 import org.jboss.msc.util.Listener;
 
 /**
- * A service container. This class is thread safe.
+ * A service container. Implementations of this interface are thread safe.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
@@ -35,6 +35,7 @@ public interface ServiceContainer {
      * Creates new registry associated with this container.
      *
      * @return container registry
+     * @throws IllegalStateException if container have been shutdown
      */
     ServiceRegistry newRegistry();
 
@@ -46,6 +47,7 @@ public interface ServiceContainer {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service container.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this container
      */
     void shutdown(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
@@ -58,6 +60,7 @@ public interface ServiceContainer {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service container.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this container
      */
     void shutdown(UpdateTransaction transaction, Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 

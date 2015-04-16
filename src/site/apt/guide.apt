@@ -2,38 +2,44 @@ MSC 2 User Guide
 
  * {{{#Preface} Preface}}
    
-   * {{{#Key Abstractions} Key Abstractions}}
+ * {{{#Key_Abstractions} Key Abstractions}}
 
-   * {{{#TransactionController} TransactionController}}
+ * {{{#Transaction_Controller} Transaction Controller}}
 
-   * {{{#Transaction} Transaction}}
+   * {{{#Instantiating_Transaction_Controller} Instantiating Transaction Controller}}
 
-   * {{{#ServiceContainer} ServiceContainer}}
+   * {{{#Instantiating_Service_Container} Instantiating Service Container}}
 
-   * {{{#ServiceRegistry} ServiceRegistry}}
+   * {{{#Creating_Transactions} Creating Transactions}}
 
-   * {{{#ServiceContext} ServiceContext}}
+ * {{{#Transaction} Transaction}}
 
-   * {{{#ServiceController} ServiceController}}
+ * {{{#ServiceContainer} ServiceContainer}}
 
-   * {{{#Service} Service}}
+ * {{{#ServiceRegistry} ServiceRegistry}}
 
-   * {{{#Dependency} Dependency}}
+ * {{{#ServiceContext} ServiceContext}}
+
+ * {{{#ServiceController} ServiceController}}
+
+ * {{{#Service} Service}}
+
+ * {{{#Dependency} Dependency}}
 
 []
 
 * {Preface}
 
-  MSC 2 comes with revolutionary idea that every MSC 2 runtime operation
+  MSC 2 comes with revolutionary idea that every operation accessing MSC 2 runtime objects
   must be part of some transaction. But do not get confused. MSC 2 transactions
   have nothing to do with traditional transactional systems satisfying ACID properties.
   
 
 * {Key Abstractions}
 
-  MSC 2 comes with these key abstractions:
+  MSC 2 builds on these abstractions:
 
-  * {{{./apidocs/org/jboss/msc/txn/TransactionController.html} TransactionController}}
+  * {{{#Transaction_Controller} Transaction Controller}}
 
   * {{{./apidocs/org/jboss/msc/txn/Transaction.html} Transaction}}
 
@@ -51,24 +57,120 @@ MSC 2 User Guide
 
   []
 
-* {TransactionController}
+* {Transaction Controller}
 
-  Everything starts from <<transaction controller>> in MSC2.
-  It is the key class for creating MSC 2 transactions and for modelling MSC 2 runtime.
-  To create new containers.
+  {{{./apidocs/org/jboss/msc/txn/TransactionController.html} <<Transaction controller>>}} is the main entry point to MSC 2.
+  Every transaction controller creates its own sandboxed objects environment. Such environment consists of MSC 2 runtime model and transactions operating upon it.
+  Objects created by distinct transaction controllers cannot interact each other in any way.
+  
+  Similarly services belonging to one transaction controller environment
+  cannot depend on services from different transaction controller environment.
+
+** {Instantiating Transaction Controller}
+
+  The following example shows how to instantiate new {{{./apidocs/org/jboss/msc/txn/TransactionController.html} <<transaction controller>>}}:
+
+---
+
+TransactionController transactionController = TransactionController.newInstance();
+// do something with transaction controller
+
+---
+
+  Once transaction controller is created it can be used to create its environment.
+
+** {Instantiating Service Container}
+
+  MSC 2 runtime model builds on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
+  {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} service registry}} and
+  {{{./apidocs/org/jboss/msc/service/Service.html} service}}.
+  Every transaction controller builds and manages its own runtime model.
+  Typical useful runtime model consists of:
+
+ * one or more service containers
+
+ * every service container contains one or more registries
+
+ * every service registry consists of one or more services
+
+[]
+
+  The following example shows how to instantiate new {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} <<service container>>}}:
+
+---
+
+TransactionController transactionController = ...
+ServiceContainer serviceContainer = transactionController.newServiceContainer();
+// do something with service container e.g. create registry and install services into it
+
+---
+
+
+** {Creating Transactions}
+
+  In MSC 2 every MSC runtime accessing operation must be part of some transaction.
+  There are two types of transactions in MSC 2:
+
+ * <<read-only transactions>> - just read MSC runtime data
+
+ * <<updating transactions>> - both read and modify MSC runtime data
+
+[]
+
+  Transactions are created via transaction controller's <<newReadTransaction()>> and <<newUpdateTransaction()>> methods.
+  These methods are asynchronous - they do not block execution code. They guarantee requested transaction
+  will be created and made available to the user via callback some time in the future.
+  When <<newReadTransaction>> or <<newUpdateTransaction>> method returns the <<transaction creation request>> have been sent.
+  The transaction creation request can be in one of two states. It is either <<pending>> or <<satisfied>>.
+  When transaction creation request is satisfied completion listener associated with this request is called back.
+  The transaction is created and we say it is <active> (<running>, <executing>).
+  
+  Transation controller owns the transaction if and only if it created that transaction.
+  Every transaction controller can manipulate only transactions it own.
+  If transaction controller would try to modify or deal with transaction it does not own exception will be thrown.
+  In order to avoid <<deadlocks>> and because transactions can operate on MSC 2 runtime data concurrently,
+  all transactions created by particular <<transaction controller>> are always satisfying this guarantee:
+  <<Either just one updating transaction or multiple concurrent read-only transactions are executed at a specific point of time.>>
+  This guarantee avoids deadlocks because every <<transaction controller>> environment is sandboxed.
+
+  The following code shows how to create new updating transaction:
+
+---
+ThreadPoolExecutor executor = ... // some executor
+Listener<UpdateTransaction> updatingAsyncOperation = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction txn) {
+    // do something with transaction asynchronously e.g. install or remove services
+  }
+};
+// execute MSC runtime updating code asynchronously
+txnController.newUpdateTransaction(executor, updatingAsyncOperation);
+
+---
+
+  The following code shows how to create new read-only transaction:
+
+---
+
+Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>() {
+  @Override
+  public void handleEvent(ReadTransaction txn) {
+    // callback handling code - do something with transaction e.g. read runtime statistics
+  }
+};
+// execute MSC runtime read-only code asynchronously
+txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
+
+---
+
+ - downgrade(), upgrade() - transforms transactions
+ - prepare(), commit(), restart(), canCommit() - TXN lifecycle methods
+ - newServiceContainer() + newServiceContext() - TXN runtime modelling methods
+ 
   There are two types of transactions: READ and UPDATE.
   handles their lifecycle (prepare -> commit) or (prepare -> restart) (restarted -> commit)
-Manipulates Transactions
-prepare( UpdateTransaction )
-restart( UpdateTransaction )
-commit( Transaction )
 
-Transforms Transactions
-downgradeTransaction( UpdateTransaction )
-upgradeTransaction( ReadTransaction )
-
-Creates ServiceContainers
-Provides access to ServiceContext
+  + picture
 
 * {Transaction}
 

@@ -23,7 +23,7 @@ import org.jboss.msc.txn.UpdateTransaction;
 import org.jboss.msc.util.Listener;
 
 /**
- * A service registry.
+ * A service registry. Implementations of this interface are thread safe.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
@@ -58,9 +58,9 @@ public interface ServiceRegistry {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service registry.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
-     * @throws java.lang.IllegalStateException if registry have been removed.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this registry
      */
-    void disable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+    void disable(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Enables this registry. As a result, its services may start, depending on their
@@ -72,9 +72,9 @@ public interface ServiceRegistry {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service registry.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
-     * @throws java.lang.IllegalStateException if registry have been removed.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this registry
      */
-    void enable(UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException;
+    void enable(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
     /**
      * Removes this registry from the container.
@@ -84,6 +84,7 @@ public interface ServiceRegistry {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service registry.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this registry
      */
     void remove(UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException;
 
@@ -96,6 +97,7 @@ public interface ServiceRegistry {
      * or if transaction controller associated with <code>transaction</code>
      * is not the same as the one associated with this service registry.
      * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     * @throws IllegalArgumentException if transaction was created by different transaction controller than this registry
      */
     void remove(UpdateTransaction transaction, Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException;
 

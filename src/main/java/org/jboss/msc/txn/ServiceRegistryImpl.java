@@ -150,7 +150,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
-    public void disable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+    public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
         synchronized (lock) {
@@ -170,7 +170,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
-    public void enable(final UpdateTransaction transaction) throws IllegalStateException, IllegalArgumentException, InvalidTransactionStateException {
+    public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(transaction, container.getTransactionController());
         setModified(transaction);
         synchronized (lock) {
