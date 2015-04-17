@@ -148,10 +148,10 @@ public final class TransactionController {
      */
     @SuppressWarnings("unchecked")
     public boolean downgrade(final UpdateTransaction txn, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
-        final BasicUpdateTransaction basicUpdateTxn = validateUpdateTransaction(txn, this);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
+        final BasicUpdateTransaction basicUpdateTxn = validateUpdateTransaction(txn, this);
         // if basicUpdateTxn didn't modify anything, convert it
         BasicReadTransaction basicReadTxn;
         synchronized (basicUpdateTxn.getLock()) {
@@ -218,11 +218,10 @@ public final class TransactionController {
      */
     @SuppressWarnings("unchecked")
     public boolean upgrade(final ReadTransaction txn, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
-        validateReadTransaction(txn, this);
-        final BasicReadTransaction basicReadTxn = validateReadTransaction(txn, this);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
+        final BasicReadTransaction basicReadTxn = validateReadTransaction(txn, this);
         if (txn instanceof UpdateTransaction) {
             safeCallListener((Listener<Object>)listener, txn);
             return true;
@@ -344,8 +343,13 @@ public final class TransactionController {
      */
     public ServiceContainer newServiceContainer(final UpdateTransaction txn) {
         validateUpdateTransaction(txn, this);
-        setModified(txn);
-        return new ServiceContainerImpl(this);
+        final TransactionHoldHandle handle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            return new ServiceContainerImpl(this);
+        } finally {
+            handle.release();
+        }
     }
 
     /**
@@ -358,8 +362,13 @@ public final class TransactionController {
      */
     public ServiceContext newServiceContext(final UpdateTransaction txn) {
         validateUpdateTransaction(txn, this);
-        setModified(txn);
-        return new ServiceContextImpl(txn);
+        final TransactionHoldHandle handle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            return new ServiceContextImpl(txn);
+        } finally {
+            handle.release();
+        }
     }
     
     /**
@@ -376,6 +385,7 @@ public final class TransactionController {
     @SuppressWarnings("unchecked")
     public void prepare(final UpdateTransaction txn, final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateUpdateTransaction(txn, this);
+        setModified(txn);
         getAbstractTransaction(txn).prepare(completionListener);
     }
 
@@ -394,7 +404,6 @@ public final class TransactionController {
      */
     public void restart(final UpdateTransaction txn, final Listener<? super UpdateTransaction> completionListener) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
         validateUpdateTransaction(txn, this);
-        setModified(txn);
         final BasicUpdateTransaction transactionImpl = validateUpdateTransaction(txn, this);
         final Listener<UpdateTransaction> restartObserver = new Listener<UpdateTransaction>() {
             @Override
@@ -420,6 +429,9 @@ public final class TransactionController {
     @SuppressWarnings("unchecked")
     public <T extends Transaction> void commit(final T txn, final Listener<T> completionListener) throws InvalidTransactionStateException, SecurityException {
         validateTransaction(txn);
+        if (txn instanceof BasicUpdateTransaction) {
+            setModified((BasicUpdateTransaction)txn);
+        }
         getAbstractTransaction(txn).commit(completionListener);
     }
 

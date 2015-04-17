@@ -33,8 +33,10 @@ import org.jboss.msc.service.ServiceRegistry;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.jboss.msc.txn.Helper.validateTransaction;
+
 /**
- * A service builder.
+ * A service builder. Implementations of this class are not thread safe. They cannot be shared across threads.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
@@ -58,7 +60,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // dependencies
     private final Set<DependencyImpl<?>> dependencies = new HashSet<>();
     // active transaction
-    private final Transaction transaction;
+    private final UpdateTransaction transaction;
     // service mode
     private ServiceMode mode;
     // is service builder installed?
@@ -70,7 +72,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
      * @param name         service name
      * @param transaction  active transaction
      */
-    ServiceBuilderImpl(final Transaction transaction, final ServiceRegistryImpl registry, final ServiceName name) {
+    ServiceBuilderImpl(final UpdateTransaction transaction, final ServiceRegistryImpl registry, final ServiceName name) {
         this.transaction = transaction;
         this.registry = registry;
         this.name = name;
@@ -196,38 +198,43 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     public ServiceController<T> install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException {
         assert ! calledFromConstructorOf(service) : "install() must not be called from a service constructor";
         // idempotent
+        validateTransaction(transaction, registry.getTransactionController());
         if (installed) {
             throw MSCLogger.SERVICE.cannotCallInstallTwice();
         }
+        final TransactionHoldHandle handle = transaction.acquireHoldHandle();
         installed = true;
-
-        // create primary registration
-        final Registration registration = registry.getOrCreateRegistration(name);
-
-        // create alias registrations
-        final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
-        if (aliasRegistrations.length > 0) {
-            int i = 0;
-            for (final ServiceName alias: aliases) {
-                aliasRegistrations[i++] = registry.getOrCreateRegistration(alias);
-            }
-        }
-
-        // create dependencies
-        final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
-        if (dependenciesArray.length > 0) {
-            dependencies.toArray(dependenciesArray);
-        }
-
-        // create and install service controller
-        final ServiceControllerImpl<T> serviceController =  new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray);
-        serviceController.beginInstallation();
         try {
-            serviceController.completeInstallation(transaction);
-        } catch (Throwable t) {
-            serviceController.clear(transaction);
-            throw t;
+            // create primary registration
+            final Registration registration = registry.getOrCreateRegistration(name);
+
+            // create alias registrations
+            final Registration[] aliasRegistrations = aliases.size() > 0 ? new Registration[aliases.size()] : NO_ALIASES;
+            if (aliasRegistrations.length > 0) {
+                int i = 0;
+                for (final ServiceName alias : aliases) {
+                    aliasRegistrations[i++] = registry.getOrCreateRegistration(alias);
+                }
+            }
+
+            // create dependencies
+            final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
+            if (dependenciesArray.length > 0) {
+                dependencies.toArray(dependenciesArray);
+            }
+
+            // create and install service controller
+            final ServiceControllerImpl<T> serviceController = new ServiceControllerImpl<>(registration, aliasRegistrations, service, mode, dependenciesArray);
+            serviceController.beginInstallation();
+            try {
+                serviceController.completeInstallation(transaction);
+            } catch (Throwable t) {
+                serviceController.clear(transaction);
+                throw t;
+            }
+            return serviceController;
+        } finally {
+            handle.release();
         }
-        return serviceController;
     }
 }

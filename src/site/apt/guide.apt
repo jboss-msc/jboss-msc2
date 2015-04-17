@@ -8,9 +8,9 @@ MSC 2 User Guide
 
    * {{{#Instantiating_Transaction_Controller} Instantiating Transaction Controller}}
 
-   * {{{#Instantiating_Service_Container} Instantiating Service Container}}
-
    * {{{#Creating_Transactions} Creating Transactions}}
+
+   * {{{#Instantiating_Service_Container} Instantiating Service Container}}
 
  * {{{#Transaction} Transaction}}
 
@@ -79,6 +79,62 @@ TransactionController transactionController = TransactionController.newInstance(
 
   Once transaction controller is created it can be used to create its environment.
 
+** {Creating Transactions}
+
+  In MSC 2 every MSC runtime accessing operation must be part of some transaction.
+  There are two types of transactions in MSC 2:
+
+ * <<read-only transactions>> - just read MSC runtime data
+
+ * <<updating transactions>> - both read and modify MSC runtime data
+
+[]
+
+  Transactions are created via transaction controller's <<newReadTransaction()>> and <<newUpdateTransaction()>> methods.
+  These methods are asynchronous - they do not block execution code. They guarantee requested transaction
+  will be created and made available to the user via callback some time in the future.
+  When <<newReadTransaction>> or <<newUpdateTransaction>> method returns the <<transaction creation request>> have been sent.
+  The transaction creation request can be in one of two states. It is either <<pending>> or <<satisfied>>.
+  When transaction creation request is satisfied completion listener associated with this request is called back.
+  The transaction is created and we say it is <active> (<running>, <executing>).
+  
+  Transation controller owns the transaction if and only if it created that transaction.
+  Every transaction controller can manipulate only transactions it own.
+  In order to avoid <<deadlocks>> and because transactions can operate on MSC 2 runtime data concurrently,
+  all transactions created by particular <<transaction controller>> are always satisfying this guarantee:
+  <<Either single updating transaction or multiple concurrent read-only transactions are executed at a specific point of time.>>
+  This guarantee avoids deadlocks because every <<transaction controller>> environment is sandboxed.
+
+  The following code shows how to create new updating transaction:
+
+---
+ThreadPoolExecutor executor = ... // some executor
+Listener<UpdateTransaction> updatingAsyncOperation = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction txn) {
+    // do something with transaction asynchronously e.g. install or remove services
+  }
+};
+// execute MSC runtime updating code asynchronously
+txnController.newUpdateTransaction(executor, updatingAsyncOperation);
+
+---
+
+  The following code shows how to create new read-only transaction:
+
+---
+
+Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>() {
+  @Override
+  public void handleEvent(ReadTransaction txn) {
+    // callback handling code - access MSC2 runtime model
+  }
+};
+// execute MSC runtime read-only code asynchronously
+txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
+
+---
+
 ** {Instantiating Service Container}
 
   MSC 2 runtime model builds on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
@@ -105,64 +161,6 @@ ServiceContainer serviceContainer = transactionController.newServiceContainer();
 
 ---
 
-
-** {Creating Transactions}
-
-  In MSC 2 every MSC runtime accessing operation must be part of some transaction.
-  There are two types of transactions in MSC 2:
-
- * <<read-only transactions>> - just read MSC runtime data
-
- * <<updating transactions>> - both read and modify MSC runtime data
-
-[]
-
-  Transactions are created via transaction controller's <<newReadTransaction()>> and <<newUpdateTransaction()>> methods.
-  These methods are asynchronous - they do not block execution code. They guarantee requested transaction
-  will be created and made available to the user via callback some time in the future.
-  When <<newReadTransaction>> or <<newUpdateTransaction>> method returns the <<transaction creation request>> have been sent.
-  The transaction creation request can be in one of two states. It is either <<pending>> or <<satisfied>>.
-  When transaction creation request is satisfied completion listener associated with this request is called back.
-  The transaction is created and we say it is <active> (<running>, <executing>).
-  
-  Transation controller owns the transaction if and only if it created that transaction.
-  Every transaction controller can manipulate only transactions it own.
-  If transaction controller would try to modify or deal with transaction it does not own exception will be thrown.
-  In order to avoid <<deadlocks>> and because transactions can operate on MSC 2 runtime data concurrently,
-  all transactions created by particular <<transaction controller>> are always satisfying this guarantee:
-  <<Either just one updating transaction or multiple concurrent read-only transactions are executed at a specific point of time.>>
-  This guarantee avoids deadlocks because every <<transaction controller>> environment is sandboxed.
-
-  The following code shows how to create new updating transaction:
-
----
-ThreadPoolExecutor executor = ... // some executor
-Listener<UpdateTransaction> updatingAsyncOperation = new Listener<UpdateTransaction>() {
-  @Override
-  public void handleEvent(UpdateTransaction txn) {
-    // do something with transaction asynchronously e.g. install or remove services
-  }
-};
-// execute MSC runtime updating code asynchronously
-txnController.newUpdateTransaction(executor, updatingAsyncOperation);
-
----
-
-  The following code shows how to create new read-only transaction:
-
----
-
-Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>() {
-  @Override
-  public void handleEvent(ReadTransaction txn) {
-    // callback handling code - do something with transaction e.g. read runtime statistics
-  }
-};
-// execute MSC runtime read-only code asynchronously
-txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
-
----
-
  - downgrade(), upgrade() - transforms transactions
  - prepare(), commit(), restart(), canCommit() - TXN lifecycle methods
  - newServiceContainer() + newServiceContext() - TXN runtime modelling methods
@@ -174,10 +172,7 @@ txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
 
 * {Transaction}
 
-No ACID properties guarantee
-Every MSC2 internals inspection/modification requires Transaction
-Two kinds of Transactions: READ and UPDATE
-Can be in ACTIVE, PREPARED, RESTARTING or COMMITTED state
+Transaction can be in ACTIVE, PREPARED, RESTARTING or COMMITTED state
 Post-Commit “atomic” actions support
 Executed after commit decision but before transaction is released
 “Transaction Hold-Handle” support
