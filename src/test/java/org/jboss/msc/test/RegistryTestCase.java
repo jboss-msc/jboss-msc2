@@ -66,12 +66,12 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Before
     public void setup() {
         // registry1: contains A, B, and C
-        registry1 = serviceContainer.newRegistry();
+        registry1 = newRegistry(serviceContainer);
         serviceA = addService(registry1, serviceAName);
         serviceB = addService(registry1, serviceBName);
         serviceC = addService(registry1, serviceCName);
         // registry 2, contains D, E->D, F->(D and B), G->C, and H -> G services
-        registry2 = serviceContainer.newRegistry();
+        registry2 = newRegistry(serviceContainer);
         serviceD = addService(registry2, serviceDName);
         serviceE = addService(registry2, serviceEName, new DependencyInfo<TestService>(serviceDName, UNREQUIRED));
         serviceF = addService(registry2, serviceFName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceDName,
@@ -81,7 +81,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         serviceH = addService(registry2, serviceHName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceGName,
                 UNREQUIRED));
         // registry 3, empty
-        registry3 = serviceContainer.newRegistry();
+        registry3 = newRegistry(serviceContainer);
         // all services are up
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());

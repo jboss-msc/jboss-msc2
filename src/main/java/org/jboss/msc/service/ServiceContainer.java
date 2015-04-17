@@ -34,10 +34,11 @@ public interface ServiceContainer {
     /**
      * Creates new registry associated with this container.
      *
+     * @param transaction the transaction
      * @return container registry
      * @throws IllegalStateException if container have been shutdown
      */
-    ServiceRegistry newRegistry();
+    ServiceRegistry newRegistry(UpdateTransaction transaction);
 
     /**
      * Shuts down the container, removing all registries and their services.

@@ -30,6 +30,9 @@ import java.util.concurrent.Executor;
 
 import static org.jboss.msc._private.MSCLogger.TXN;
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
+import static org.jboss.msc.txn.Helper.setModified;
+import static org.jboss.msc.txn.Helper.validateReadTransaction;
+import static org.jboss.msc.txn.Helper.validateUpdateTransaction;
 
 /**
  * Transaction controller is the main entry point to MSC.
@@ -47,7 +50,7 @@ public final class TransactionController {
     // TXN administration lock
     private final Object lock = new Object();
     // whether currently running TXNs are read-only or updating. There can be only single updating TXN at a time.
-    private boolean updatingTxnRunning;
+    private boolean updateTxnRunning;
     // count of running TXNs in this round
     private int runningTxns;
     // TXNs that are pending execution, each item is either single updating TXN or set of reading TXNs
@@ -137,15 +140,15 @@ public final class TransactionController {
      *         }
      *     }
      * </PRE>
-     * @param updateTxn transaction to be transformed to read-only transaction
+     * @param txn update transaction to be transformed to read-only transaction
      * @param listener transaction transformation completion listener
      * @return {@code true} if downgrade was successful, {@code false} otherwise
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
     @SuppressWarnings("unchecked")
-    public boolean downgrade(final UpdateTransaction updateTxn, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
-        final BasicUpdateTransaction basicUpdateTxn = validateTransaction(updateTxn);
+    public boolean downgrade(final UpdateTransaction txn, final Listener<? super ReadTransaction> listener) throws IllegalArgumentException, SecurityException {
+        final BasicUpdateTransaction basicUpdateTxn = validateUpdateTransaction(txn, this);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
@@ -163,7 +166,7 @@ public final class TransactionController {
         Deque<PendingTxnEntry> notifications = null;
         synchronized (lock) {
             assert runningTxns == 1;
-            updatingTxnRunning = false;
+            updateTxnRunning = false;
             if (pendingTxns.size() > 0) {
                 pendingTxns.addFirst(new PendingTxnEntry(basicReadTxn, (Listener<Object>)listener));
                 runningTxns--;
@@ -207,20 +210,21 @@ public final class TransactionController {
      *         }
      *     }
      * </PRE>
-     * @param readTxn transaction to be transformed to updating transaction
+     * @param txn read transaction to be transformed to updating transaction
      * @param listener transaction transformation completion listener
      * @return {@code true} if upgrade was successful, {@code false} otherwise
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
     @SuppressWarnings("unchecked")
-    public boolean upgrade(final ReadTransaction readTxn, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
-        final BasicReadTransaction basicReadTxn = validateTransaction(readTxn);
+    public boolean upgrade(final ReadTransaction txn, final Listener<? super UpdateTransaction> listener) throws IllegalArgumentException, SecurityException {
+        validateReadTransaction(txn, this);
+        final BasicReadTransaction basicReadTxn = validateReadTransaction(txn, this);
         if (listener == null) {
             throw TXN.methodParameterIsNull("listener");
         }
-        if (readTxn instanceof UpdateTransaction) {
-            safeCallListener((Listener<Object>)listener, readTxn);
+        if (txn instanceof UpdateTransaction) {
+            safeCallListener((Listener<Object>)listener, txn);
             return true;
         }
         synchronized (lock) {
@@ -230,7 +234,7 @@ public final class TransactionController {
                 return false;
             }
             if (runningTxns == 1) {
-                updatingTxnRunning = true;
+                updateTxnRunning = true;
             } else {
                 final BasicUpdateTransaction upgradedTxn = new BasicUpdateTransaction(basicReadTxn);
                 basicReadTxn.setWrappingTransaction(upgradedTxn);
@@ -256,32 +260,32 @@ public final class TransactionController {
     }
 
     @SuppressWarnings("unchecked")
-    private void registerUpdateTransaction(final UpdateTransaction updateTxn, final Listener<? super UpdateTransaction> listener) {
+    private void registerUpdateTransaction(final UpdateTransaction txn, final Listener<? super UpdateTransaction> listener) {
         synchronized (lock) {
             if (runningTxns == 0) {
-                updatingTxnRunning = true;
+                updateTxnRunning = true;
                 runningTxns++;
             } else {
-                pendingTxns.add(new PendingTxnEntry(updateTxn, (Listener<Object>)listener));
+                pendingTxns.add(new PendingTxnEntry(txn, (Listener<Object>)listener));
                 return;
             }
         }
-        safeCallListener((Listener<Object>)listener, updateTxn);
+        safeCallListener((Listener<Object>)listener, txn);
     }
 
     @SuppressWarnings("unchecked")
-    private void registerReadTransaction(final ReadTransaction readTxn, final Listener<? super ReadTransaction> listener) {
+    private void registerReadTransaction(final ReadTransaction txn, final Listener<? super ReadTransaction> listener) {
         synchronized (lock) {
             if (runningTxns == 0) {
                 runningTxns++;
-            } else if (!updatingTxnRunning && pendingTxns.isEmpty()) {
+            } else if (!updateTxnRunning && pendingTxns.isEmpty()) {
                 runningTxns++;
             } else {
-                pendingTxns.add(new PendingTxnEntry(readTxn, (Listener<Object>)listener));
+                pendingTxns.add(new PendingTxnEntry(txn, (Listener<Object>)listener));
                 return;
             }
         }
-        safeCallListener((Listener<Object>)listener, readTxn);
+        safeCallListener((Listener<Object>)listener, txn);
     }
 
     void unregister() {
@@ -290,7 +294,7 @@ public final class TransactionController {
             assert runningTxns > 0;
             runningTxns--;
             if (runningTxns == 0) {
-                updatingTxnRunning = false;
+                updateTxnRunning = false;
                 if (pendingTxns.isEmpty()) return;
                 notifications = getNotifications();
             }
@@ -308,7 +312,7 @@ public final class TransactionController {
         runningTxns++;
         if (entry.txn instanceof UpdateTransaction) {
             // process single updating transaction at the head
-            updatingTxnRunning = true;
+            updateTxnRunning = true;
         } else {
             // process remaining read-only transactions at the head
             final Iterator<PendingTxnEntry> i = pendingTxns.iterator();
@@ -335,23 +339,27 @@ public final class TransactionController {
     /**
      * Creates a new service container.
      *
+     * @param txn update transaction
      * @return new service container.
      */
-    public ServiceContainer newServiceContainer() {
+    public ServiceContainer newServiceContainer(final UpdateTransaction txn) {
+        validateUpdateTransaction(txn, this);
+        setModified(txn);
         return new ServiceContainerImpl(this);
     }
 
     /**
-     * Creates a new service context.
+     * Creates a new service context. It will keep passed transaction internally for services installation purpose.
      *
-     * @param transaction update transaction to associate service context with
+     * @param txn update transaction
      * @return new service context
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      */
-    public ServiceContext newServiceContext(final UpdateTransaction transaction) {
-        validateTransaction(transaction);
-        return new ServiceContextImpl(transaction);
+    public ServiceContext newServiceContext(final UpdateTransaction txn) {
+        validateUpdateTransaction(txn, this);
+        setModified(txn);
+        return new ServiceContextImpl(txn);
     }
     
     /**
@@ -360,15 +368,15 @@ public final class TransactionController {
      * Once this method returns, either {@link #commit(Transaction, Listener)} or {@link #restart(UpdateTransaction, Listener)} must be called
      * in order to release its allocated resources.
      *
-     * @param transaction        the transaction to be prepared
+     * @param txn the update transaction to be prepared
      * @param completionListener the listener to call when the prepare is complete or has failed
      * @throws InvalidTransactionStateException if the transaction has already been prepared, restarted or committed
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public void prepare(final UpdateTransaction transaction, final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException, SecurityException {
-        validateTransaction(transaction);
-        getAbstractTransaction(transaction).prepare(completionListener);
+    public void prepare(final UpdateTransaction txn, final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException, SecurityException {
+        validateUpdateTransaction(txn, this);
+        getAbstractTransaction(txn).prepare(completionListener);
     }
 
     /**
@@ -378,14 +386,16 @@ public final class TransactionController {
      * In other words {@code transaction} passed as first parameter will be marked as <B>TERMINATED</B> once this method finishes its execution
      * and new updating transaction in <B>ACTIVE</B> state will be created.
      *
-     * @param transaction        the transaction to be restarted
+     * @param txn the update transaction to be restarted
      * @param completionListener the listener to call when the restart is complete
      * @throws IllegalArgumentException if any parameter is null
      * @throws SecurityException if there's a <B>TransactionController</B> mismatch
      * @throws InvalidTransactionStateException if transaction is not in prepared state
      */
-    public void restart(final UpdateTransaction transaction, final Listener<? super UpdateTransaction> completionListener) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
-        final BasicUpdateTransaction transactionImpl = validateTransaction(transaction);
+    public void restart(final UpdateTransaction txn, final Listener<? super UpdateTransaction> completionListener) throws IllegalArgumentException, SecurityException, InvalidTransactionStateException {
+        validateUpdateTransaction(txn, this);
+        setModified(txn);
+        final BasicUpdateTransaction transactionImpl = validateUpdateTransaction(txn, this);
         final Listener<UpdateTransaction> restartObserver = new Listener<UpdateTransaction>() {
             @Override
             public void handleEvent(final UpdateTransaction result) {
@@ -396,87 +406,53 @@ public final class TransactionController {
                 completionListener.handleEvent(retVal);
             }
         };
-        getAbstractTransaction(transaction).restart(restartObserver);
+        getAbstractTransaction(txn).restart(restartObserver);
     }
 
     /**
      * Commits the work done by {@link #prepare(UpdateTransaction, Listener)} and terminates the {@code transaction}.
      *
-     * @param transaction        the transaction to be committed
+     * @param txn the transaction to be committed
      * @param completionListener the listener to call when the commit is complete
      * @throws InvalidTransactionStateException if the transaction has already been committed or has not yet been prepared
      * @throws SecurityException if transaction was not created by this controller
      */
     @SuppressWarnings("unchecked")
-    public <T extends Transaction> void commit(final T transaction, final Listener<T> completionListener) throws InvalidTransactionStateException, SecurityException {
-        validateTransaction(transaction);
-        getAbstractTransaction(transaction).commit(completionListener);
+    public <T extends Transaction> void commit(final T txn, final Listener<T> completionListener) throws InvalidTransactionStateException, SecurityException {
+        validateTransaction(txn);
+        getAbstractTransaction(txn).commit(completionListener);
     }
 
     /**
      * Indicates whether a <B>PREPARED</B> transaction can be committed.  If it cannot, it should be reverted with
      * compensating transaction created via {@link #restart(UpdateTransaction, Listener)} method.
      *
-     * @param transaction the transaction
+     * @param txn the transaction
      * @return {@code true} if the transaction can be committed, {@code false} if it must be aborted
      * @throws InvalidTransactionStateException if the transaction is not prepared
      * @throws SecurityException if transaction was not created by this controller
      */
-    public boolean canCommit(final Transaction transaction) throws InvalidTransactionStateException, SecurityException {
-        validateTransaction(transaction);
-        return getAbstractTransaction(transaction).canCommit();
+    public boolean canCommit(final Transaction txn) throws InvalidTransactionStateException, SecurityException {
+        validateTransaction(txn);
+        return getAbstractTransaction(txn).canCommit();
     }
 
     /**
      * Determines whether the specified transaction have been created by this controller.
-     * @param transaction to be checked
-     * @return <code>true</code> if {@code transaction} have been created by this controller, <code>false</code> otherwise
+     * @param txn to be checked
+     * @return <code>true</code> if {@code transaction} was created by this controller, <code>false</code> otherwise
      */
-    public boolean owns(final Transaction transaction) {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
-        final boolean isUpdateTransaction = transaction instanceof BasicUpdateTransaction && ((BasicUpdateTransaction)transaction).getDelegate().txnController == this;
-        final boolean isReadTransaction = transaction instanceof BasicReadTransaction && ((BasicReadTransaction)transaction).txnController == this;
-        return isUpdateTransaction || isReadTransaction;
+    public boolean owns(final Transaction txn) {
+        if (txn == null) return false;
+        final boolean isOurUpdateTransaction = txn instanceof BasicUpdateTransaction && ((BasicUpdateTransaction)txn).getDelegate().txnController == this;
+        final boolean isOurReadTransaction = txn instanceof BasicReadTransaction && ((BasicReadTransaction)txn).txnController == this;
+        return isOurUpdateTransaction || isOurReadTransaction;
     }
 
     private void validateTransaction(final Transaction transaction) throws SecurityException {
-        if (transaction == null) {
-            throw TXN.methodParameterIsNull("transaction");
-        }
         if (!owns(transaction)) {
             throw new SecurityException("Transaction not created by this controller");
         }
     }
 
-    private BasicReadTransaction validateTransaction(final ReadTransaction readTxn) throws SecurityException {
-        if (readTxn == null) {
-            throw TXN.methodParameterIsNull("readTxn");
-        }
-        final boolean isReadTxn = readTxn instanceof BasicReadTransaction;
-        final boolean isUpdateTxn = readTxn instanceof BasicUpdateTransaction;
-        if (!isReadTxn && !isUpdateTxn) {
-            throw new SecurityException("Transaction not created by this controller");
-        }
-        final BasicReadTransaction basicReadTxn = isUpdateTxn ? ((BasicUpdateTransaction)readTxn).getDelegate() : (BasicReadTransaction) readTxn;
-        if (basicReadTxn.txnController != this) {
-            throw new SecurityException("Transaction not created by this controller");
-        }
-        return basicReadTxn;
-    }
-
-    private BasicUpdateTransaction validateTransaction(final UpdateTransaction updateTxn) throws IllegalArgumentException, SecurityException {
-        if (updateTxn == null) {
-            throw TXN.methodParameterIsNull("updateTxn");
-        }
-        if (!(updateTxn instanceof BasicUpdateTransaction)) {
-            throw new SecurityException("Transaction not created by this controller");
-        }
-        final BasicUpdateTransaction basicUpdateTxn = (BasicUpdateTransaction)updateTxn;
-        if (basicUpdateTxn.getController() != this) {
-            throw new SecurityException("Transaction not created by this controller");
-        }
-        return basicUpdateTxn;
-    }
 }

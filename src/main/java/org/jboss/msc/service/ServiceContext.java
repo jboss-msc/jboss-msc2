@@ -23,6 +23,7 @@ import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A service context can be used to add new services.
+ * It keeps reference to updating transaction internally.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>

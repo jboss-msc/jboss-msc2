@@ -26,6 +26,7 @@ import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.txn.AbstractTransactionTest;
+import org.jboss.msc.txn.ReadTransaction;
 import org.jboss.msc.txn.TransactionHoldHandle;
 import org.jboss.msc.txn.UpdateTransaction;
 import org.jboss.msc.util.CompletionListener;
@@ -51,8 +52,8 @@ public class TransactionHoldHandleTestCase extends AbstractTransactionTest {
         txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.newServiceContainer();
-        final ServiceRegistry registry = container.newRegistry();
+        final ServiceContainer container = txnController.newServiceContainer(updateTxn);
+        final ServiceRegistry registry = container.newRegistry(updateTxn);
         final TransactionHoldHandle handle = updateTxn.acquireHoldHandle();
         final PrepareCompletionListener<UpdateTransaction> prepareCallback = new PrepareCompletionListener<>(testLog, updateTxn);
         txnController.prepare(updateTxn, prepareCallback);

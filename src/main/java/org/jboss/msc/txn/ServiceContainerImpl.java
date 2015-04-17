@@ -50,7 +50,9 @@ final class ServiceContainerImpl implements ServiceContainer {
         this.txnController = txnController;
     }
 
-    public ServiceRegistry newRegistry() {
+    public ServiceRegistry newRegistry(final UpdateTransaction txn) {
+        validateTransaction(txn, txnController);
+        setModified(txn);
         synchronized (lock) {
             if (removing) {
                 throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();

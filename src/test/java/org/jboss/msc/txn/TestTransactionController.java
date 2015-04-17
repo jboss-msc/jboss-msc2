@@ -74,8 +74,8 @@ public final class TestTransactionController {
         return delegate.newServiceContext(updateTxn);
     }
 
-    public ServiceContainer newServiceContainer() {
-        return delegate.newServiceContainer();
+    public ServiceContainer newServiceContainer(final UpdateTransaction updateTxn) {
+        return delegate.newServiceContainer(updateTxn);
     }
 
 }
