@@ -52,10 +52,6 @@ class DependencyImpl<T> implements Dependency<T> {
      */
     private final Registration dependencyRegistration;
     /**
-     * Indicates if the dependency should be demanded to be satisfied when service is attempting to start.
-     */
-    private final boolean propagateDemand;
-    /**
      * The incoming dependency.
      */
     protected volatile ServiceControllerImpl<?> dependent;
@@ -81,23 +77,6 @@ class DependencyImpl<T> implements Dependency<T> {
         }
         this.flags = translatedFlags;
         this.dependencyRegistration = dependencyRegistration;
-        this.propagateDemand = !hasDemandedFlag() && !hasUndemandedFlag();
-    }
-
-    final boolean hasRequiredFlag() {
-        return Bits.allAreSet(flags, REQUIRED_FLAG);
-    }
-
-    final boolean hasUnrequiredFlag() {
-        return Bits.allAreSet(flags, UNREQUIRED_FLAG);
-    }
-
-    final boolean hasDemandedFlag() {
-        return Bits.allAreSet(flags, DEMANDED_FLAG);
-    }
-
-    final boolean hasUndemandedFlag() {
-        return Bits.allAreSet(flags, UNDEMANDED_FLAG);
     }
 
     public T get() {
@@ -116,7 +95,7 @@ class DependencyImpl<T> implements Dependency<T> {
     void setDependent(final ServiceControllerImpl<?> dependent, final Transaction transaction) {
         this.dependent = dependent;
         dependencyRegistration.addIncomingDependency(transaction, this);
-        if (!propagateDemand && hasDemandedFlag()) {
+        if (Bits.allAreSet(flags, DEMANDED_FLAG)) {
             dependencyRegistration.addDemand(transaction);
         }
     }
@@ -128,7 +107,7 @@ class DependencyImpl<T> implements Dependency<T> {
      */
     void clearDependent(final Transaction transaction) {
         dependencyRegistration.removeIncomingDependency(this);
-        if (!propagateDemand && hasDemandedFlag()) {
+        if (Bits.allAreSet(flags, DEMANDED_FLAG)) {
             dependencyRegistration.removeDemand(transaction);
         }
         this.dependent = null;
@@ -149,7 +128,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      */
     void demand(Transaction transaction) {
-        if (propagateDemand) {
+        if (Bits.allAreClear(flags, DEMANDED_FLAG | UNDEMANDED_FLAG)) {
             dependencyRegistration.addDemand(transaction);
         }
     }
@@ -160,7 +139,7 @@ class DependencyImpl<T> implements Dependency<T> {
      * @param transaction the active transaction
      */
     void undemand(Transaction transaction) {
-        if (propagateDemand) {
+        if (Bits.allAreClear(flags, DEMANDED_FLAG | UNDEMANDED_FLAG)) {
             dependencyRegistration.removeDemand(transaction);
         }
     }
@@ -190,7 +169,7 @@ class DependencyImpl<T> implements Dependency<T> {
      */
     void validate(final ProblemReport report) {
         final ServiceControllerImpl<?> controller = dependencyRegistration.holderRef.get();
-        if (controller == null && !hasUnrequiredFlag()) {
+        if (controller == null && Bits.allAreClear(flags, UNREQUIRED_FLAG)) {
             report.addProblem(new Problem(Severity.ERROR, MSCLogger.SERVICE.requiredDependency(dependent.getServiceName(), dependencyRegistration.getServiceName())));
         }
     }
