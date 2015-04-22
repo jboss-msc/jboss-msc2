@@ -50,7 +50,7 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * The dependency registration.
      */
-    private final Registration dependencyRegistration;
+    private volatile Registration dependencyRegistration;
     /**
      * The incoming dependency.
      */
@@ -59,10 +59,9 @@ class DependencyImpl<T> implements Dependency<T> {
     /**
      * Creates a simple dependency to {@code dependencyRegistration}.
      * 
-     * @param dependencyRegistration the dependency registration
      * @param flags dependency flags
      */
-    protected DependencyImpl(final Registration dependencyRegistration, final DependencyFlag... flags) {
+    protected DependencyImpl(final DependencyFlag... flags) {
         byte translatedFlags = 0;
         for (final DependencyFlag flag : flags) {
             if (flag != null) {
@@ -76,13 +75,17 @@ class DependencyImpl<T> implements Dependency<T> {
             throw SERVICE.mutuallyExclusiveFlags(DependencyFlag.REQUIRED.toString(), DependencyFlag.UNREQUIRED.toString());
         }
         this.flags = translatedFlags;
+    }
+
+    final void setDependencyRegistration(final Registration dependencyRegistration) {
         this.dependencyRegistration = dependencyRegistration;
     }
 
     public T get() {
+        if (dependencyRegistration == null) return null;
         @SuppressWarnings("unchecked")
         ServiceControllerImpl<T> dependencyController = (ServiceControllerImpl<T>) dependencyRegistration.getController();
-        return dependencyController == null? null: dependencyController.getValue();
+        return dependencyController == null ? null : dependencyController.getValue();
     }
 
     /**

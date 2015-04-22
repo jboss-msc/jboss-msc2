@@ -30,7 +30,9 @@ import org.jboss.msc.service.ServiceMode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.jboss.msc.txn.Helper.validateTransaction;
@@ -58,7 +60,7 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
     // service itself
     private Service<T> service;
     // dependencies
-    private final Set<DependencyImpl<?>> dependencies = new HashSet<>();
+    private final Map<DependencyKey, DependencyImpl<?>> dependencies = new HashMap<>();
     // active transaction
     private final UpdateTransaction transaction;
     // service mode
@@ -79,8 +81,8 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         this.mode = ServiceMode.ACTIVE;
     }
 
-    void addDependency(DependencyImpl<?> dependency) {
-        dependencies.add(dependency);
+    void addDependency(final ServiceRegistryImpl registry, final ServiceName name, final DependencyImpl<?> dependency) {
+        dependencies.put(new DependencyKey(registry, name), dependency);
     }
 
     /**
@@ -167,10 +169,36 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
         if (this.registry.getTransactionController() != registry.getTransactionController()) {
             throw MSCLogger.SERVICE.cannotCreateDependencyOnRegistryCreatedByOtherTransactionController();
         }
-        final Registration dependencyRegistration = registry.getOrCreateRegistration(name);
-        final DependencyImpl<D> dependency = new DependencyImpl<>(dependencyRegistration, flags != null ? flags : noFlags);
-        dependencies.add(dependency);
+        final DependencyKey key = new DependencyKey(registry, name);
+        final DependencyImpl<D> dependency = new DependencyImpl<>(flags != null ? flags : noFlags);
+        dependencies.put(key, dependency);
         return dependency;
+    }
+
+    private static final class DependencyKey {
+        private final ServiceRegistryImpl registry;
+        private final ServiceName name;
+
+        private DependencyKey(final ServiceRegistryImpl registry, final ServiceName name) {
+            this.registry = registry;
+            this.name = name;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = 17;
+            result = 37 * result + System.identityHashCode(registry);
+            result = 37 * result + name.hashCode();
+            return result;
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (o == null) return false;
+            if (!(o instanceof DependencyKey)) return false;
+            final DependencyKey other = (DependencyKey)o;
+            return this.registry == other.registry && this.name.equals(other.name);
+        }
     }
 
     private static boolean calledFromConstructorOf(Object obj) {
@@ -220,7 +248,10 @@ final class ServiceBuilderImpl<T> implements ServiceBuilder<T> {
             // create dependencies
             final DependencyImpl<?>[] dependenciesArray = dependencies.size() > 0 ? new DependencyImpl<?>[dependencies.size()] : NO_DEPENDENCIES;
             if (dependenciesArray.length > 0) {
-                dependencies.toArray(dependenciesArray);
+                dependencies.values().toArray(dependenciesArray);
+                for (final Map.Entry<DependencyKey, DependencyImpl<?>> e : dependencies.entrySet()) {
+                    e.getValue().setDependencyRegistration(e.getKey().registry.getOrCreateRegistration(e.getKey().name));
+                }
             }
 
             // create and install service controller

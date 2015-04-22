@@ -48,7 +48,7 @@ class ParentServiceContext extends ServiceContextImpl {
         validateParentUp();
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(registry, name);
         final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration));
+        serviceBuilder.addDependency(parentRegistration.registry, parentName, getParentDependency(parentName));
         return serviceBuilder;
     }
 
@@ -61,7 +61,7 @@ class ParentServiceContext extends ServiceContextImpl {
         }
     }
 
-    private <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration) {
+    private <T> DependencyImpl<T> getParentDependency(ServiceName parentName) {
         ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
         if (parentDependencies == null) {
             getTransaction().putAttachmentIfAbsent(PARENT_DEPENDENCIES, new ConcurrentHashMap<ServiceName, DependencyImpl<?>>());
@@ -70,7 +70,7 @@ class ParentServiceContext extends ServiceContextImpl {
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {
-            parentDependency = new ParentDependency<>(parentRegistration);
+            parentDependency = new ParentDependency<>();
             parentDependencies.put(parentName, parentDependency);
         }
         return parentDependency;
@@ -82,8 +82,8 @@ class ParentServiceContext extends ServiceContextImpl {
      */
     private static final class ParentDependency<T> extends DependencyImpl<T> {
 
-        ParentDependency(final Registration dependencyRegistration) {
-            super(dependencyRegistration, DependencyFlag.UNREQUIRED);
+        ParentDependency() {
+            super(DependencyFlag.UNREQUIRED);
         }
 
         @Override
