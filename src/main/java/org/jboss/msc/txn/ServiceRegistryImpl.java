@@ -124,42 +124,52 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
-    public void remove(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        remove(transaction, null);
+    public void remove(final UpdateTransaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+        remove(txn, null);
     }
 
     @Override
-    public void remove(final UpdateTransaction transaction, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, container.getTransactionController());
-        setModified(transaction);
-        synchronized (lock) {
-            if (Bits.allAreClear(state, REMOVED)) {
-                state = (byte) (state | REMOVED);
-                if (installedServices > 0) {
-                    final RemoveTask removeTask = new RemoveTask(transaction);
-                    getAbstractTransaction(transaction).getTaskFactory().newTask(removeTask).release();
-                    if (completionListener != null) {
-                        removeObservers = new NotificationEntry(removeObservers, completionListener);
+    public void remove(final UpdateTransaction txn, final Listener<ServiceRegistry> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(txn, container.getTransactionController());
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            synchronized (lock) {
+                if (Bits.allAreClear(state, REMOVED)) {
+                    state = (byte) (state | REMOVED);
+                    if (installedServices > 0) {
+                        final RemoveTask removeTask = new RemoveTask(txn);
+                        getAbstractTransaction(txn).getTaskFactory().newTask(removeTask).release();
+                        if (completionListener != null) {
+                            removeObservers = new NotificationEntry(removeObservers, completionListener);
+                        }
+                        return; // don't call completion listener
                     }
-                    return; // don't call completion listener
+                    container.registryRemoved();
                 }
-                container.registryRemoved();
             }
+            if (completionListener != null) safeCallListener(completionListener); // open call
+        } finally {
+            txnHoldHandle.release();
         }
-        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     @Override
-    public void disable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, container.getTransactionController());
-        setModified(transaction);
-        synchronized (lock) {
-            if (Bits.anyAreSet(state, REMOVED)) return;
-            if (Bits.allAreClear(state, ENABLED)) return;
-            state &= ~ENABLED;
-            for (final Registration registration : registry.values()) {
-                registration.disableRegistry(transaction);
+    public void disable(final UpdateTransaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(txn, container.getTransactionController());
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            synchronized (lock) {
+                if (Bits.anyAreSet(state, REMOVED)) return;
+                if (Bits.allAreClear(state, ENABLED)) return;
+                state &= ~ENABLED;
+                for (final Registration registration : registry.values()) {
+                    registration.disableRegistry(txn);
+                }
             }
+        } finally {
+            txnHoldHandle.release();
         }
     }
 
@@ -170,25 +180,30 @@ final class ServiceRegistryImpl implements ServiceRegistry {
     }
 
     @Override
-    public void enable(final UpdateTransaction transaction) throws IllegalArgumentException, InvalidTransactionStateException {
-        validateTransaction(transaction, container.getTransactionController());
-        setModified(transaction);
-        synchronized (lock) {
-            if (Bits.anyAreSet(state, REMOVED)) return;
-            if (Bits.anyAreSet(state, ENABLED)) return;
-            state |= ENABLED;
-            for (final Registration registration : registry.values()) {
-                registration.enableRegistry(transaction);
+    public void enable(final UpdateTransaction txn) throws IllegalArgumentException, InvalidTransactionStateException {
+        validateTransaction(txn, container.getTransactionController());
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            synchronized (lock) {
+                if (Bits.anyAreSet(state, REMOVED)) return;
+                if (Bits.anyAreSet(state, ENABLED)) return;
+                state |= ENABLED;
+                for (final Registration registration : registry.values()) {
+                    registration.enableRegistry(txn);
+                }
             }
+        } finally {
+            txnHoldHandle.release();
         }
     }
 
     private final class RemoveTask implements Executable<Void> {
 
-        private final Transaction transaction;
+        private final Transaction txn;
 
-        public RemoveTask(final Transaction transaction) {
-            this.transaction = transaction;
+        public RemoveTask(final Transaction txn) {
+            this.txn = txn;
         }
 
         @Override
@@ -196,7 +211,7 @@ final class ServiceRegistryImpl implements ServiceRegistry {
             try {
                 synchronized (ServiceRegistryImpl.this.lock) {
                     for (final Registration registration : registry.values()) {
-                        registration.remove(transaction);
+                        registration.remove(txn);
                     }
                     registry.clear();
                 }

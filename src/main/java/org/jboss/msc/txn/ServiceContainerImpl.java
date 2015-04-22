@@ -23,7 +23,6 @@ import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.util.Listener;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -52,14 +51,19 @@ final class ServiceContainerImpl implements ServiceContainer {
 
     public ServiceRegistry newRegistry(final UpdateTransaction txn) {
         validateTransaction(txn, txnController);
-        setModified(txn);
-        synchronized (lock) {
-            if (removing) {
-                throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            synchronized (lock) {
+                if (removing) {
+                    throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
+                }
+                final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(this);
+                registries.add(returnValue);
+                return returnValue;
             }
-            final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(this);
-            registries.add(returnValue);
-            return returnValue;
+        } finally {
+            txnHoldHandle.release();
         }
     }
 
@@ -75,20 +79,26 @@ final class ServiceContainerImpl implements ServiceContainer {
     @Override
     public void shutdown(final UpdateTransaction txn, final Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(txn, txnController);
-        setModified(txn);
-        while (true) {
-            synchronized (lock) {
-                if (removed) break; // simulated goto for callback listener
-                if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
-                if (removing) return;
-                removing = true;
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            while (true) {
+                synchronized (lock) {
+                    if (removed) break; // simulated goto for callback listener
+                    if (completionListener != null)
+                        removeObservers = new NotificationEntry(removeObservers, completionListener);
+                    if (removing) return;
+                    removing = true;
+                }
+                for (final ServiceRegistryImpl registry : registries) {
+                    registry.remove(txn);
+                }
+                return;
             }
-            for (final ServiceRegistryImpl registry : registries) {
-                registry.remove(txn);
-            }
-            return;
+            if (completionListener != null) safeCallListener(completionListener); // open call
+        } finally {
+            txnHoldHandle.release();
         }
-        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     void registryRemoved() {
