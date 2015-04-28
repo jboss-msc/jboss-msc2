@@ -10,9 +10,21 @@ MSC 2 User Guide
 
    * {{{#Creating_Transactions} Creating Transactions}}
 
+   * {{{#Manipulating_Transactions} Manipulating Transactions}}
+
+   * {{{#Transforming_Transactions} Transforming Transactions}}
+
    * {{{#Instantiating_Service_Container} Instantiating Service Container}}
 
+   * {{{#Instantiating_Service_Context} Instantiating Service Context}}
+
  * {{{#Transaction} Transaction}}
+
+   * {{{#Compensating_Transaction} Compensating Transaction}}
+
+   * {{{#Post_Phase_Actions} Post Phase Actions}}
+
+   * {{{#Transaction_Hold_Handles} Transaction Hold Handles}}
 
  * {{{#ServiceContainer} ServiceContainer}}
 
@@ -63,9 +75,6 @@ MSC 2 User Guide
   Every transaction controller creates its own sandboxed objects environment. Such environment consists of MSC 2 runtime model and transactions operating upon it.
   Objects created by distinct transaction controllers cannot interact each other in any way.
   
-  Similarly services belonging to one transaction controller environment
-  cannot depend on services from different transaction controller environment.
-
 ** {Instantiating Transaction Controller}
 
   The following example shows how to instantiate new {{{./apidocs/org/jboss/msc/txn/TransactionController.html} <<transaction controller>>}}:
@@ -124,6 +133,7 @@ txnController.newUpdateTransaction(executor, updatingAsyncOperation);
 
 ---
 
+ThreadPoolExecutor executor = ... // some executor
 Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>() {
   @Override
   public void handleEvent(ReadTransaction txn) {
@@ -131,13 +141,187 @@ Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>
   }
 };
 // execute MSC runtime read-only code asynchronously
-txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
+txnController.newReadTransaction(executor, readOnlyAsyncOperation);
+
+---
+
+  Users can use <<TransactionController.owns()>> method to inspect whether specified transaction belongs to specified transaction controller.
+
+** {Manipulating Transactions}
+
+  Transaction controller provides transaction management methods.
+  Transaction lifecycle differs according to transaction type.
+
+  <<Read-only transactions have the following simplified lifecycle:>>
+
+---
+
+ACTIVE -> COMMITTED
+
+---
+
+  User code owning read-only ACTIVE transaction can do anything 
+  (either related or unrelated to MSC2 runtime objects) on behalf of such transaction.
+  It is a kind of emulation of the Read/Write lock protecting MSC2 runtime.
+  Once all code working on behalf of the read-only transaction
+  is done user have to commit such transaction to allow other pending transactions to execute.
+
+  The following code will force read-only transaction to transition from ACTIVE to COMMITTED state:
+
+---
+
+ReadTransaction readTxn = ... // some transaction
+Listener<ReadTransaction> listener = new Listener<ReadTransaction>() {
+  @Override
+  public void handleEvent(ReadTransaction committedTxn) {
+    // do something once read-only txn is committed
+  }
+};
+// request to transition read-only transaction from ACTIVE to COMMITTED state
+txnController.commit(readTxn, listener);
+
+---
+
+  <<Updating transactions have the following lifecycle:>>
+
+---
+
+ACTIVE -> PREPARED -> COMMITTED
+
+---
+
+  All MSC2 runtime modifying operations require ACTIVE updating transaction. 
+  Once all runtime modifications are scheduled the transaction must be asked to PREPARE.
+
+  The following code will force updating transaction to transition from ACTIVE to PREPARED state:
+
+---
+
+UpdateTransaction updateTxn = ... // do something with transaction, e.g. install or remove services
+
+Listener<UpdateTransaction> listener = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction preparedTxn) {
+    // do something once updating txn is prepared
+  }
+};
+// request to transition updating transaction from ACTIVE to PREPARED state
+txnController.prepare(updateTxn, listener);
+
+---
+
+  When transaction is in PREPARED state it have to be either committed or restarted to allow other pending transactions to execute.
+  User should use <<TransactionController.canCommit()>> method to inspect whether PREPARED updating transaction should be committed.
+  <<TransactionController.canCommit()>> method inspects <<ProblemReport>> internally to detect if there is a problem that should not be ignored.
+  Users can inspect the ProblemReport on they own instead of using <<canCommit()>> method.
+
+  <<canCommit()>> is just a hint method. It informs user if the transaction should be committed or compensated.
+  Even if <<canCommit()>> will return <false> user can still commit such transaction but the suggested approach is not
+  to commit such transactions and revert them instead. Committing broken transaction can cause unexpected problems in the future.
+  
+  The following code will <<commit>> PREPARED transaction:
+
+---
+
+UpdateTransaction updateTxn = ... // prepared transaction
+Listener<UpdateTransaction> listener = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction committedTxn) {
+    // do something once updating txn is committed
+  }
+};
+// request to transition updating transaction from PREPARED to COMMITTED state
+txnController.commit(updateTxn, listener);
+
+---
+
+  If there is a problem in PREPARED transaction, user should compensate such transaction properly.
+  It is just user responsibility to provide proper compensation steps to recover from detected broken state.
+  MSC2 runtime provides no guarantees with regard to compensation. It just provides the <<compensating transaction>>
+  to the user which <<has precedence over other pending updating transactions that are waiting for the execution>>.
+
+  The following code shows how to create compensating transaction:
+
+---
+
+UpdateTransaction updateTxn = ... // prepared broken transaction
+Listener<UpdateTransaction> listener = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction compensatingTxn) {
+    // do something with compensating transaction
+  }
+};
+// request to create compensating transaction
+txnController.restart(updateTxn, listener);
+
+---
+
+  Once the listener is called back the <<updateTxn>> is COMMITTED (terminated, not active anymore)
+  and <<compensatingTxn>> is in ACTIVE state (waiting for compensation steps to be scheduled).
+
+** {Transforming Transactions}
+
+  It is possible to transform read-only transaction to updating one and vice versa in some specific circumstances.
+  Sometimes the user code can be either too optimistic or too pesimistic with regard to what will be done.
+
+  Typical <<optimistic scenario is creation of read-only transaction with expectactions nothing will be changed>>
+  but while executing the code on behalf of that read-only transaction the user code discovers some modifications will
+  be needed at the end. There are two possibilities how to schedule execution of identified modifications:
+
+ * either upgrade read-only transaction to updating one and do the modification on behalf of recently upgraded transaction
+   (upgrade of read-only transaction will fail if there's pending updating transaction request)
+
+ * or request new modifying transaction. Such future modifying transaction will then have to reread all the properties
+   read-only transaction read before in order to reevaluate if planned modifications are still valid.
+
+ []
+
+  The following code shows how to upgrade existing read-only transaction:
+
+---
+
+ReadTransaction readTxn = ... // some txn to be upgraded
+Listener<UpdateTransaction> listener = new Listener<UpdateTransaction>() {
+  @Override
+  public void handleEvent(UpdateTransaction upgradedTxn) {
+    // do something with upgraded transaction
+  }
+};
+// request to upgrade read-only transaction to updating one
+boolean upgraded = txnController.upgrade(readTxn, listener);
+if (!upgraded) {
+  // commit read-only txn and request new updating transaction
+}
+
+---  
+
+  Typical <<pesimistic scenario is creation of updating transaction with expectations something will be changed>>
+  but while executing the code on behalf of that updating transaction the user code discovers there will be none modifications.
+  In such case it is best practice to downgrade such transaction to read-only transaction to allow other pending read-only
+  transactions to execute concurrently. The transaction downgrade process will fail if transaction did modify MSC2 runtime.
+
+  The following code shows how to downgrade existing updating transaction:
+
+---
+
+UpdateTransaction updateTxn = ... // some txn to be downgraded
+Listener<ReadTransaction> listener = new Listener<ReadTransaction>() {
+  @Override
+  public void handleEvent(ReadTransaction downgradedTxn) {
+    // do something with downgraded transaction
+  }
+};
+// request to downgrade updating transaction to read-only one
+boolean downgraded = txnController.downgrade(updateTxn, listener);
+if (!downgraded) {
+  // transaction couldn't be downgraded because it did some modifications
+}
 
 ---
 
 ** {Instantiating Service Container}
 
-  MSC 2 runtime model builds on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
+  MSC 2 runtime model is based on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
   {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} service registry}} and
   {{{./apidocs/org/jboss/msc/service/Service.html} service}}.
   Every transaction controller builds and manages its own runtime model.
@@ -156,31 +340,73 @@ txnController.newReadTransaction(defaultExecutor, readOnlyAsyncOperation);
 ---
 
 TransactionController transactionController = ...
-ServiceContainer serviceContainer = transactionController.newServiceContainer();
+UpdateTransaction txn = ...
+ServiceContainer serviceContainer = transactionController.newServiceContainer(txn);
 // do something with service container e.g. create registry and install services into it
 
 ---
 
- - downgrade(), upgrade() - transforms transactions
- - prepare(), commit(), restart(), canCommit() - TXN lifecycle methods
- - newServiceContainer() + newServiceContext() - TXN runtime modelling methods
- 
-  There are two types of transactions: READ and UPDATE.
-  handles their lifecycle (prepare -> commit) or (prepare -> restart) (restarted -> commit)
+** {Instantiating Service Context}
 
-  + picture
+  In order to install new MSC2 services into runtime users need to instantiate {{{./apidocs/org/jboss/msc/service/ServiceContext.html} <<service context>>}}.
+  Once service context is created it can be used to install new services.
+
+  The following example shows how to instantiate new service context:
+
+---
+
+UpdateTransaction txn = ... // some active updating transaction
+ServiceContext ctx = txnController.newServiceContext(txn);
+// install new services using service context
+
+---
 
 * {Transaction}
 
-Transaction can be in ACTIVE, PREPARED, RESTARTING or COMMITTED state
-Post-Commit “atomic” actions support
-Executed after commit decision but before transaction is released
-“Transaction Hold-Handle” support
-Users acquire/release THH to let MSC2 know when non-service code is working on behalf of a transaction
-Transaction is released iff all tasks and Post-Commit actions are executed and all THH are released
-Improved problem reporting with location information
-Compensating transaction used for emulating transactional behaviour:
-prepare -> restart -> commit
+  There are two types of transactions, <<read-only transactions>> and <<updating transactions>>.
+  Read-only transactions can be either in ACTIVE or COMMITTED state.
+  Updating transactions can be in ACTIVE, PREPARED or COMMITTED state.
+
+* {Compensating Transaction}
+
+  MSC2 does not provide automagic rollback feature for updating transactions.
+  It is solely users responsibility to revert all work done by <broken> transaction.
+  This is achievable via compensating transaction. Users have to use <<Transaction.restart()>> method
+  in order to obtain compensating transaction. Once user calls <<restart()>> on a transaction,
+  such broken transaction is committed and new compensating <active> updating transaction is created.
+  Compensating transactions have top priority. If there are pending transactions
+  in transaction request queue, compensating transaction will always have precedence over all the pending transactions.
+  When compensating transaction is available, it is user responsibility to detect what have been done
+  in previous <broken> transaction and revert it. For example if broken transaction
+  installed new service A, then compensating transaction should remove service A, etc.
+
+* {Post Phase Actions}  
+
+  Users can register <<post phase actions>> for PREPARED and COMMITTED transaction state.
+  There is also special type of <<post phase action>> associated with transaction restart.
+  These event-notification actions are called just before transaction is going to transition to particular state.
+
+  These event-notification actions can be useful in many scenarios.
+  One example might be a transaction installing a service binding to a specific port but it
+  can not start processing of incomming requests until transaction is committed.
+  User can register <post commit action> associated with a transaction
+  and enable incomming requests processing once action code is called.
+  This way two separate steps like <'binding port listener'> and <'start processing incoming requests'>
+  are executed <<atomically>> from transaction completion point of view.
+
+* {Transaction Hold Handles}
+
+  Sometimes users will want to let transaction know when non-service code is working on behalf of transaction.
+  For that purpose updating transactions provide <<transaction hold handles>>. Acquiring hold handle will cause
+  active transaction to block until all <<hold handles>> are not released.
+
+  The following code shows how to create and use <transaction hold handles>:
+
+---
+
+
+
+---
 
 * {ServiceContainer}
 
@@ -207,6 +433,9 @@ retry
 replace
 
 * {Service}
+
+  Similarly services belonging to one transaction controller environment
+  cannot depend on services from different transaction controller environment.
 
 Possible states: UP, DOWN, FAILED, RESTARTING or REMOVED
 Mode types: ACTIVE, LAZY or ON_DEMAND
