@@ -41,7 +41,7 @@ public final class TransactionHoldHandle {
 
     public void release() {
         if (released.compareAndSet(false, true)) {
-            txn.release(this);
+            txn.release();
         }
     }
 

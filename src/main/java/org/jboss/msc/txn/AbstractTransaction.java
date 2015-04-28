@@ -96,7 +96,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
     private final Set<Action> postCommitListeners = new IdentityHashSet<>();
     private final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
-    private final Set<TransactionHoldHandle> holdHandles = new IdentityHashSet<>();
+    private final AtomicInteger holdHandles = new AtomicInteger();
     volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor) {
@@ -162,8 +162,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0 && holdHandles.isEmpty()) {
-                    return T_ACTIVE_to_PREPARING;
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0 && holdHandles.get() == 0) {
+                    return holdHandles.compareAndSet(0, Integer.MIN_VALUE) ? T_ACTIVE_to_PREPARING : T_NONE;
                 } else {
                     return T_NONE;
                 }
@@ -546,20 +546,17 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     public final TransactionHoldHandle acquireHoldHandle() {
-        synchronized (lock) {
-            if (stateOf(state) != STATE_ACTIVE) {
-                throw MSCLogger.TXN.cannotCreateHoldHandle();
-            }
-            final TransactionHoldHandle retVal = new TransactionHoldHandle(this);
-            holdHandles.add(retVal);
-            return retVal;
+        if (holdHandles.incrementAndGet() < 0) {
+            holdHandles.getAndDecrement();
+            throw MSCLogger.TXN.cannotCreateHoldHandle();
         }
+        return new TransactionHoldHandle(this);
     }
 
-    public final void release(final TransactionHoldHandle txnHoldHandle) {
+    public final void release() {
+        if (holdHandles.decrementAndGet() > 0) return;
         int state;
         synchronized (lock) {
-            holdHandles.remove(txnHoldHandle);
             state = transition(this.state);
             this.state = state & PERSISTENT_STATE;
         }
