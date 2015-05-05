@@ -26,13 +26,15 @@ MSC 2 User Guide
 
    * {{{#Transaction_Hold_Handles} Transaction Hold Handles}}
 
- * {{{#ServiceContainer} ServiceContainer}}
+ * {{{#Service_Container} Service Container}}
 
- * {{{#ServiceRegistry} ServiceRegistry}}
+ * {{{#Service_Registry} Service Registry}}
 
- * {{{#ServiceContext} ServiceContext}}
+ * {{{#Service_Context} Service Context}}
 
- * {{{#ServiceController} ServiceController}}
+ * {{{#Service_Builder} Service Builder}}
+
+ * {{{#Service_Controller} Service_Controller}}
 
  * {{{#Service} Service}}
 
@@ -366,6 +368,9 @@ ServiceContext ctx = txnController.newServiceContext(txn);
   There are two types of transactions, <<read-only transactions>> and <<updating transactions>>.
   Read-only transactions can be either in ACTIVE or COMMITTED state.
   Updating transactions can be in ACTIVE, PREPARED or COMMITTED state.
+  Users can use <<Transaction.isCommitted()>> method to detect if transaction have been committed.
+  <<UpdateTransaction.isPrepared()>> method indicates whether transaction have been prepared. This
+  method is available to updating transactions only.
 
 * {Compensating Transaction}
 
@@ -383,16 +388,24 @@ ServiceContext ctx = txnController.newServiceContext(txn);
 * {Post Phase Actions}  
 
   Users can register <<post phase actions>> for PREPARED and COMMITTED transaction state.
-  There is also special type of <<post phase action>> associated with transaction restart.
+  There is also special type of <<post phase action>> associated with <transaction restart>.
   These event-notification actions are called just before transaction is going to transition to particular state.
+  Namely transaction will transition to PREPARED state once all scheduled tasks have been executed and all <post-prepare> listeners have been called.
+  Similarly transaction will transition to COMMITTED state once all <post-commit> listeners
+  (or <post-restart> listeners in case of transaction restart) have been called.
+  Actions are intended for short-living uncritical code. Any exception thrown from <action> code will be logged and ignored.
 
-  These event-notification actions can be useful in many scenarios.
+  Action completion listeners can be useful in many scenarios.
   One example might be a transaction installing a service binding to a specific port but it
   can not start processing of incomming requests until transaction is committed.
   User can register <post commit action> associated with a transaction
   and enable incomming requests processing once action code is called.
   This way two separate steps like <'binding port listener'> and <'start processing incoming requests'>
   are executed <<atomically>> from transaction completion point of view.
+
+  Actions can be registered using <Transaction.addPostXYZ()> and removed using <Transaction.removePostXYZ()> methods.
+  Methods <<addPostCommit()>> and <<removePostCommit()>> are available for both <read-only> and <updating> transactions.
+  Methods <<addPostPrepare()>>, <<removePostPrepare()>>, <<addPostRestart()>> and <<removePostRestart()>> are available for <updating> transactions only.
 
 * {Transaction Hold Handles}
 
@@ -416,18 +429,99 @@ try {
 
   Users have to always release the <transaction hold handle> because unreleased one will always cause transaction to block (deadlock like behavior).
 
-* {ServiceContainer}
+* {Service Container}
 
-Creates and removes ServiceRegistry(ies)
+  Service container provides two methods, <<ServiceContainer.newRegistry()>> to create new registries
+  and <<ServiceContainer.shutdown()>> to shutdown container (including its registries).
+  Call to <<newRegistry()>> will fail if container have been shutdown.
 
-* {ServiceRegistry}
+  The following code shows how to create new registry:
 
-Contains ServiceController(s) accessible via ServiceName(s)
-Can be in ENABLED, DISABLED or REMOVED state
+---
 
-* {ServiceContext}
+UpdateTransaction txn = ... // some active transaction
+ServiceContainer container = ... // some running container
+ServiceRegistry registry = container.newRegistry(txn);
+// do something with registry, e.g. install new services
 
-Adds service(s) to MSC 2 runtime
+---
+
+  And next code shows how to shutdown the running container:
+
+---
+
+UpdateTransaction txn = ... // some active transaction 
+ServiceContainer container = ... // some running container
+container.shutdown(txn); // shutdown container without callback notification
+---
+ 
+* {Service Registry}
+
+  <<Service registry>> provides two types of methods.
+
+  <Service retrieval methods:>
+
+  * <<ServiceRegistry.getService()>> - returns associated service controller or null (if not registered yet)
+
+  * and <<ServiceRegistry.getRequiredService()>> - returns associated service controller or throws exception (if not registered yet)
+
+  []
+  Both methods accept <ServiceName> parameter that is uniquely identifying service in the service registry.
+  Note there can be two services with same name in two distinct service registries.
+
+  <Registry management methods:>
+
+  * <<ServiceRegistry.disable()>> - disables service registry (all services will be scheduled to stop)
+
+  * <<ServiceRegistry.enable()>> - enables service registry (all services that should start will be scheduled to start)
+  
+  * and <<ServiceRegistry.remove()>> - shuts down and removes this registry from service container (all services will be stopped and removed)
+
+  []
+
+  All management methods require <active> updating transaction to proceed.
+  It is obvious service registry can be in one of three ENABLED, DISABLED or REMOVED state.
+
+* {Service Context}
+
+  When service context is instantiated via <transaction controller> the passed
+  <updating transaction> parameter is associated internally with it. This transaction is
+  then reused each time new service is installed into MSC2 runtime.
+  User can obtain reference to that transaction via <<ServiceContext.getTransaction()>> method.
+
+  The main goal of <<service context>> is to install new services into MSC2 runtime
+  using <<ServiceContext.addService()>> method. This method instantiates new service builder
+  that will configure the service and its properties.
+
+* {Service Builder}
+
+  Service builder exposes service configuration methods to the user.
+
+  Users can override default service mode via <<ServiceBuilder.setMode()>> method.
+  If service mode is not specified it will default to ACTIVE one.
+
+  If service has some dependencies it needs to access then these dependencies
+  must be configured before service instance is created. For dependencies setup
+  <service builder> provides <<ServiceBuilder.addDependency()>> methods.
+  These methods return <<Dependency>> instance that must be then passed to service creation code.
+  To setup service instance, user have to use <<ServiceBuilder.setService()>> method.
+  
+  Finally <<ServiceBuilder.install()>> method installs configured service into MSC2 runtime.
+
+  The following example shows how to install a service with two dependencies:
+
+---
+
+ServiceRegistry registry = ...
+ServiceBuilder builder = txn.addService(registry, ServiceName.of("foo", "bar", "service");
+builder.setMode(ServiceMode.ACTIVE);
+Dependency serverHost = builder.addDependency(ServiceName.of("server", "host"));
+Dependency serverPort = builder.addDependency(ServiceName.of("server", "port"));
+FooBarService myService = new FooBarService(serverHost, serverPortPort);
+builder.setService(myService);
+builder.install();
+
+---
 
 * {ServiceController}
 
