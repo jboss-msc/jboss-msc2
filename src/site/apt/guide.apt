@@ -396,17 +396,25 @@ ServiceContext ctx = txnController.newServiceContext(txn);
 
 * {Transaction Hold Handles}
 
-  Sometimes users will want to let transaction know when non-service code is working on behalf of transaction.
-  For that purpose updating transactions provide <<transaction hold handles>>. Acquiring hold handle will cause
+  Sometimes users will want to let transaction know when non-service code is working on behalf of a transaction.
+  For that purpose transactions provide <<transaction hold handles>>. Acquiring hold handle will cause
   active transaction to block until all <<hold handles>> are not released.
 
   The following code shows how to create and use <transaction hold handles>:
 
 ---
 
-
+Transaction txn = ... // some transaction
+TransactionHoldHandle handle = txn.acquireHoldHandle();
+try {
+  // do something - even not relevant to the associated transaction
+} finally {
+  handle.release();
+}
 
 ---
+
+  Users have to always release the <transaction hold handle> because unreleased one will always cause transaction to block (deadlock like behavior).
 
 * {ServiceContainer}
 

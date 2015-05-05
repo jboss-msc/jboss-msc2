@@ -39,10 +39,22 @@ public final class TransactionHoldHandle {
         this.creationStackTrace = new Throwable();
     }
 
+    /**
+     * Releases this hold handle.
+     */
     public void release() {
         if (released.compareAndSet(false, true)) {
             txn.release();
         }
+    }
+
+    /**
+     * Indicates whether this hold handle has been released.
+     *
+     * @return <tt>true</tt> if it was released, <tt>false</tt> otherwise
+     */
+    public boolean isReleased() {
+        return released.get();
     }
 
     @Override
