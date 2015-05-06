@@ -69,7 +69,7 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
         // replace service
         final TestService<Void> service2 = new TestService<>(serviceName);
         final ReplaceListener<Void> listener = new ReplaceListener<>();
-        serviceController.replace(updateTxn, service2, listener);
+        serviceController.replace(updateTxn, service1, service2, listener);
         prepare(updateTxn);
         commit(updateTxn);
         service1.waitStop();
@@ -105,7 +105,7 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
         updateTxn = newUpdateTransaction();
         // replace service
         final ReplaceListener<Void> listener = new ReplaceListener<>();
-        serviceController.replace(updateTxn, null, listener);
+        serviceController.replace(updateTxn, service1, null, listener);
         prepare(updateTxn);
         commit(updateTxn);
         // assert first service down and removed
@@ -138,7 +138,7 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
         // replace service
         final TestService<Void> service2 = new TestService<>(serviceName);
         final ReplaceListener<Void> listener = new ReplaceListener<>();
-        serviceController.replace(updateTxn, service2, listener);
+        serviceController.replace(updateTxn, service1, service2, listener);
         prepare(updateTxn);
         commit(updateTxn);
         // assert first service down and removed
@@ -171,7 +171,7 @@ public class ServiceControllerTestCase extends AbstractTransactionTest {
         updateTxn = newUpdateTransaction();
         // replace service
         final ReplaceListener<Void> listener = new ReplaceListener<>();
-        serviceController.replace(updateTxn, null, listener);
+        serviceController.replace(updateTxn, service1, null, listener);
         prepare(updateTxn);
         commit(updateTxn);
         // assert first service down and removed

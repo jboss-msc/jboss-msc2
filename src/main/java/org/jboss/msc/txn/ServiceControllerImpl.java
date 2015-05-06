@@ -431,12 +431,27 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
 
     @Override
     public void replace(final UpdateTransaction txn, final Service<T> newService) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
-        replace(txn, newService, null);
+        replace(txn, null, newService, null, false);
     }
 
     @Override
+    public void replace(final UpdateTransaction txn, final Service<T> newService, final Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
+        replace(txn, null, newService, completionListener, false);
+    }
+
+    @Override
+    public boolean replace(final UpdateTransaction txn, final Service<T> oldService, final Service<T> newService) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
+        return replace(txn, oldService, newService, null, true);
+    }
+
+    @Override
+    public boolean replace(final UpdateTransaction txn, final Service<T> oldService, final Service<T> newService, final Listener<ServiceController<T>> completionListener)
+            throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
+        return replace(txn, oldService, newService, completionListener, true);
+    }
+
     @SuppressWarnings("unchecked")
-    public void replace(final UpdateTransaction txn, final Service<T> newService, final Listener<ServiceController<T>> completionListener)
+    private boolean replace(final UpdateTransaction txn, final Service<T> oldService, final Service<T> newService, final Listener<ServiceController<T>> completionListener, final boolean validate)
             throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException {
         validateTransaction(txn, primaryRegistration.getTransactionController());
         final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
@@ -446,18 +461,24 @@ final class ServiceControllerImpl<T> implements ServiceController<T> {
                 if (isServiceRemoved() || getState() == STATE_REMOVING || getState() == STATE_REMOVED) {
                     throw MSCLogger.SERVICE.cannotReplaceRemovedService();
                 }
-                if (getState() == STATE_DOWN) {
-                    service = newService != null ? newService : (Service<T>) VOID_SERVICE;
-                } else {
-                    replaceService = newService != null ? newService : (Service<T>) VOID_SERVICE;
-                    if (completionListener != null) {
-                        this.replaceObservers = new NotificationEntry<>(this.replaceObservers, completionListener);
+                if (validate && service != oldService) {
+                    return false;
+                }
+                if (oldService != newService) {
+                    if (getState() == STATE_DOWN) {
+                        service = newService != null ? newService : (Service<T>) VOID_SERVICE;
+                    } else {
+                        replaceService = newService != null ? newService : (Service<T>) VOID_SERVICE;
+                        if (completionListener != null) {
+                            this.replaceObservers = new NotificationEntry<>(this.replaceObservers, completionListener);
+                        }
+                        transition(txn);
+                        return true;
                     }
-                    transition(txn);
-                    return;
                 }
             }
             if (completionListener != null) safeCallListener(completionListener);
+            return true;
         } finally {
             txnHoldHandle.release();
         }

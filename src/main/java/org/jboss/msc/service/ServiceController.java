@@ -183,6 +183,35 @@ public interface ServiceController<T> {
     void replace(UpdateTransaction transaction, Service<T> newService, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException;
 
     /**
+     * Replaces {@code service} by a new service.
+     *
+     * @param transaction the transaction
+     * @param oldService the old service to be replaced
+     * @param newService the new service to be published
+     * @return true if successful. False return indicates that
+     * the actual service value was not equal to the expected oldService value.
+     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
+     * @throws IllegalStateException if controller was removed
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    boolean replace(UpdateTransaction transaction, Service<T> oldService, Service<T> newService) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException;
+
+    /**
+     * Replaces {@code service} by a new service.
+     *
+     * @param transaction the transaction
+     * @param oldService the old service to be replaced
+     * @param newService the new service to be published
+     * @param completionListener called when operation is finished
+     * @return true if successful. False return indicates that
+     * the actual service value was not equal to the expected oldService value.
+     * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
+     * @throws IllegalStateException if controller was removed
+     * @throws org.jboss.msc.txn.InvalidTransactionStateException if transaction is not active.
+     */
+    boolean replace(UpdateTransaction transaction, Service<T> oldService, Service<T> newService, Listener<ServiceController<T>> completionListener) throws IllegalArgumentException, IllegalStateException, InvalidTransactionStateException;
+
+    /**
      * Gets associated service.
      * @return service
      */
