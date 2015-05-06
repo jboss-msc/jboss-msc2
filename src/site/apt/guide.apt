@@ -45,9 +45,8 @@ MSC 2 User Guide
 * {Preface}
 
   MSC 2 comes with revolutionary idea that every operation accessing MSC 2 runtime objects
-  must be part of some transaction. But do not get confused. MSC 2 transactions
+  must be part of some transaction. This statement might be little bit confusing because MSC 2 transactions
   have nothing to do with traditional transactional systems satisfying ACID properties.
-  
 
 * {Key Abstractions}
 
@@ -94,10 +93,9 @@ TransactionController transactionController = TransactionController.newInstance(
 
 ** {Creating Transactions}
 
-  In MSC 2 every MSC runtime accessing operation must be part of some transaction.
-  There are two types of transactions in MSC 2:
+  In MSC 2 every runtime accessing operation must be part of some transaction. There are two types of transactions in MSC 2:
 
- * <<read-only transactions>> - just read MSC runtime data
+ * <<read-only transactions>> - just read MSC runtime data or can be used to block updating transactions until some unspecified (even MSC2 unrelated) operations are finished
 
  * <<updating transactions>> - both read and modify MSC runtime data
 
@@ -106,7 +104,7 @@ TransactionController transactionController = TransactionController.newInstance(
   Transactions are created via transaction controller's <<newReadTransaction()>> and <<newUpdateTransaction()>> methods.
   These methods are asynchronous - they do not block execution code. They guarantee requested transaction
   will be created and made available to the user via callback some time in the future.
-  When <<newReadTransaction>> or <<newUpdateTransaction>> method returns the <<transaction creation request>> have been sent.
+  When <<newReadTransaction()>> or <<newUpdateTransaction()>> method returns the <<transaction creation request>> have been sent.
   The transaction creation request can be in one of two states. It is either <<pending>> or <<satisfied>>.
   When transaction creation request is satisfied completion listener associated with this request is called back.
   The transaction is created and we say it is <active> (<running>, <executing>).
@@ -503,9 +501,10 @@ container.shutdown(txn); // shutdown container without callback notification
   If service mode is not specified it will default to ACTIVE one.
 
   If service has some dependencies it needs to access then these dependencies
-  must be configured before service instance is created. For dependencies setup
-  <service builder> provides <<ServiceBuilder.addDependency()>> methods.
+  must be configured before service instance is created. 
+  For dependencies setup <service builder> provides <<ServiceBuilder.addDependency()>> methods.
   These methods return <<Dependency>> instance that must be then passed to service creation code.
+
   <<ServiceBuilder.addDependency()>> methods accept dependency flags. There are four types of dependency flags available.
 
   * <<REQUIRED>> - A missing dependency will report a transaction error that should not be ignored by user. This is implied by default.
@@ -606,7 +605,7 @@ builder.install();
 * {Dependency}
 
   Dependencies have been completely simplified in MSC2 comparing to MSC1.
-  MSC1 used to use very complex injection/value framework for setting up dependencies and their values.
+  MSC1 provided very complex injection/value framework for setting up dependencies and their values.
   This approach have been revisited and ridiculously simplified in MSC2.
   MSC2 comes with just one class named <<Dependency>> to represent both injected values and dependencies.
   Dependencies are created using <<ServiceBuilder.addDependency()>> methods.
