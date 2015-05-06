@@ -34,7 +34,7 @@ MSC 2 User Guide
 
  * {{{#Service_Builder} Service Builder}}
 
- * {{{#Service_Controller} Service_Controller}}
+ * {{{#Service_Controller} Service Controller}}
 
  * {{{#Service} Service}}
 
@@ -62,6 +62,8 @@ MSC 2 User Guide
   * {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} ServiceRegistry}}
 
   * {{{./apidocs/org/jboss/msc/service/ServiceContext.html} ServiceContext}}
+
+  * {{{./apidocs/org/jboss/msc/service/ServiceBuilder.html} ServiceBuilder}}
 
   * {{{./apidocs/org/jboss/msc/service/ServiceController.html} ServiceController}}
 
@@ -411,7 +413,7 @@ ServiceContext ctx = txnController.newServiceContext(txn);
 
   Sometimes users will want to let transaction know when non-service code is working on behalf of a transaction.
   For that purpose transactions provide <<transaction hold handles>>. Acquiring hold handle will cause
-  active transaction to block until all <<hold handles>> are not released.
+  active transaction to block until all <<hold handles>> are released.
 
   The following code shows how to create and use <transaction hold handles>:
 
@@ -504,8 +506,20 @@ container.shutdown(txn); // shutdown container without callback notification
   must be configured before service instance is created. For dependencies setup
   <service builder> provides <<ServiceBuilder.addDependency()>> methods.
   These methods return <<Dependency>> instance that must be then passed to service creation code.
+  <<ServiceBuilder.addDependency()>> methods accept dependency flags. There are four types of dependency flags available.
+
+  * <<REQUIRED>> - A missing dependency will report a transaction error that should not be ignored by user. This is implied by default.
+
+  * <<UNREQUIRED>> - A missing dependency will not report a transaction error.
+
+  * <<DEMANDED>> - Always place a demand on this dependency. Overrides default mode behavior.
+
+  * <<UNDEMANDED>> - Do not place a demand on this dependency. Overrides default mode behavior.
+
+  []
+
+  <REQUIRED> and <UNREQUIRED> flags are mutually exclusive, same as <DEMANDED> and <UNDEMANDED> flags.
   To setup service instance, user have to use <<ServiceBuilder.setService()>> method.
-  
   Finally <<ServiceBuilder.install()>> method installs configured service into MSC2 runtime.
 
   The following example shows how to install a service with two dependencies:
@@ -523,36 +537,82 @@ builder.install();
 
 ---
 
-* {ServiceController}
+* {Service Controller}
 
-Allows service retrieval
-Provides management methods:
-enable
-disable
-remove
-restart
-retry
-replace
+  <<Service registry>> contains references to <<service controllers>> by their name.
+  If <service> was installed under specific service name then <<ServiceRegistry.getService()>> will
+  return non null reference to its <service controller>.
+
+  <Service controller> provides service retrieval method <<ServiceController.getService()>> and 
+  set of service management methods:
+
+  * <<enable()>> - enables service (if it was disabled)
+
+  * <<disable()>> - disables service (if it was enabled)
+
+  * <<remove()>> - removes service
+
+  * <<restart()>> - restarts service (service must be up)
+
+  * <<retry()>> - retries service (service must be in failed state)
+
+  * <<replace()>> - replaces service
+
+  []
 
 * {Service}
 
-  Similarly services belonging to one transaction controller environment
-  cannot depend on services from different transaction controller environment.
+  Every MSC2 service must implement {{{./apidocs/org/jboss/msc/service/Service.html} Service}} interface.
+  Service lifecycle is managed by its service controller.
+  At any time every service can be in one of the following final states
+  <DOWN>, <UP>, <FAILED>, <REMOVED> or in temporary states <STARTING>, <STOPPING> or <REMOVING>.
+  There are two lifecycle methods available in <<Service>> insterface.
+  <<Service.start()>> is called once all dependencies are satisfied and service is scheduled to start.
+  <<Service.stop()>> is called when it is scheduled to stop.
+  When <Service.start()> or <Service.stop()> is called, user have to perform any
+  necessary setup in the handling code. Once this setup is complete user have to call
+  <<StartContext.complete()>>, <<StopContext.complete()>> to notify MSC2 runtime service is installed/uninstalled.
+  Only service start may fail. For that purpose <<StartContext.failed()>> is provided.
+  Users may log service start or stop problems using <<StartContext.addProblem()>> or <<StopContext.addProblem()>> methods.
 
-Possible states: UP, DOWN, FAILED, RESTARTING or REMOVED
-Mode types: ACTIVE, LAZY or ON_DEMAND
-May have dependencies
-Constructed at install time
-Dependencies are set via Service constructor
-Same guarantees as MSC 1
-Stop happens-after start completion
-Subsequent restart happens-after stop completion
-Start happens-after dependency(ies) start is complete
-Stop happens-after dependent(s) stop is complete
-Dependencies are always available while service is up
+  MSC2 service lifecycle provides the same guarantees as MSC1 did. Concretely:
+
+  * Stop happens-after start completion
+
+  * Subsequent restart happens-after stop completion
+
+  * Start happens-after dependency(ies) start is complete
+
+  * Stop happens-after dependent(s) stop is complete
+
+  * Dependencies are always available while service is up
+
+  []
+
+  Every service has also service mode associated with it.
+  There are three modes available:
+
+  * <<ACTIVE>> - Starts as soon as all required dependencies are met. Will start even if there are no demandants
+                 and will stay running if all demandants are gone. Actively demands dependencies at install time.
+
+  * <<LAZY>> - Starts as soon as all required dependencies are met and is demanded to start by at least one dependent.
+               Will stay running if all demandants are gone. Does not demand dependencies at install time.
+
+  * <<ON_DEMAND>> - Starts as soon as all required dependencies are met and is demanded to start by at least one dependent.
+                    Will stop if all demandants are gone. Does not demand dependencies at install time.
+
+  []
 
 * {Dependency}
 
-Possible flags: (UN)REQUIRED, (UN)DEMANDED
-No more OPTIONAL dependency types
+  Dependencies have been completely simplified in MSC2 comparing to MSC1.
+  MSC1 used to use very complex injection/value framework for setting up dependencies and their values.
+  This approach have been revisited and ridiculously simplified in MSC2.
+  MSC2 comes with just one class named <<Dependency>> to represent both injected values and dependencies.
+  Dependencies are created using <<ServiceBuilder.addDependency()>> methods.
+
+  Another important change in MSC2 is elimination of <optional dependencies>.
+  Their elimination allowed MSC2 runtime to be much more faster
+  because of implying simplifications in <cycle detection> algorightm.
+  MSC2 is times faster (in many scenarios order of magnitude faster) comparing to MSC1.
 
