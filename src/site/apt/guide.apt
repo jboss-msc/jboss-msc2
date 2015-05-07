@@ -44,13 +44,13 @@ MSC 2 User Guide
 
 * {Preface}
 
-  MSC 2 comes with revolutionary idea that every operation accessing MSC 2 runtime objects
+  MSC 2 comes with revolutionary idea that every operation accessing MSC 2 
   must be part of some transaction. This statement might be little bit confusing because MSC 2 transactions
   have nothing to do with traditional transactional systems satisfying ACID properties.
 
 * {Key Abstractions}
 
-  MSC 2 builds on these abstractions:
+  MSC 2 builds on these key abstractions:
 
   * {{{#Transaction_Controller} Transaction Controller}}
 
@@ -95,7 +95,7 @@ TransactionController transactionController = TransactionController.newInstance(
 
   In MSC 2 every runtime accessing operation must be part of some transaction. There are two types of transactions in MSC 2:
 
- * <<read-only transactions>> - just read MSC runtime data or can be used to block updating transactions until some unspecified (even MSC2 unrelated) operations are finished
+ * <<read-only transactions>> - just read MSC runtime data or can be used to block updating transactions until some unspecified (even MSC 2 unrelated) operations are finished
 
  * <<updating transactions>> - both read and modify MSC runtime data
 
@@ -139,7 +139,7 @@ ThreadPoolExecutor executor = ... // some executor
 Listener<ReadTransaction> readOnlyAsyncOperation = new Listener<ReadTransaction>() {
   @Override
   public void handleEvent(ReadTransaction txn) {
-    // callback handling code - access MSC2 runtime model
+    // callback handling code - access MSC 2 runtime model
   }
 };
 // execute MSC runtime read-only code asynchronously
@@ -163,8 +163,8 @@ ACTIVE -> COMMITTED
 ---
 
   User code owning read-only ACTIVE transaction can do anything 
-  (either related or unrelated to MSC2 runtime objects) on behalf of such transaction.
-  It is a kind of emulation of the Read/Write lock protecting MSC2 runtime.
+  (either related or unrelated to MSC 2 runtime objects) on behalf of such transaction.
+  It is a kind of emulation of the Read/Write lock protecting MSC 2 runtime.
   Once all code working on behalf of the read-only transaction
   is done user have to commit such transaction to allow other pending transactions to execute.
 
@@ -192,7 +192,7 @@ ACTIVE -> PREPARED -> COMMITTED
 
 ---
 
-  All MSC2 runtime modifying operations require ACTIVE updating transaction. 
+  All MSC 2 runtime modifying operations require ACTIVE updating transaction. 
   Once all runtime modifications are scheduled the transaction must be asked to PREPARE.
 
   The following code will force updating transaction to transition from ACTIVE to PREPARED state:
@@ -239,7 +239,7 @@ txnController.commit(updateTxn, listener);
 
   If there is a problem in PREPARED transaction, user should compensate such transaction properly.
   It is just user responsibility to provide proper compensation steps to recover from detected broken state.
-  MSC2 runtime provides no guarantees with regard to compensation. It just provides the <<compensating transaction>>
+  MSC 2 runtime provides no guarantees with regard to compensation. It just provides the <<compensating transaction>>
   to the user which <<has precedence over other pending updating transactions that are waiting for the execution>>.
 
   The following code shows how to create compensating transaction:
@@ -300,7 +300,7 @@ if (!upgraded) {
   Typical <<pesimistic scenario is creation of updating transaction with expectations something will be changed>>
   but while executing the code on behalf of that updating transaction the user code discovers there will be none modifications.
   In such case it is best practice to downgrade such transaction to read-only transaction to allow other pending read-only
-  transactions to execute concurrently. The transaction downgrade process will fail if transaction did modify MSC2 runtime.
+  transactions to execute concurrently. The transaction downgrade process will fail if transaction did modify MSC 2 runtime.
 
   The following code shows how to downgrade existing updating transaction:
 
@@ -350,7 +350,7 @@ ServiceContainer serviceContainer = transactionController.newServiceContainer(tx
 
 ** {Instantiating Service Context}
 
-  In order to install new MSC2 services into runtime users need to instantiate {{{./apidocs/org/jboss/msc/service/ServiceContext.html} <<service context>>}}.
+  In order to install new MSC 2 services into runtime users need to instantiate {{{./apidocs/org/jboss/msc/service/ServiceContext.html} <<service context>>}}.
   Once service context is created it can be used to install new services.
 
   The following example shows how to instantiate new service context:
@@ -374,7 +374,7 @@ ServiceContext ctx = txnController.newServiceContext(txn);
 
 * {Compensating Transaction}
 
-  MSC2 does not provide automagic rollback feature for updating transactions.
+  MSC 2 does not provide automagic rollback feature for updating transactions.
   It is solely users responsibility to revert all work done by <broken> transaction.
   This is achievable via compensating transaction. Users have to use <<Transaction.restart()>> method
   in order to obtain compensating transaction. Once user calls <<restart()>> on a transaction,
@@ -486,10 +486,10 @@ container.shutdown(txn); // shutdown container without callback notification
 
   When service context is instantiated via <transaction controller> the passed
   <updating transaction> parameter is associated internally with it. This transaction is
-  then reused each time new service is installed into MSC2 runtime.
+  then reused each time new service is installed into MSC 2 runtime.
   User can obtain reference to that transaction via <<ServiceContext.getTransaction()>> method.
 
-  The main goal of <<service context>> is to install new services into MSC2 runtime
+  The main goal of <<service context>> is to install new services into MSC 2 runtime
   using <<ServiceContext.addService()>> method. This method instantiates new service builder
   that will configure the service and its properties.
 
@@ -519,7 +519,7 @@ container.shutdown(txn); // shutdown container without callback notification
 
   <REQUIRED> and <UNREQUIRED> flags are mutually exclusive, same as <DEMANDED> and <UNDEMANDED> flags.
   To setup service instance, user have to use <<ServiceBuilder.setService()>> method.
-  Finally <<ServiceBuilder.install()>> method installs configured service into MSC2 runtime.
+  Finally <<ServiceBuilder.install()>> method installs configured service into MSC 2 runtime.
 
   The following example shows how to install a service with two dependencies:
 
@@ -561,7 +561,7 @@ builder.install();
 
 * {Service}
 
-  Every MSC2 service must implement {{{./apidocs/org/jboss/msc/service/Service.html} Service}} interface.
+  Every MSC 2 service must implement {{{./apidocs/org/jboss/msc/service/Service.html} Service}} interface.
   Service lifecycle is managed by its service controller.
   At any time every service can be in one of the following final states
   <DOWN>, <UP>, <FAILED>, <REMOVED> or in temporary states <STARTING>, <STOPPING> or <REMOVING>.
@@ -570,11 +570,11 @@ builder.install();
   <<Service.stop()>> is called when it is scheduled to stop.
   When <Service.start()> or <Service.stop()> is called, user have to perform any
   necessary setup in the handling code. Once this setup is complete user have to call
-  <<StartContext.complete()>>, <<StopContext.complete()>> to notify MSC2 runtime service is installed/uninstalled.
+  <<StartContext.complete()>>, <<StopContext.complete()>> to notify MSC 2 runtime service is installed/uninstalled.
   Only service start may fail. For that purpose <<StartContext.failed()>> is provided.
   Users may log service start or stop problems using <<StartContext.addProblem()>> or <<StopContext.addProblem()>> methods.
 
-  MSC2 service lifecycle provides the same guarantees as MSC1 did. Concretely:
+  MSC 2 service lifecycle provides the same guarantees as MSC 1 did. Concretely:
 
   * Stop happens-after start completion
 
@@ -604,14 +604,14 @@ builder.install();
 
 * {Dependency}
 
-  Dependencies have been completely simplified in MSC2 comparing to MSC1.
-  MSC1 provided very complex injection/value framework for setting up dependencies and their values.
-  This approach have been revisited and ridiculously simplified in MSC2.
-  MSC2 comes with just one class named <<Dependency>> to represent both injected values and dependencies.
+  Dependencies have been completely simplified in MSC 2 comparing to MSC 1.
+  MSC 1 provided very complex injection/value framework for setting up dependencies and their values.
+  This approach have been revisited and ridiculously simplified in MSC 2.
+  MSC 2 comes with just one class named <<Dependency>> to represent both injected values and dependencies.
   Dependencies are created using <<ServiceBuilder.addDependency()>> methods.
 
-  Another important change in MSC2 is elimination of <optional dependencies>.
-  Their elimination allowed MSC2 runtime to be much more faster
+  Another important change in MSC 2 is elimination of <optional dependencies>.
+  Their elimination allowed MSC 2 runtime to be much more faster
   because of implying simplifications in <cycle detection> algorightm.
-  MSC2 is times faster (in many scenarios order of magnitude faster) comparing to MSC1.
+  MSC 2 is times faster (in many scenarios order of magnitude faster) comparing to MSC 1.
 
