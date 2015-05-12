@@ -48,10 +48,10 @@ import org.jboss.msc.util.Attachable;
 public interface Transaction extends Attachable {
 
     /**
-     * Indicates whether this transaction have been terminated.
+     * Indicates whether this transaction have been committed.
      * @return {@code true} if already terminated, {@code false} otherwise
      */
-    boolean isTerminated();
+    boolean isCommitted();
 
     /**
      * Returns how long is/was transaction running.

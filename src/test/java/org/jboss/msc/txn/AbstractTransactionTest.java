@@ -54,7 +54,7 @@ public abstract class AbstractTransactionTest {
     public void tearDown() {
         try {
             for (Transaction transaction : createdTransactions) {
-                assertTrue("Unterminated transaction", transaction.isTerminated());
+                assertTrue("Unterminated transaction", transaction.isCommitted());
             }
         } finally {
             createdTransactions.clear();
@@ -166,7 +166,7 @@ public abstract class AbstractTransactionTest {
             fail("Cannot call commit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
-        assertTrue(transaction.isTerminated());
+        assertTrue(transaction.isCommitted());
     }
 
     protected static void prepare(final UpdateTransaction transaction) {

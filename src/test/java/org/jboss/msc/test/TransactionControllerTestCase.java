@@ -60,8 +60,8 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
         assertTrue(updateTxn1 == updateTxn2);
         prepare(updateTxn1);
         commit(updateTxn1);
-        assertTrue(readTxn.isTerminated());
-        assertTrue(updateTxn1.isTerminated());
+        assertTrue(readTxn.isCommitted());
+        assertTrue(updateTxn1.isCommitted());
     }
 
     @Test
@@ -81,9 +81,9 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
             fail("Exception expected");
         } catch (final InvalidTransactionStateException expected) {}
         commit(readTxn);
-        assertTrue(readTxn.isTerminated());
+        assertTrue(readTxn.isCommitted());
         try {
-            assertTrue(updateTxn.isTerminated()); // users cannot use reference to update transaction that have been downgraded
+            assertTrue(updateTxn.isCommitted()); // users cannot use reference to update transaction that have been downgraded
             fail("Exception expected");
         } catch (final InvalidTransactionStateException expected) {}
     }

@@ -10,7 +10,7 @@ MSC 2 User Guide
 
    * {{{#Creating_Transactions} Creating Transactions}}
 
-   * {{{#Manipulating_Transactions} Manipulating Transactions}}
+   * {{{#Managing_Transactions} Managing Transactions}}
 
    * {{{#Transforming_Transactions} Transforming Transactions}}
 
@@ -44,9 +44,9 @@ MSC 2 User Guide
 
 * {Preface}
 
-  MSC 2 comes with revolutionary idea that every operation accessing MSC 2 
-  must be part of some transaction. This statement might be little bit confusing because MSC 2 transactions
-  have nothing to do with traditional transactional systems satisfying ACID properties.
+  MSC 2 is based on idea that <every operation accessing MSC 2 runtime data>
+  must be part of some transaction (MSC 2 transactions have nothing to do
+  with traditional transactional systems satisfying ACID properties).
 
 * {Key Abstractions}
 
@@ -54,21 +54,21 @@ MSC 2 User Guide
 
   * {{{#Transaction_Controller} Transaction Controller}}
 
-  * {{{./apidocs/org/jboss/msc/txn/Transaction.html} Transaction}}
+  * {{{#Transaction} Transaction}}
 
-  * {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} ServiceContainer}}
+  * {{{#Service_Container} Service Container}}
 
-  * {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} ServiceRegistry}}
+  * {{{#Service_Registry} Service Registry}}
 
-  * {{{./apidocs/org/jboss/msc/service/ServiceContext.html} ServiceContext}}
+  * {{{#Service_Context} Service Context}}
 
-  * {{{./apidocs/org/jboss/msc/service/ServiceBuilder.html} ServiceBuilder}}
+  * {{{#Service_Builder} Service Builder}}
 
-  * {{{./apidocs/org/jboss/msc/service/ServiceController.html} ServiceController}}
+  * {{{#Service_Controller} Service Controller}}
 
-  * {{{./apidocs/org/jboss/msc/service/Service.html} Service}}
+  * {{{#Service} Service}}
 
-  * {{{./apidocs/org/jboss/msc/service/Dependency.html} Dependency}}
+  * {{{#Dependency} Dependency}}
 
   []
 
@@ -93,11 +93,11 @@ TransactionController transactionController = TransactionController.newInstance(
 
 ** {Creating Transactions}
 
-  In MSC 2 every runtime accessing operation must be part of some transaction. There are two types of transactions in MSC 2:
+  In MSC 2 every runtime accessing operation must be part of some {{{./apidocs/org/jboss/msc/txn/Transaction.html} transaction}}. There are two types of transactions in MSC 2:
 
- * <<read-only transactions>> - just read MSC runtime data or can be used to block updating transactions until some unspecified (even MSC 2 unrelated) operations are finished
+ * <<read-only transactions>> - just read MSC runtime data or can be used to block updating transactions until some (even MSC 2 unrelated) operations are finished
 
- * <<updating transactions>> - both read and modify MSC runtime data
+ * <<updating transactions>> - can both read and modify MSC runtime data
 
 []
 
@@ -106,7 +106,7 @@ TransactionController transactionController = TransactionController.newInstance(
   will be created and made available to the user via callback some time in the future.
   When <<newReadTransaction()>> or <<newUpdateTransaction()>> method returns the <<transaction creation request>> have been sent.
   The transaction creation request can be in one of two states. It is either <<pending>> or <<satisfied>>.
-  When transaction creation request is satisfied completion listener associated with this request is called back.
+  When it is satisfied completion listener associated with this request is called back.
   The transaction is created and we say it is <active> (<running>, <executing>).
   
   Transation controller owns the transaction if and only if it created that transaction.
@@ -147,9 +147,9 @@ txnController.newReadTransaction(executor, readOnlyAsyncOperation);
 
 ---
 
-  Users can use <<TransactionController.owns()>> method to inspect whether specified transaction belongs to specified transaction controller.
+  Users can use <<TransactionController.owns()>> method to inspect whether particular transaction belongs to specified transaction controller.
 
-** {Manipulating Transactions}
+** {Managing Transactions}
 
   Transaction controller provides transaction management methods.
   Transaction lifecycle differs according to transaction type.
@@ -215,10 +215,8 @@ txnController.prepare(updateTxn, listener);
   When transaction is in PREPARED state it have to be either committed or restarted to allow other pending transactions to execute.
   User should use <<TransactionController.canCommit()>> method to inspect whether PREPARED updating transaction should be committed.
   <<TransactionController.canCommit()>> method inspects <<ProblemReport>> internally to detect if there is a problem that should not be ignored.
-  Users can inspect the ProblemReport on they own instead of using <<canCommit()>> method.
-
   <<canCommit()>> is just a hint method. It informs user if the transaction should be committed or compensated.
-  Even if <<canCommit()>> will return <false> user can still commit such transaction but the suggested approach is not
+  Even if <<canCommit()>> will return <false> user can still commit such transaction. Anyway suggested approach is not
   to commit such transactions and revert them instead. Committing broken transaction can cause unexpected problems in the future.
   
   The following code will <<commit>> PREPARED transaction:
@@ -300,7 +298,7 @@ if (!upgraded) {
   Typical <<pesimistic scenario is creation of updating transaction with expectations something will be changed>>
   but while executing the code on behalf of that updating transaction the user code discovers there will be none modifications.
   In such case it is best practice to downgrade such transaction to read-only transaction to allow other pending read-only
-  transactions to execute concurrently. The transaction downgrade process will fail if transaction did modify MSC 2 runtime.
+  transactions to execute concurrently. The transaction downgrade process will fail if transaction already modified MSC 2 runtime.
 
   The following code shows how to downgrade existing updating transaction:
 
@@ -323,7 +321,7 @@ if (!downgraded) {
 
 ** {Instantiating Service Container}
 
-  MSC 2 runtime model is based on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
+  MSC 2 runtime model is built on abstractions {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} service container}},
   {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} service registry}} and
   {{{./apidocs/org/jboss/msc/service/Service.html} service}}.
   Every transaction controller builds and manages its own runtime model.
@@ -350,7 +348,7 @@ ServiceContainer serviceContainer = transactionController.newServiceContainer(tx
 
 ** {Instantiating Service Context}
 
-  In order to install new MSC 2 services into runtime users need to instantiate {{{./apidocs/org/jboss/msc/service/ServiceContext.html} <<service context>>}}.
+  In order to install new MSC 2 services into runtime users need {{{./apidocs/org/jboss/msc/service/ServiceContext.html} <<service context>>}} instance.
   Once service context is created it can be used to install new services.
 
   The following example shows how to instantiate new service context:
@@ -365,9 +363,9 @@ ServiceContext ctx = txnController.newServiceContext(txn);
 
 * {Transaction}
 
-  There are two types of transactions, <<read-only transactions>> and <<updating transactions>>.
-  Read-only transactions can be either in ACTIVE or COMMITTED state.
-  Updating transactions can be in ACTIVE, PREPARED or COMMITTED state.
+  There are two types of {{{./apidocs/org/jboss/msc/txn/Transaction.html} transactions}}, <<read-only transactions>> and <<updating transactions>>.
+  {{{./apidocs/org/jboss/msc/txn/ReadTransaction.html} Read-only transactions}} can be either in ACTIVE or COMMITTED state.
+  {{{./apidocs/org/jboss/msc/txn/UpdateTransaction.html} Updating transactions}} can be in ACTIVE, PREPARED or COMMITTED state.
   Users can use <<Transaction.isCommitted()>> method to detect if transaction have been committed.
   <<UpdateTransaction.isPrepared()>> method indicates whether transaction have been prepared. This
   method is available to updating transactions only.
@@ -382,8 +380,7 @@ ServiceContext ctx = txnController.newServiceContext(txn);
   Compensating transactions have top priority. If there are pending transactions
   in transaction request queue, compensating transaction will always have precedence over all the pending transactions.
   When compensating transaction is available, it is user responsibility to detect what have been done
-  in previous <broken> transaction and revert it. For example if broken transaction
-  installed new service A, then compensating transaction should remove service A, etc.
+  in previous <broken> transaction and revert it.
 
 * {Post Phase Actions}  
 
@@ -431,7 +428,7 @@ try {
 
 * {Service Container}
 
-  Service container provides two methods, <<ServiceContainer.newRegistry()>> to create new registries
+  {{{./apidocs/org/jboss/msc/service/ServiceContainer.html} Service container}} provides two methods, <<ServiceContainer.newRegistry()>> to create new registries
   and <<ServiceContainer.shutdown()>> to shutdown container (including its registries).
   Call to <<newRegistry()>> will fail if container have been shutdown.
 
@@ -457,7 +454,7 @@ container.shutdown(txn); // shutdown container without callback notification
  
 * {Service Registry}
 
-  <<Service registry>> provides two types of methods.
+  {{{./apidocs/org/jboss/msc/service/ServiceRegistry.html} Service registry}} provides two types of methods.
 
   <Service retrieval methods:>
 
@@ -480,22 +477,21 @@ container.shutdown(txn); // shutdown container without callback notification
   []
 
   All management methods require <active> updating transaction to proceed.
-  It is obvious service registry can be in one of three ENABLED, DISABLED or REMOVED state.
 
 * {Service Context}
 
-  When service context is instantiated via <transaction controller> the passed
+  When {{{./apidocs/org/jboss/msc/service/ServiceContext.html} service context}} is instantiated via <<TransactionController.newServiceContext()>> the passed
   <updating transaction> parameter is associated internally with it. This transaction is
   then reused each time new service is installed into MSC 2 runtime.
-  User can obtain reference to that transaction via <<ServiceContext.getTransaction()>> method.
+  Users can obtain reference to that transaction using <<ServiceContext.getTransaction()>> method.
 
-  The main goal of <<service context>> is to install new services into MSC 2 runtime
+  The main purpose of <<service context>> is to install new services into MSC 2 runtime
   using <<ServiceContext.addService()>> method. This method instantiates new service builder
   that will configure the service and its properties.
 
 * {Service Builder}
 
-  Service builder exposes service configuration methods to the user.
+  {{{./apidocs/org/jboss/msc/service/ServiceBuilder.html} Service builder}} exposes service configuration methods to the user.
 
   Users can override default service mode via <<ServiceBuilder.setMode()>> method.
   If service mode is not specified it will default to ACTIVE one.
@@ -505,7 +501,7 @@ container.shutdown(txn); // shutdown container without callback notification
   For dependencies setup <service builder> provides <<ServiceBuilder.addDependency()>> methods.
   These methods return <<Dependency>> instance that must be then passed to service creation code.
 
-  <<ServiceBuilder.addDependency()>> methods accept dependency flags. There are four types of dependency flags available.
+  Some <<ServiceBuilder.addDependency()>> methods accept dependency flags. There are four types of dependency flags available.
 
   * <<REQUIRED>> - A missing dependency will report a transaction error that should not be ignored by user. This is implied by default.
 
@@ -518,7 +514,9 @@ container.shutdown(txn); // shutdown container without callback notification
   []
 
   <REQUIRED> and <UNREQUIRED> flags are mutually exclusive, same as <DEMANDED> and <UNDEMANDED> flags.
+
   To setup service instance, user have to use <<ServiceBuilder.setService()>> method.
+
   Finally <<ServiceBuilder.install()>> method installs configured service into MSC 2 runtime.
 
   The following example shows how to install a service with two dependencies:
@@ -527,7 +525,7 @@ container.shutdown(txn); // shutdown container without callback notification
 
 ServiceRegistry registry = ...
 ServiceBuilder builder = txn.addService(registry, ServiceName.of("foo", "bar", "service");
-builder.setMode(ServiceMode.ACTIVE);
+builder.setMode(ServiceMode.ON_DEMAND);
 Dependency serverHost = builder.addDependency(ServiceName.of("server", "host"));
 Dependency serverPort = builder.addDependency(ServiceName.of("server", "port"));
 FooBarService myService = new FooBarService(serverHost, serverPortPort);
@@ -538,12 +536,12 @@ builder.install();
 
 * {Service Controller}
 
-  <<Service registry>> contains references to <<service controllers>> by their name.
+  <<Service registry>> contains references to {{{./apidocs/org/jboss/msc/service/ServiceController.html} service controllers}} by their name.
   If <service> was installed under specific service name then <<ServiceRegistry.getService()>> will
   return non null reference to its <service controller>.
 
   <Service controller> provides service retrieval method <<ServiceController.getService()>> and 
-  set of service management methods:
+  set of management methods:
 
   * <<enable()>> - enables service (if it was disabled)
 
@@ -570,7 +568,7 @@ builder.install();
   <<Service.stop()>> is called when it is scheduled to stop.
   When <Service.start()> or <Service.stop()> is called, user have to perform any
   necessary setup in the handling code. Once this setup is complete user have to call
-  <<StartContext.complete()>>, <<StopContext.complete()>> to notify MSC 2 runtime service is installed/uninstalled.
+  <<StartContext.complete()>> or <<StopContext.complete()>> to notify MSC 2 runtime service is installed/uninstalled.
   Only service start may fail. For that purpose <<StartContext.failed()>> is provided.
   Users may log service start or stop problems using <<StartContext.addProblem()>> or <<StopContext.addProblem()>> methods.
 
@@ -604,7 +602,7 @@ builder.install();
 
 * {Dependency}
 
-  Dependencies have been completely simplified in MSC 2 comparing to MSC 1.
+  {{{./apidocs/org/jboss/msc/service/Dependency.html} Dependencies}} have been completely simplified in MSC 2 comparing to MSC 1.
   MSC 1 provided very complex injection/value framework for setting up dependencies and their values.
   This approach have been revisited and ridiculously simplified in MSC 2.
   MSC 2 comes with just one class named <<Dependency>> to represent both injected values and dependencies.

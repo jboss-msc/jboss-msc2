@@ -128,7 +128,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    public final boolean isTerminated() {
+    public final boolean isCommitted() {
         synchronized (lock) {
             return stateOf(state) == STATE_COMMITTED;
         }
