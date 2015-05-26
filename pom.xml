@@ -64,10 +64,6 @@
             <email>david dot lloyd at redhat dot com</email>
             <organization>Red Hat Inc.</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
-            <roles>
-                <role>visionary</role>
-                <role>architect</role>
-            </roles>
             <timezone>America/Chicago</timezone>
         </developer>
         <developer>
@@ -76,10 +72,6 @@
             <email>frainone at redhat dot com</email>
             <organization>Red Hat Inc.</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
-            <roles>
-                <role>developer</role>
-                <role>tester</role>
-            </roles>
             <timezone>America/Sao_Paolo</timezone>
         </developer>
         <developer>
@@ -88,12 +80,6 @@
             <email>ropalka at redhat dot com</email>
             <organization>Red Hat Inc.</organization>
             <organizationUrl>http://www.redhat.com</organizationUrl>
-            <roles>
-                <role>architect</role>
-                <role>developer</role>
-                <role>tester</role>
-                <role>documentator</role>
-            </roles>
             <timezone>Europe/Prague</timezone>
         </developer>
     </developers>
