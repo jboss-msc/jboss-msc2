@@ -23,7 +23,6 @@ import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.util.Listener;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,6 +40,7 @@ final class ServiceContainerImpl implements ServiceContainer {
 
     private final TransactionController txnController;
     private final Set<ServiceRegistryImpl> registries = new HashSet<>();
+    private final Object lock = new Object();
     private boolean removing, removed;
     private int removedRegistries;
     private NotificationEntry removeObservers;
@@ -49,14 +49,21 @@ final class ServiceContainerImpl implements ServiceContainer {
         this.txnController = txnController;
     }
 
-    public ServiceRegistry newRegistry() {
-        synchronized (this) {
-            if (removing) {
-                throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
+    public ServiceRegistry newRegistry(final UpdateTransaction txn) {
+        validateTransaction(txn, txnController);
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            synchronized (lock) {
+                if (removing) {
+                    throw MSCLogger.SERVICE.cannotCreateRegistryIfContainerWasShutdown();
+                }
+                final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(this);
+                registries.add(returnValue);
+                return returnValue;
             }
-            final ServiceRegistryImpl returnValue = new ServiceRegistryImpl(this);
-            registries.add(returnValue);
-            return returnValue;
+        } finally {
+            txnHoldHandle.release();
         }
     }
 
@@ -72,25 +79,31 @@ final class ServiceContainerImpl implements ServiceContainer {
     @Override
     public void shutdown(final UpdateTransaction txn, final Listener<ServiceContainer> completionListener) throws IllegalArgumentException, InvalidTransactionStateException {
         validateTransaction(txn, txnController);
-        setModified(txn);
-        while (true) {
-            synchronized (this) {
-                if (removed) break; // simulated goto for callback listener
-                if (completionListener != null) removeObservers = new NotificationEntry(removeObservers, completionListener);
-                if (removing) return;
-                removing = true;
+        final TransactionHoldHandle txnHoldHandle = txn.acquireHoldHandle();
+        try {
+            setModified(txn);
+            while (true) {
+                synchronized (lock) {
+                    if (removed) break; // simulated goto for callback listener
+                    if (completionListener != null)
+                        removeObservers = new NotificationEntry(removeObservers, completionListener);
+                    if (removing) return;
+                    removing = true;
+                }
+                for (final ServiceRegistryImpl registry : registries) {
+                    registry.remove(txn);
+                }
+                return;
             }
-            for (final ServiceRegistryImpl registry : registries) {
-                registry.remove(txn);
-            }
-            return;
+            if (completionListener != null) safeCallListener(completionListener); // open call
+        } finally {
+            txnHoldHandle.release();
         }
-        if (completionListener != null) safeCallListener(completionListener); // open call
     }
 
     void registryRemoved() {
         NotificationEntry removeObservers;
-        synchronized (this) {
+        synchronized (lock) {
             if (++removedRegistries != registries.size()) return;
             removed = true;
             removeObservers = this.removeObservers;
@@ -121,4 +134,5 @@ final class ServiceContainerImpl implements ServiceContainer {
         }
 
     }
+
 }

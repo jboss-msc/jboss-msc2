@@ -40,17 +40,27 @@ final class BasicUpdateTransaction implements UpdateTransaction {
         delegate.setWrappingTransaction(this);
     }
 
-    synchronized void setModified() throws InvalidTransactionStateException {
-        if (invalidated) throw MSCLogger.TXN.invalidatedUpdateTransaction();
-        updated = true;
+    void setModified() throws InvalidTransactionStateException {
+        synchronized (delegate.getLock()) {
+            if (invalidated) throw MSCLogger.TXN.invalidatedUpdateTransaction();
+            updated = true;
+        }
     }
 
-    synchronized boolean isModified() {
-        return updated;
+    boolean isModified() {
+        synchronized (delegate.getLock()) {
+            return updated;
+        }
     }
 
-    synchronized void invalidate() {
-        invalidated = true;
+    void invalidate() {
+        synchronized (delegate.getLock()) {
+            invalidated = true;
+        }
+    }
+
+    final Object getLock() {
+        return delegate.getLock();
     }
 
     private void assertState() {
@@ -86,13 +96,12 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     }
 
     @Override
-    public boolean isTerminated() {
+    public boolean isCommitted() {
         assertState();
-        return delegate.isTerminated();
+        return delegate.isCommitted();
     }
 
-    @Override
-    public Executor getExecutor() {
+    Executor getExecutor() {
         assertState();
         return delegate.getExecutor();
     }
@@ -107,12 +116,6 @@ final class BasicUpdateTransaction implements UpdateTransaction {
     public boolean hasAttachment(final AttachmentKey<?> key) {
         assertState();
         return delegate.hasAttachment(key);
-    }
-
-    @Override
-    public <T> T getAttachmentIfPresent(final AttachmentKey<T> key) {
-        assertState();
-        return delegate.getAttachmentIfPresent(key);
     }
 
     @Override

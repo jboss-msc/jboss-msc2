@@ -23,6 +23,7 @@ import org.jboss.msc.txn.UpdateTransaction;
 
 /**
  * A service context can be used to add new services.
+ * It keeps reference to updating transaction internally.
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -31,10 +32,10 @@ import org.jboss.msc.txn.UpdateTransaction;
 public interface ServiceContext {
 
     /**
-     * Gets a builder which can be used to add a service to {@code registry}.
+     * Gets a builder that will be used to add a service to {@code registry}.
      *
-     * @param registry    the target service registry where new service will be installed
-     * @param name        the service name
+     * @param registry the target service registry where new service will be installed
+     * @param name     the service name
      * @return the builder for the service
      * @throws java.lang.IllegalArgumentException if any method parameter is <code>null</code>
      * or if transaction controller associated with <code>transaction</code>
@@ -43,5 +44,11 @@ public interface ServiceContext {
      */
     <T> ServiceBuilder<T> addService(ServiceRegistry registry, ServiceName name)
     throws IllegalArgumentException, InvalidTransactionStateException;
+
+    /**
+     * Returns transaction associated with this service context.
+     * @return transaction assocaited with this service context
+     */
+    UpdateTransaction getTransaction();
 
 }

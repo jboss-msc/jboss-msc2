@@ -48,10 +48,10 @@ import org.jboss.msc.util.Attachable;
 public interface Transaction extends Attachable {
 
     /**
-     * Indicates whether this transaction have been terminated.
+     * Indicates whether this transaction have been committed.
      * @return {@code true} if already terminated, {@code false} otherwise
      */
-    boolean isTerminated();
+    boolean isCommitted();
 
     /**
      * Returns how long is/was transaction running.
@@ -67,9 +67,10 @@ public interface Transaction extends Attachable {
     ProblemReport getReport();
 
     /**
-     * Returns transaction executor.
-     * @return transaction executor
+     * Returns transaction hold handle.
+     * @return transaction hold handle
+     * @throws IllegalStateException if lock handle was requested for non active transaction
      */
-    Executor getExecutor();
+    TransactionHoldHandle acquireHoldHandle() throws IllegalStateException;
 
 }

@@ -26,8 +26,6 @@ public interface Attachable {
 
     boolean hasAttachment(AttachmentKey<?> key);
 
-    <T> T getAttachmentIfPresent(AttachmentKey<T> key);
-
     <T> T putAttachment(AttachmentKey<T> key, T newValue);
 
     <T> T putAttachmentIfAbsent(AttachmentKey<T> key, T newValue);

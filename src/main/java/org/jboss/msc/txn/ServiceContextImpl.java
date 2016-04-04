@@ -51,7 +51,7 @@ class ServiceContextImpl implements ServiceContext {
         return new ServiceBuilderImpl<>(txn, (ServiceRegistryImpl) registry, name);
     }
 
-    UpdateTransaction getTransaction() {
+    public final UpdateTransaction getTransaction() {
         return txn;
     }
 

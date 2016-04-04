@@ -45,54 +45,33 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     @Test
     public void upgradeTransaction() throws Exception {
         final CompletionListener<ReadTransaction> createListener = new CompletionListener<>();
-        txnController.createReadTransaction(defaultExecutor, createListener);
+        txnController.newReadTransaction(defaultExecutor, createListener);
         final ReadTransaction readTxn = createListener.awaitCompletion();
         assertNotNull(readTxn);
         final CompletionListener<UpdateTransaction> upgradeListener1 = new CompletionListener<>();
-        boolean upgraded = txnController.upgradeTransaction(readTxn, upgradeListener1);
-        assertTrue(upgraded);
+        txnController.upgrade(readTxn, upgradeListener1);
         final UpdateTransaction updateTxn1 = upgradeListener1.awaitCompletion();
         assertNotNull(updateTxn1);
         assertTrue(updateTxn1 != readTxn);
         final CompletionListener<UpdateTransaction> upgradeListener2 = new CompletionListener<>();
-        upgraded = txnController.upgradeTransaction(updateTxn1, upgradeListener2);
-        assertTrue(upgraded); // already upgraded transaction can be always upgraded
+        txnController.upgrade(updateTxn1, upgradeListener2);
         final UpdateTransaction updateTxn2 = upgradeListener2.awaitCompletion();
         assertNotNull(updateTxn2);
         assertTrue(updateTxn1 == updateTxn2);
         prepare(updateTxn1);
         commit(updateTxn1);
-        assertTrue(readTxn.isTerminated());
-        assertTrue(updateTxn1.isTerminated());
-    }
-
-    @Test
-    public void upgradeTransactionFailed() throws Exception {
-        final CompletionListener<ReadTransaction> readTxnCreateListener = new CompletionListener<>();
-        txnController.createReadTransaction(defaultExecutor, readTxnCreateListener);
-        final ReadTransaction readTxn = readTxnCreateListener.awaitCompletion();
-        assertNotNull(readTxn);
-        final CompletionListener<UpdateTransaction> updateTxnCreateListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, updateTxnCreateListener);
-        final boolean upgraded = txnController.upgradeTransaction(readTxn, new CompletionListener<UpdateTransaction>());
-        assertFalse(upgraded); // upgrade of read transaction will fail if there's pending update transaction in request queue
-        commit(readTxn);
-        final UpdateTransaction updateTxn = updateTxnCreateListener.awaitCompletion();
-        assertNotNull(updateTxn);
-        prepare(updateTxn);
-        commit(updateTxn);
-        assertTrue(readTxn.isTerminated());
-        assertTrue(updateTxn.isTerminated());
+        assertTrue(readTxn.isCommitted());
+        assertTrue(updateTxn1.isCommitted());
     }
 
     @Test
     public void downgradeTransaction() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         final UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
         final CompletionListener<ReadTransaction> downgradeListener = new CompletionListener<>();
-        boolean downgraded = txnController.downgradeTransaction(updateTxn, downgradeListener);
+        boolean downgraded = txnController.downgrade(updateTxn, downgradeListener);
         assertTrue(downgraded);
         final ReadTransaction readTxn = downgradeListener.awaitCompletion();
         assertNotNull(readTxn);
@@ -102,9 +81,9 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
             fail("Exception expected");
         } catch (final InvalidTransactionStateException expected) {}
         commit(readTxn);
-        assertTrue(readTxn.isTerminated());
+        assertTrue(readTxn.isCommitted());
         try {
-            assertTrue(updateTxn.isTerminated()); // users cannot use reference to update transaction that have been downgraded
+            assertTrue(updateTxn.isCommitted()); // users cannot use reference to update transaction that have been downgraded
             fail("Exception expected");
         } catch (final InvalidTransactionStateException expected) {}
     }
@@ -112,18 +91,18 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     @Test
     public void downgradeTransactionFailed() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         final UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
-        final ServiceRegistry registry = container.newRegistry();
+        final ServiceContainer container = txnController.newServiceContainer(updateTxn);
+        final ServiceRegistry registry = container.newRegistry(updateTxn);
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService service = new TestService(serviceName, sb, false);
         sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         service.waitStart();
         assertTrue(service.isUp());
-        boolean downgraded = txnController.downgradeTransaction(updateTxn, new CompletionListener<ReadTransaction>());
+        boolean downgraded = txnController.downgrade(updateTxn, new CompletionListener<ReadTransaction>());
         assertFalse(downgraded); // UpdateTransaction that modified anything cannot be downgraded to read-only transaction
         container.shutdown(updateTxn);
         prepare(updateTxn);
@@ -134,13 +113,13 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
     @Test
     public void restartTransaction() throws Exception {
         final CompletionListener<UpdateTransaction> createListener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, createListener);
+        txnController.newUpdateTransaction(defaultExecutor, createListener);
         UpdateTransaction updateTxn = createListener.awaitCompletion();
         assertNotNull(updateTxn);
-        final ServiceContainer container = txnController.createServiceContainer();
-        final ServiceRegistry registry = container.newRegistry();
+        final ServiceContainer container = txnController.newServiceContainer(updateTxn);
+        final ServiceRegistry registry = container.newRegistry(updateTxn);
         final ServiceName serviceName = ServiceName.of("test");
-        final ServiceBuilder sb = txnController.getServiceContext(updateTxn).addService(registry, serviceName);
+        final ServiceBuilder<Void> sb = txnController.newServiceContext(updateTxn).addService(registry, serviceName);
         final TestService service = new TestService(serviceName, sb, false);
         final ServiceController serviceController = sb.setService(service).setMode(ServiceMode.ACTIVE).install();
         prepare(updateTxn);
@@ -155,9 +134,9 @@ public class TransactionControllerTestCase extends AbstractTransactionTest {
 
     @Test
     public void outsiderTransaction() {
-        final TransactionController outsiderController = TransactionController.createInstance();
+        final TransactionController outsiderController = TransactionController.newInstance();
         final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
-        outsiderController.createUpdateTransaction(defaultExecutor, listener);
+        outsiderController.newUpdateTransaction(defaultExecutor, listener);
         final UpdateTransaction outsiderTransaction = listener.awaitCompletionUninterruptibly();
         SecurityException expected = null;
         try {

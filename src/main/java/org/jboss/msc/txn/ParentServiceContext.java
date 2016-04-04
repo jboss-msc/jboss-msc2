@@ -22,11 +22,8 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.util.AttachmentKey;
-import org.jboss.msc.util.Factory;
 
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.jboss.msc.txn.Helper.validateTransaction;
 
 /**
  * Parent service context: behaves just like service context super class except that newly created services are
@@ -36,6 +33,8 @@ import static org.jboss.msc.txn.Helper.validateTransaction;
  */
 class ParentServiceContext extends ServiceContextImpl {
 
+    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> PARENT_DEPENDENCIES= AttachmentKey.create();
+
     private final Registration parentRegistration;
 
     public ParentServiceContext(Registration parentRegistration, UpdateTransaction txn) {
@@ -44,11 +43,12 @@ class ParentServiceContext extends ServiceContextImpl {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <S> ServiceBuilder<S> addService(final ServiceRegistry registry, final ServiceName name) {
         validateParentUp();
         final ServiceBuilderImpl<S> serviceBuilder = (ServiceBuilderImpl<S>) super.addService(registry, name);
         final ServiceName parentName = parentRegistration.getServiceName();
-        serviceBuilder.addDependency(getParentDependency(parentName, parentRegistration));
+        serviceBuilder.addDependency(parentRegistration.registry, parentName, getParentDependency(parentName));
         return serviceBuilder;
     }
 
@@ -61,21 +61,16 @@ class ParentServiceContext extends ServiceContextImpl {
         }
     }
 
-    private static final AttachmentKey<ConcurrentHashMap<ServiceName, DependencyImpl<?>>> PARENT_DEPENDENCIES= AttachmentKey.create(new Factory<ConcurrentHashMap<ServiceName, DependencyImpl<?>>>() {
-
-        @Override
-        public ConcurrentHashMap<ServiceName, DependencyImpl<?>> create() {
-            return new ConcurrentHashMap<>();
+    private <T> DependencyImpl<T> getParentDependency(ServiceName parentName) {
+        ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
+        if (parentDependencies == null) {
+            getTransaction().putAttachmentIfAbsent(PARENT_DEPENDENCIES, new ConcurrentHashMap<ServiceName, DependencyImpl<?>>());
+            parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
         }
-
-    });
-
-    private <T> DependencyImpl<T> getParentDependency(ServiceName parentName, Registration parentRegistration) {
-        final ConcurrentHashMap<ServiceName, DependencyImpl<?>> parentDependencies = getTransaction().getAttachment(PARENT_DEPENDENCIES);
         @SuppressWarnings("unchecked")
         DependencyImpl<T> parentDependency = (DependencyImpl<T>) parentDependencies.get(parentName);
         if (parentDependency == null ) {
-            parentDependency = new ParentDependency<>(parentRegistration);
+            parentDependency = new ParentDependency<>();
             parentDependencies.put(parentName, parentDependency);
         }
         return parentDependency;
@@ -87,8 +82,8 @@ class ParentServiceContext extends ServiceContextImpl {
      */
     private static final class ParentDependency<T> extends DependencyImpl<T> {
 
-        ParentDependency(final Registration dependencyRegistration) {
-            super(dependencyRegistration, DependencyFlag.UNREQUIRED);
+        ParentDependency() {
+            super(DependencyFlag.UNREQUIRED);
         }
 
         @Override

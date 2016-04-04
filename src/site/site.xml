@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="JBoss Modular Service Container 2">
+  <bannerLeft>
+    <name>Modular Service Container 2</name>
+    <href>http://github.com/jboss-msc/msc2</href>
+  </bannerLeft>
+  <bannerRight>
+    <name>GitHub</name>
+    <href>https://www.github.com/</href>
+    <src>images/GitHub-Mark-64px.png</src>
+  </bannerRight>
+  <body>
+    <menu name="Get MSC 2">
+      <item name="Downloads" href="http://github.com/jboss-msc/msc2"/>
+      <item name="License" href="license.html"/>
+    </menu>
+    <menu name="Release (Current)">
+      <item name="Guide" href="guide.html"/>
+      <item name="Javadoc" href="apidocs/index.html"/>
+      <item name="Dependencies" href="dependencies.html"/>
+    </menu>
+    <menu name="Project Documentation">
+      <item name="About" href="index.html"/>
+      <item name="Project Info" href="project-info.html"/>
+    </menu>
+  </body>
+</project>

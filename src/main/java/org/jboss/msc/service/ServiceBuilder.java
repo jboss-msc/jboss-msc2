@@ -70,6 +70,7 @@ public interface ServiceBuilder<T> {
 
     /**
      * Adds a dependency to the service being built with default flags.
+     * The dependency is located in target registry where this service will be installed.
      *
      * @param <D> dependency type
      * @param name the dependency name
@@ -80,6 +81,7 @@ public interface ServiceBuilder<T> {
 
     /**
      * Adds a dependency to the service being built with specified flags.
+     * The dependency is located in target registry where this service will be installed.
      *
      * @param <D> dependency type
      * @param name the dependency name
@@ -93,7 +95,7 @@ public interface ServiceBuilder<T> {
      * Adds a dependency to the service being built with default flags.
      *
      * @param <D> dependency type
-     * @param registry the service registry containing dependency
+     * @param registry the dependency registry
      * @param name the dependency name
      * @return a reference to the dependency added
      * @throws IllegalStateException if {@link #install()} has been called.
@@ -104,7 +106,7 @@ public interface ServiceBuilder<T> {
      * Adds a dependency to the service being built with specified flags.
      *
      * @param <D> dependency type
-     * @param registry the service registry containing dependency
+     * @param registry the dependency registry
      * @param name the dependency name
      * @param flags the flags for the service dependency
      * @return a reference to the dependency added
@@ -120,6 +122,6 @@ public interface ServiceBuilder<T> {
      * @throws DuplicateServiceException if installation collides with some already existing service
      * @throws org.jboss.msc.service.CircularDependencyException if dependencies cycle is detected
      */
-    ServiceController install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
+    ServiceController<T> install() throws IllegalStateException, DuplicateServiceException, CircularDependencyException;
 
 }

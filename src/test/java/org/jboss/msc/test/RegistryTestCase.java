@@ -66,12 +66,12 @@ public class RegistryTestCase extends AbstractServiceTest {
     @Before
     public void setup() {
         // registry1: contains A, B, and C
-        registry1 = serviceContainer.newRegistry();
+        registry1 = newRegistry(serviceContainer);
         serviceA = addService(registry1, serviceAName);
         serviceB = addService(registry1, serviceBName);
         serviceC = addService(registry1, serviceCName);
         // registry 2, contains D, E->D, F->(D and B), G->C, and H -> G services
-        registry2 = serviceContainer.newRegistry();
+        registry2 = newRegistry(serviceContainer);
         serviceD = addService(registry2, serviceDName);
         serviceE = addService(registry2, serviceEName, new DependencyInfo<TestService>(serviceDName, UNREQUIRED));
         serviceF = addService(registry2, serviceFName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceDName,
@@ -81,7 +81,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         serviceH = addService(registry2, serviceHName, false, ServiceMode.ACTIVE, new DependencyInfo<TestService>(serviceGName,
                 UNREQUIRED));
         // registry 3, empty
-        registry3 = serviceContainer.newRegistry();
+        registry3 = newRegistry(serviceContainer);
         // all services are up
         assertTrue(serviceA.isUp());
         assertTrue(serviceB.isUp());
@@ -95,10 +95,10 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void disableServiceA() {
-        final TestControllerListener listener = new TestControllerListener();
+        final TestControllerListener<Void> listener = new TestControllerListener<>();
         final UpdateTransaction transaction = newUpdateTransaction();
         try {
-            final ServiceController controller = registry1.getRequiredService(serviceAName);
+            final ServiceController<Void> controller = registry1.getRequiredService(serviceAName);
             controller.disable(transaction, listener);
         } finally {
             prepare(transaction);
@@ -159,12 +159,12 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableServiceC() throws Exception {
-        final TestControllerListener listener1 = new TestControllerListener();
-        final TestControllerListener listener2 = new TestControllerListener();
-        final TestControllerListener listener3 = new TestControllerListener();
+        final TestControllerListener<Void> listener1 = new TestControllerListener<>();
+        final TestControllerListener<Void> listener2 = new TestControllerListener<>();
+        final TestControllerListener<Void> listener3 = new TestControllerListener<>();
         final UpdateTransaction transaction = newUpdateTransaction();
         try {
-            final ServiceController controller = registry1.getRequiredService(serviceCName);
+            final ServiceController<Void> controller = registry1.getRequiredService(serviceCName);
             controller.enable(transaction, listener1);
             controller.disable(transaction, listener2);
             controller.enable(transaction, listener3);
@@ -187,8 +187,8 @@ public class RegistryTestCase extends AbstractServiceTest {
 
     @Test
     public void enableServiceCInTwoSteps() throws Exception {
-        final TestControllerListener listener1 = new TestControllerListener();
-        final ServiceController controller = registry1.getRequiredService(serviceCName);
+        final TestControllerListener<Void> listener1 = new TestControllerListener<>();
+        final ServiceController<Void> controller = registry1.getRequiredService(serviceCName);
         // operation that will be ignored, services are already enabled
         UpdateTransaction transaction = newUpdateTransaction();
         try {
@@ -209,7 +209,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(listener1.wasCalled());
 
         // disable service C
-        final TestControllerListener listener2 = new TestControllerListener();
+        final TestControllerListener<Void> listener2 = new TestControllerListener<>();
         transaction = newUpdateTransaction();
         try {
             controller.disable(transaction, listener2);
@@ -228,7 +228,7 @@ public class RegistryTestCase extends AbstractServiceTest {
         assertTrue(listener2.wasCalled());
 
         // enable service C
-        final TestControllerListener listener3 = new TestControllerListener();
+        final TestControllerListener<Void> listener3 = new TestControllerListener<>();
         transaction = newUpdateTransaction();
         try {
             controller.enable(transaction, listener3);

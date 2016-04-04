@@ -49,11 +49,4 @@ public interface UpdateTransaction extends ReadTransaction {
      */
     void removePostRestart(Action completionListener) throws IllegalStateException;
 
-    /**
-     * Returns transaction hold handle.
-     * @return transaction hold handle
-     * @throws IllegalStateException if lock handle was requested for non active transaction
-     */
-    TransactionHoldHandle acquireHoldHandle() throws IllegalStateException;
-
 }

@@ -19,11 +19,9 @@
 package org.jboss.msc.txn;
 
 import org.jboss.msc._private.MSCLogger;
-import org.jboss.msc._private.Version;
 import org.jboss.msc.problem.Problem;
 import org.jboss.msc.problem.ProblemReport;
 import org.jboss.msc.util.Listener;
-import org.jboss.msc.util.SimpleAttachable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -43,10 +41,6 @@ import static java.lang.Thread.holdsLock;
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 abstract class AbstractTransaction extends SimpleAttachable implements Transaction {
-
-    static {
-        MSCLogger.ROOT.greeting(Version.getVersionString());
-    }
 
     private static final int FLAG_PREPARE_REQ     = 1 << 3;
     private static final int FLAG_RESTART_REQ     = 1 << 4;
@@ -93,6 +87,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private Listener<? super UpdateTransaction> prepareListener;
     private Listener<? super UpdateTransaction> restartListener;
     private Listener<Transaction> commitListener;
+    private final Object lock = new Object();
     private final Object listenersLock = new Object();
     private Deque<PrepareCompletionListener> prepareCompletionListeners = new ArrayDeque<>();
     private final Set<Action> postPrepareListeners = new IdentityHashSet<>();
@@ -101,7 +96,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private final AtomicInteger uncompletedPostRestartListeners = new AtomicInteger();
     private final Set<Action> postCommitListeners = new IdentityHashSet<>();
     private final AtomicInteger uncompletedPostCommitListeners = new AtomicInteger();
-    private final Set<TransactionHoldHandle> holdHandles = new IdentityHashSet<>();
+    private final AtomicInteger holdHandles = new AtomicInteger();
     volatile Transaction wrappingTxn;
 
     AbstractTransaction(final TransactionController txnController, final Executor taskExecutor) {
@@ -128,22 +123,19 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     public final boolean isPrepared() {
-        assert ! holdsLock(this);
-        synchronized (this) {
+        synchronized (lock) {
             return stateOf(state) == STATE_PREPARED;
         }
     }
 
-    public final boolean isTerminated() {
-        assert ! holdsLock(this);
-        synchronized (this) {
+    public final boolean isCommitted() {
+        synchronized (lock) {
             return stateOf(state) == STATE_COMMITTED;
         }
     }
 
-    public final long getDuration(TimeUnit unit) {
-        assert ! holdsLock(this);
-        synchronized (this) {
+    public final long getDuration(final TimeUnit unit) {
+        synchronized (lock) {
             if (stateOf(state) == STATE_COMMITTED) {
                 return unit.convert(endTime - startTime, TimeUnit.NANOSECONDS);
             } else {
@@ -152,7 +144,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    public final Executor getExecutor() {
+    final Executor getExecutor() {
         return taskExecutor;
     }
 
@@ -167,12 +159,11 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
      * @return the transition to take
      */
     private int getTransition(int state) {
-        assert holdsLock(this);
         int sid = stateOf(state);
         switch (sid) {
             case STATE_ACTIVE: {
-                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0 && holdHandles.isEmpty()) {
-                    return T_ACTIVE_to_PREPARING;
+                if (Bits.allAreSet(state, FLAG_PREPARE_REQ) && unexecutedTasks.get() == 0 && holdHandles.get() == 0) {
+                    return holdHandles.compareAndSet(0, Integer.MIN_VALUE) ? T_ACTIVE_to_PREPARING : T_NONE;
                 } else {
                     return T_NONE;
                 }
@@ -221,7 +212,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
      * @return the new state
      */
     private int transition(int state) {
-        assert holdsLock(this);
+        assert holdsLock(lock);
         for (;;) {
             int t = getTransition(state);
             switch (t) {
@@ -386,9 +377,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     final void prepare(final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = this.state | FLAG_USER_THREAD;
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotPrepareNonActiveTxn();
@@ -404,10 +394,10 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         executeTasks(state);
     }
 
+    @SuppressWarnings("unchecked")
     final void commit(final Listener<? extends Transaction> completionListener) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = this.state | FLAG_USER_THREAD;
             if (wrappingTxn instanceof UpdateTransaction && stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotCommitUnpreparedTxn();
@@ -426,9 +416,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     final void restart(final Listener<? super UpdateTransaction> completionListener) throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = this.state | FLAG_USER_THREAD;
             if (Bits.allAreSet(state, FLAG_RESTART_REQ)) {
                 throw MSCLogger.TXN.cannotRestartRestartedTxn();
@@ -445,8 +434,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     final boolean canCommit() throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
-        synchronized (this) {
+        synchronized (lock) {
             if (stateOf(state) != STATE_PREPARED) {
                 throw MSCLogger.TXN.cannotInspectUnpreparedTxn();
             }
@@ -459,10 +447,9 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     void taskExecuted() {
-        assert ! holdsLock(this);
         if (unexecutedTasks.decrementAndGet() > 0) return;
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = this.state;
             state = transition(state);
             this.state = state & PERSISTENT_STATE;
@@ -471,8 +458,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     void taskAdded() throws InvalidTransactionStateException {
-        assert ! holdsLock(this);
-        synchronized (this) {
+        synchronized (lock) {
             if (stateOf(state) != STATE_ACTIVE) {
                 throw MSCLogger.TXN.cannotAddChildToInactiveTxn(stateOf(state));
             }
@@ -481,8 +467,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     }
 
     boolean isActive() {
-        assert ! holdsLock(this);
-        synchronized (this) {
+        synchronized (lock) {
             return stateOf(state) == STATE_ACTIVE;
         }
     }
@@ -507,7 +492,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private void callPrepareListener() {
         final Listener<? super UpdateTransaction> prepareListener;
-        synchronized (this) {
+        synchronized (lock) {
             prepareListener = this.prepareListener;
             this.prepareListener = null;
         }
@@ -516,7 +501,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private void callRestartListener() {
         final Listener<? super UpdateTransaction> restartListener;
-        synchronized (this) {
+        synchronized (lock) {
             restartListener = this.restartListener;
             this.restartListener = null;
         }
@@ -525,7 +510,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
 
     private void callCommitListener() {
         final Listener<Transaction> commitListener;
-        synchronized (this) {
+        synchronized (lock) {
             endTime = System.nanoTime();
             commitListener = this.commitListener;
             this.commitListener = null;
@@ -560,53 +545,64 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
         }
     }
 
-    public final synchronized TransactionHoldHandle acquireHoldHandle() {
-        if (stateOf(state) != STATE_ACTIVE) {
+    public final TransactionHoldHandle acquireHoldHandle() {
+        if (holdHandles.incrementAndGet() < 0) {
+            holdHandles.getAndDecrement();
             throw MSCLogger.TXN.cannotCreateHoldHandle();
         }
-        final TransactionHoldHandle retVal = new TransactionHoldHandle(this);
-        holdHandles.add(retVal);
-        return retVal;
+        return new TransactionHoldHandle(this);
     }
 
-    public final void release(final TransactionHoldHandle txnHoldHandle) {
+    public final void release() {
+        if (holdHandles.decrementAndGet() > 0) return;
         int state;
-        synchronized (this) {
-            holdHandles.remove(txnHoldHandle);
+        synchronized (lock) {
             state = transition(this.state);
             this.state = state & PERSISTENT_STATE;
         }
         executeTasks(state);
     }
 
-    public final synchronized void addPostPrepare(final Action completionListener) {
-        if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotAddPostPrepareListener();
-        if (completionListener != null) postPrepareListeners.add(completionListener);
+    public final void addPostPrepare(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotAddPostPrepareListener();
+            if (completionListener != null) postPrepareListeners.add(completionListener);
+        }
     }
 
-    public final synchronized void removePostPrepare(final Action completionListener) {
-        if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRemovePostPrepareListener();
-        if (completionListener != null) postPrepareListeners.remove(completionListener);
+    public final void removePostPrepare(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) != STATE_ACTIVE) throw MSCLogger.TXN.cannotRemovePostPrepareListener();
+            if (completionListener != null) postPrepareListeners.remove(completionListener);
+        }
     }
 
-    public final synchronized void addPostRestart(final Action completionListener) {
-        if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotAddPostRestartListener();
-        if (completionListener != null) postRestartListeners.add(completionListener);
+    public final void addPostRestart(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotAddPostRestartListener();
+            if (completionListener != null) postRestartListeners.add(completionListener);
+        }
     }
 
-    public final synchronized void removePostRestart(final Action completionListener) {
-        if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotRemovePostRestartListener();
-        if (completionListener != null) postRestartListeners.remove(completionListener);
+    public final void removePostRestart(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) > STATE_PREPARED) throw MSCLogger.TXN.cannotRemovePostRestartListener();
+            if (completionListener != null) postRestartListeners.remove(completionListener);
+        }
     }
 
-    public final synchronized void addPostCommit(final Action completionListener) {
-        if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotAddPostCommitListener();
-        if (completionListener != null) postCommitListeners.add(completionListener);
+    public final void addPostCommit(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotAddPostCommitListener();
+            if (completionListener != null) postCommitListeners.add(completionListener);
+        }
     }
 
-    public final synchronized void removePostCommit(final Action completionListener) {
-        if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotRemovePostCommitListener();
-        if (completionListener != null) postCommitListeners.remove(completionListener);
+    public final void removePostCommit(final Action completionListener) {
+        synchronized (lock) {
+            if (stateOf(state) == STATE_COMMITTED) throw MSCLogger.TXN.cannotRemovePostCommitListener();
+            if (completionListener != null) postCommitListeners.remove(completionListener);
+        }
     }
 
     private void callPostPrepareListeners() {
@@ -618,7 +614,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private void postPrepareListenerCompleted() {
         if (uncompletedPostPrepareListeners.decrementAndGet() > 0) return;
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = transition(this.state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -634,7 +630,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private void postRestartListenerCompleted() {
         if (uncompletedPostRestartListeners.decrementAndGet() > 0) return;
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = transition(this.state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -650,7 +646,7 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     private void postCommitListenerCompleted() {
         if (uncompletedPostCommitListeners.decrementAndGet() > 0) return;
         int state;
-        synchronized (this) {
+        synchronized (lock) {
             state = transition(this.state);
             this.state = state & PERSISTENT_STATE;
         }
@@ -723,6 +719,8 @@ abstract class AbstractTransaction extends SimpleAttachable implements Transacti
     final TaskFactory getTaskFactory() {
         return taskFactory;
     }
+
+    final Object getLock() { return lock; }
 
     class AsyncTask implements Runnable {
         private final int state;

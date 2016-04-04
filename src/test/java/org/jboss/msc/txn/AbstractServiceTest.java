@@ -54,8 +54,14 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     @Before
     public void setUp() {
         super.setUp();
-        serviceContainer = txnController.createServiceContainer();
-        serviceRegistry = serviceContainer.newRegistry();
+        final UpdateTransaction txn = newUpdateTransaction();
+        try {
+            serviceContainer = txnController.newServiceContainer(txn);
+            serviceRegistry = serviceContainer.newRegistry(txn);
+        } finally {
+            prepare(txn);
+            commit(txn);
+        }
         TestServiceBuilder.setDefaultServiceRegistry(serviceRegistry);
     }
 
@@ -161,6 +167,16 @@ public class AbstractServiceTest extends AbstractTransactionTest {
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,
             final DependencyInfo<?>... dependencies) {
         return addService(serviceRegistry, serviceName, false, ServiceMode.ACTIVE, dependencies);
+    }
+
+    protected final ServiceRegistry newRegistry(final ServiceContainer container) {
+        final UpdateTransaction txn = newUpdateTransaction();
+        try {
+            return container.newRegistry(txn);
+        } finally {
+            prepare(txn);
+            commit(txn);
+        }
     }
 
     protected final TestService addService(final ServiceRegistry serviceRegistry, final ServiceName serviceName,

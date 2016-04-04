@@ -34,8 +34,8 @@ public final class TestTransactionController {
         this.delegate = delegate;
     }
 
-    public static TestTransactionController createInstance() {
-        return new TestTransactionController(TransactionController.createInstance());
+    public static TestTransactionController newInstance() {
+        return new TestTransactionController(TransactionController.newInstance());
     }
 
     public boolean canCommit(final Transaction transaction) {
@@ -50,32 +50,32 @@ public final class TestTransactionController {
         delegate.commit(transaction, completionListener);
     }
 
-    public void createUpdateTransaction(final Executor executor, final Listener<UpdateTransaction> listener) {
-        delegate.createUpdateTransaction(executor, listener);
+    public void newUpdateTransaction(final Executor executor, final Listener<UpdateTransaction> listener) {
+        delegate.newUpdateTransaction(executor, listener);
     }
 
-    public void createReadTransaction(final Executor executor, final Listener<ReadTransaction> listener) {
-        delegate.createReadTransaction(executor, listener);
+    public void newReadTransaction(final Executor executor, final Listener<ReadTransaction> listener) {
+        delegate.newReadTransaction(executor, listener);
     }
 
-    public boolean downgradeTransaction(final UpdateTransaction updateTxn, final Listener<ReadTransaction> listener) {
-        return delegate.downgradeTransaction(updateTxn, listener);
+    public boolean downgrade(final UpdateTransaction updateTxn, final Listener<ReadTransaction> listener) {
+        return delegate.downgrade(updateTxn, listener);
     }
 
-    public boolean upgradeTransaction(final ReadTransaction readTxn, final Listener<UpdateTransaction> listener) {
-        return delegate.upgradeTransaction(readTxn, listener);
+    public void upgrade(final ReadTransaction readTxn, final Listener<UpdateTransaction> listener) {
+        delegate.upgrade(readTxn, listener);
     }
 
     public void restart(final UpdateTransaction updateTxn, final Listener<? super UpdateTransaction> completionListener) {
         delegate.restart(updateTxn, completionListener);
     }
 
-    public ServiceContext getServiceContext(final UpdateTransaction updateTxn) {
-        return delegate.getServiceContext(updateTxn);
+    public ServiceContext newServiceContext(final UpdateTransaction updateTxn) {
+        return delegate.newServiceContext(updateTxn);
     }
 
-    public ServiceContainer createServiceContainer() {
-        return delegate.createServiceContainer();
+    public ServiceContainer newServiceContainer(final UpdateTransaction updateTxn) {
+        return delegate.newServiceContainer(updateTxn);
     }
 
 }

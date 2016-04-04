@@ -40,7 +40,7 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractTransactionTest {
 
-    protected static final TestTransactionController txnController = TestTransactionController.createInstance();
+    protected static final TestTransactionController txnController = TestTransactionController.newInstance();
     protected ThreadPoolExecutor defaultExecutor;
 
     private List<Transaction> createdTransactions = new ArrayList<>();
@@ -54,7 +54,7 @@ public abstract class AbstractTransactionTest {
     public void tearDown() {
         try {
             for (Transaction transaction : createdTransactions) {
-                assertTrue("Unterminated transaction", transaction.isTerminated());
+                assertTrue("Unterminated transaction", transaction.isCommitted());
             }
         } finally {
             createdTransactions.clear();
@@ -94,7 +94,7 @@ public abstract class AbstractTransactionTest {
     protected UpdateTransaction newUpdateTransaction() {
         assertNotNull(defaultExecutor);
         final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
-        txnController.createUpdateTransaction(defaultExecutor, listener);
+        txnController.newUpdateTransaction(defaultExecutor, listener);
         final UpdateTransaction transaction = listener.awaitCompletionUninterruptibly();
         createdTransactions.add(transaction);
         return transaction;
@@ -103,7 +103,7 @@ public abstract class AbstractTransactionTest {
     protected UpdateTransaction newUpdateTransaction(final Executor executor) {
         assertNotNull(executor);
         final CompletionListener<UpdateTransaction> listener = new CompletionListener<>();
-        txnController.createUpdateTransaction(executor, listener);
+        txnController.newUpdateTransaction(executor, listener);
         final UpdateTransaction transaction = listener.awaitCompletionUninterruptibly();
         createdTransactions.add(transaction);
         return transaction;
@@ -166,7 +166,7 @@ public abstract class AbstractTransactionTest {
             fail("Cannot call commit() on committed transaction");
         } catch (final InvalidTransactionStateException expected) {
         }
-        assertTrue(transaction.isTerminated());
+        assertTrue(transaction.isCommitted());
     }
 
     protected static void prepare(final UpdateTransaction transaction) {
