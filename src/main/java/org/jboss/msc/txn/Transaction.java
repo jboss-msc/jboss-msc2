@@ -18,7 +18,6 @@
 
 package org.jboss.msc.txn;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.msc.problem.ProblemReport;
