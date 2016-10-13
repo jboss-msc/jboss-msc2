@@ -18,7 +18,6 @@
 
 package org.jboss.msc.txn;
 
-
 import static org.jboss.msc.txn.Helper.getAbstractTransaction;
 
 /**

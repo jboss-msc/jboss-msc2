@@ -29,27 +29,9 @@ import static java.lang.Thread.holdsLock;
  *
  * The following defines the state machine for this class.
  * <pre>
- *  +---------------+
- *  |               |
- *  |  EXECUTE_WAIT |
- *  |               |
- *  +-------+-------+
- *          |
- *          |
- *          v
- *  +---------------+
- *  |               |
- *  |    EXECUTE    |
- *  |               |
- *  +-------+-------+
- *          |
- *          |
- *          v
- *  +---------------+
- *  |               |
- *  |  EXECUTE_DONE |
- *  |               |
- *  +-------+-------+
+ *  +--------------+     +---------+     +--------------+
+ *  | EXECUTE_WAIT |---->| EXECUTE |---->| EXECUTE_DONE |
+ *  +------+-------+     +---------+     +--------------+
  * </pre>
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
