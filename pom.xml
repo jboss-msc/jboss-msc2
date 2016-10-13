@@ -30,7 +30,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>17</version>
+        <version>21</version>
     </parent>
 
     <licenses>
@@ -152,5 +152,31 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+      <profile>
+        <id>JDK9</id>
+        <activation>
+          <jdk>9</jdk>
+        </activation>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>${version.compiler.plugin}</version>
+              <configuration>
+                <!-- fork is needed so compiler args can be used -->
+                <fork>true</fork>
+                <compilerArgs>
+                  <arg>-J--add-modules</arg>
+                  <arg>-Jjava.annotations.common</arg>
+                </compilerArgs>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+    </profiles>
 
 </project>
