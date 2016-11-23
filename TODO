@@ -1,0 +1,3 @@
+Eliminate IdentityHashSet
+Investigate usage of SecurityException
+Investigate authors - switch to LGPL
